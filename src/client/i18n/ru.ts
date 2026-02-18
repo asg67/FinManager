@@ -34,6 +34,7 @@ export default {
     analytics: "Аналитика",
     employees: "Сотрудники",
     settings: "Настройки",
+    tools: "Инструменты",
     more: "Ещё",
   },
   header: {

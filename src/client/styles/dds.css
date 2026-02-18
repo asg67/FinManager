@@ -1,7 +1,7 @@
 /* ===== DDS Operations Page ===== */
 
 .dds-page {
-  max-width: 1200px;
+  /* No max-width — fills available space */
 }
 
 .page-header {

@@ -34,6 +34,7 @@ export default {
     analytics: "Analytics",
     employees: "Employees",
     settings: "Settings",
+    tools: "Tools",
     more: "More",
   },
   header: {

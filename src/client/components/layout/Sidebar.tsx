@@ -41,6 +41,9 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
     { to: "/", icon: Home, label: t("nav.dashboard") },
     { to: "/dds", icon: ArrowLeftRight, label: t("nav.dds") },
     { to: "/pdf", icon: FileText, label: t("nav.statements") },
+  ];
+
+  const toolItems = [
     { to: "/settings", icon: Settings, label: t("nav.settings") },
   ];
 
@@ -66,6 +69,24 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
               key={item.to}
               to={item.to}
               end={item.to === "/"}
+              className={({ isActive }) =>
+                clsx("sidebar__link", isActive && "sidebar__link--active")
+              }
+              title={collapsed ? item.label : undefined}
+            >
+              <item.icon size={20} />
+              {!collapsed && <span>{item.label}</span>}
+            </NavLink>
+          ))}
+
+          {!collapsed && (
+            <div className="sidebar__section-label">{t("nav.tools")}</div>
+          )}
+
+          {toolItems.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
               className={({ isActive }) =>
                 clsx("sidebar__link", isActive && "sidebar__link--active")
               }
