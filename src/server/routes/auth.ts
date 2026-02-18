@@ -72,12 +72,16 @@ router.post("/register", validate(registerSchema), async (req: Request, res: Res
 
     const passwordHash = await bcrypt.hash(password, 10);
 
+    // First user in the system becomes owner, all others become members
+    const userCount = await prisma.user.count();
+    const role = userCount === 0 ? "owner" : "member";
+
     const user = await prisma.user.create({
       data: {
         email,
         passwordHash,
         name,
-        role: "owner",
+        role,
         permission: {
           create: {
             dds: true,

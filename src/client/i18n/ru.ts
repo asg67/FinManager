@@ -160,6 +160,7 @@ export default {
     copyInviteLink: "Скопировать ссылку",
     inviteLinkCopied: "Ссылка скопирована!",
     setupRequired: "Для работы с ДДС необходимо создать или присоединиться к компании",
+    setupRequiredMember: "Для доступа к ДДС вставьте ссылку-приглашение от администратора",
     createCompanyOption: "Создать компанию",
     createCompanyDesc: "Создайте новую компанию и настройте ДДС",
     joinCompanyOption: "Присоединиться",
@@ -194,6 +195,8 @@ export default {
     status: "Статус",
     allDirections: "Все направления",
     noTransactions: "Нет банковских операций",
+    bankAccountsTab: "Расчётные счета",
+    bankAccountsPlaceholder: "Раздел в разработке. Здесь будет интеграция с банковскими API для автоматической выгрузки данных.",
   },
   employees: {
     name: "Имя",

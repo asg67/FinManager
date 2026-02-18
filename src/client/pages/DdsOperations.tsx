@@ -43,8 +43,8 @@ export default function DdsOperations() {
     );
   }
 
-  // If company exists but onboarding not done → show OnboardingWizard (steps 1-3)
-  if (!onboardingDone) {
+  // If company exists but onboarding not done → owner sees OnboardingWizard, members see DDS table
+  if (!onboardingDone && user?.role === "owner") {
     return <OnboardingWizard />;
   }
 

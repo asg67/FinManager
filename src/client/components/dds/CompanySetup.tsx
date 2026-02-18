@@ -9,13 +9,15 @@ import { Button, Input } from "../ui/index.js";
 
 export default function CompanySetup() {
   const { t } = useTranslation();
-  const [mode, setMode] = useState<"choose" | "create" | "join">("choose");
+  const user = useAuthStore((s) => s.user);
+  const isOwner = user?.role === "owner";
+  const [mode, setMode] = useState<"choose" | "create" | "join">(isOwner ? "choose" : "join");
 
   return (
     <div className="company-setup">
-      {mode === "choose" && <ChooseMode onMode={setMode} />}
+      {mode === "choose" && isOwner && <ChooseMode onMode={setMode} />}
       {mode === "create" && <CreateCompany onBack={() => setMode("choose")} />}
-      {mode === "join" && <JoinCompany onBack={() => setMode("choose")} />}
+      {mode === "join" && <JoinCompany onBack={isOwner ? () => setMode("choose") : undefined} isOwner={isOwner} />}
     </div>
   );
 }
@@ -112,7 +114,7 @@ function CreateCompany({ onBack }: { onBack: () => void }) {
   );
 }
 
-function JoinCompany({ onBack }: { onBack: () => void }) {
+function JoinCompany({ onBack, isOwner }: { onBack?: () => void; isOwner: boolean }) {
   const { t } = useTranslation();
   const [inviteInput, setInviteInput] = useState("");
   const [checking, setChecking] = useState(false);
@@ -170,7 +172,9 @@ function JoinCompany({ onBack }: { onBack: () => void }) {
   return (
     <div className="company-setup__form-card">
       <h2 className="company-setup__form-title">{t("dds.joinCompanyOption")}</h2>
-      <p className="company-setup__hint">{t("dds.pasteInviteHint")}</p>
+      <p className="company-setup__hint">
+        {isOwner ? t("dds.pasteInviteHint") : t("dds.setupRequiredMember")}
+      </p>
 
       {error && (
         <div className="company-setup__error">
@@ -196,9 +200,11 @@ function JoinCompany({ onBack }: { onBack: () => void }) {
             autoFocus
           />
           <div className="company-setup__actions">
-            <Button variant="secondary" type="button" onClick={onBack}>
-              {t("onboarding.back")}
-            </Button>
+            {onBack && (
+              <Button variant="secondary" type="button" onClick={onBack}>
+                {t("onboarding.back")}
+              </Button>
+            )}
             <Button type="submit" loading={checking} disabled={!inviteInput.trim()}>
               {t("dds.checkInvite")}
             </Button>
@@ -206,9 +212,11 @@ function JoinCompany({ onBack }: { onBack: () => void }) {
         </form>
       ) : (
         <div className="company-setup__actions">
-          <Button variant="secondary" type="button" onClick={onBack}>
-            {t("onboarding.back")}
-          </Button>
+          {onBack && (
+            <Button variant="secondary" type="button" onClick={onBack}>
+              {t("onboarding.back")}
+            </Button>
+          )}
           <Button onClick={handleJoin} loading={joining}>
             {t("dds.joinCompanyOption")}
           </Button>

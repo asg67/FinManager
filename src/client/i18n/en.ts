@@ -160,6 +160,7 @@ export default {
     copyInviteLink: "Copy Invite Link",
     inviteLinkCopied: "Link copied!",
     setupRequired: "To use Cash Flow, you need to create or join a company",
+    setupRequiredMember: "To access Cash Flow, paste an invite link from the administrator",
     createCompanyOption: "Create Company",
     createCompanyDesc: "Create a new company and set up Cash Flow",
     joinCompanyOption: "Join Company",
@@ -194,6 +195,8 @@ export default {
     status: "Status",
     allDirections: "All directions",
     noTransactions: "No bank transactions",
+    bankAccountsTab: "Bank Accounts",
+    bankAccountsPlaceholder: "This section is under development. Bank API integration for automatic data export will be available here.",
   },
   employees: {
     name: "Name",

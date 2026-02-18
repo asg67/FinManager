@@ -476,4 +476,35 @@ router.get("/members", async (req: Request, res: Response) => {
   }
 });
 
+// GET /api/company/expense-types — list all expense types across all entities in the company
+router.get("/expense-types", async (req: Request, res: Response) => {
+  try {
+    const user = await prisma.user.findUnique({ where: { id: req.user!.userId } });
+    if (!user?.companyId) {
+      res.status(400).json({ message: "No company" });
+      return;
+    }
+
+    const types = await prisma.expenseType.findMany({
+      where: { entity: { companyId: user.companyId } },
+      include: { articles: { orderBy: { name: "asc" } } },
+      orderBy: { name: "asc" },
+    });
+
+    res.json(types.map((t) => ({
+      id: t.id,
+      name: t.name,
+      entityId: t.entityId,
+      articles: t.articles.map((a) => ({
+        id: a.id,
+        name: a.name,
+        expenseTypeId: a.expenseTypeId,
+      })),
+    })));
+  } catch (error) {
+    console.error("List company expense types error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 export default router;

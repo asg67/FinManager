@@ -445,17 +445,7 @@ function AccountsBlock({
           <ul className="onboarding__list">
             {accounts.map((acc) => (
               <li key={acc.id} className="onboarding__list-item">
-                <span>
-                  {acc.name}{" "}
-                  <span className="onboarding__list-meta">
-                    {ACCOUNT_TYPES.find((a) => a.value === acc.type)
-                      ? t(
-                          ACCOUNT_TYPES.find((a) => a.value === acc.type)!
-                            .labelKey,
-                        )
-                      : acc.type}
-                  </span>
-                </span>
+                <span>{acc.name}</span>
                 <button
                   type="button"
                   className="icon-btn icon-btn--danger"
@@ -482,7 +472,7 @@ function ExpensesBlock({
   onTotalChange: (total: number) => void;
 }) {
   const { t } = useTranslation();
-  const [selectedEntity, setSelectedEntity] = useState("");
+  const entityId = entities[0]?.id ?? "";
   const [types, setTypes] = useState<ExpenseType[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -491,18 +481,9 @@ function ExpensesBlock({
   const [articleName, setArticleName] = useState("");
   const [savingArticle, setSavingArticle] = useState(false);
 
-  // Sync selected entity
-  useEffect(() => {
-    if (entities.length > 0) {
-      if (!selectedEntity || !entities.find((e) => e.id === selectedEntity)) {
-        setSelectedEntity(entities[0].id);
-      }
-    }
-  }, [entities]);
-
   async function loadTypes() {
-    if (!selectedEntity) return;
-    const data = await expensesApi.listTypes(selectedEntity);
+    if (!entityId) return;
+    const data = await expensesApi.listTypes(entityId);
     setTypes(data);
     setLoading(false);
   }
@@ -517,8 +498,8 @@ function ExpensesBlock({
   }
 
   useEffect(() => {
-    if (selectedEntity) loadTypes();
-  }, [selectedEntity]);
+    if (entityId) loadTypes();
+  }, [entityId]);
 
   useEffect(() => {
     if (entities.length > 0) countTotal();
@@ -529,7 +510,7 @@ function ExpensesBlock({
     if (!typeName.trim()) return;
     setSaving(true);
     try {
-      const created = await expensesApi.createType(selectedEntity, {
+      const created = await expensesApi.createType(entityId, {
         name: typeName.trim(),
       });
       setTypeName("");
@@ -541,7 +522,7 @@ function ExpensesBlock({
   }
 
   async function handleDeleteType(id: string) {
-    await expensesApi.deleteType(selectedEntity, id);
+    await expensesApi.deleteType(entityId, id);
     if (expandedTypeId === id) setExpandedTypeId(null);
     await loadTypes();
   }
@@ -551,7 +532,7 @@ function ExpensesBlock({
     if (!articleName.trim()) return;
     setSavingArticle(true);
     try {
-      await expensesApi.createArticle(selectedEntity, typeId, {
+      await expensesApi.createArticle(entityId, typeId, {
         name: articleName.trim(),
       });
       setArticleName("");
@@ -562,26 +543,12 @@ function ExpensesBlock({
   }
 
   async function handleDeleteArticle(typeId: string, articleId: string) {
-    await expensesApi.deleteArticle(selectedEntity, typeId, articleId);
+    await expensesApi.deleteArticle(entityId, typeId, articleId);
     await loadTypes();
   }
 
   return (
     <div>
-      {entities.length > 1 && (
-        <div className="onboarding__entity-select">
-          <Select
-            options={entities.map((e) => ({ value: e.id, label: e.name }))}
-            value={selectedEntity}
-            onChange={(e) => {
-              setSelectedEntity(e.target.value);
-              setExpandedTypeId(null);
-            }}
-            label={t("settings.selectEntity")}
-          />
-        </div>
-      )}
-
       <form onSubmit={handleAddType} className="onboarding__inline-form">
         <Input
           value={typeName}

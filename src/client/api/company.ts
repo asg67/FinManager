@@ -6,6 +6,7 @@ import type {
   AuthResponse,
   RegisterInvitePayload,
   User,
+  ExpenseType,
 } from "@shared/types.js";
 
 export const companyApi = {
@@ -46,4 +47,7 @@ export const companyApi = {
     api.get<{ id: string; name: string; email: string; role: string; createdAt: string }[]>(
       "/company/members",
     ),
+
+  listExpenseTypes: () =>
+    api.get<ExpenseType[]>("/company/expense-types"),
 };

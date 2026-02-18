@@ -2,7 +2,7 @@ import { useState, useEffect, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { ddsApi, type CreateOperationPayload } from "../../api/dds.js";
 import { accountsApi } from "../../api/accounts.js";
-import { expensesApi } from "../../api/expenses.js";
+import { companyApi } from "../../api/company.js";
 import { Button, Input, Select, Modal } from "../ui/index.js";
 import type { Entity, Account, ExpenseType, DdsOperation, DdsTemplate } from "@shared/types.js";
 
@@ -60,15 +60,15 @@ export default function OperationWizard({ open, onClose, onDone, editOperation, 
     }
   }, [open, editOperation, entities]);
 
-  // Load accounts and expense types when entity changes
+  // Load expense types once (company-wide)
+  useEffect(() => {
+    if (open) companyApi.listExpenseTypes().then(setExpenseTypes);
+  }, [open]);
+
+  // Load accounts when entity changes
   useEffect(() => {
     if (form.entityId) {
-      Promise.all([accountsApi.list(form.entityId), expensesApi.listTypes(form.entityId)]).then(
-        ([accs, types]) => {
-          setAccounts(accs);
-          setExpenseTypes(types);
-        },
-      );
+      accountsApi.list(form.entityId).then(setAccounts);
     }
   }, [form.entityId]);
 

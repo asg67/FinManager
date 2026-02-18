@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Save } from "lucide-react";
 import { ddsApi, type CreateOperationPayload } from "../../api/dds.js";
 import { accountsApi } from "../../api/accounts.js";
-import { expensesApi } from "../../api/expenses.js";
+import { companyApi } from "../../api/company.js";
 import { Button, Input, Select } from "../ui/index.js";
 import type { Entity, Account, ExpenseType, DdsTemplate } from "@shared/types.js";
 
@@ -45,18 +45,17 @@ export default function QuickAddForm({ entities, onSaved }: Props) {
     }
   }, [entities, form.entityId]);
 
-  // Load accounts and expense types when entity changes
+  // Load expense types once (company-wide)
+  useEffect(() => {
+    companyApi.listExpenseTypes().then(setExpenseTypes);
+  }, []);
+
+  // Load accounts when entity changes
   useEffect(() => {
     if (form.entityId) {
-      Promise.all([accountsApi.list(form.entityId), expensesApi.listTypes(form.entityId)]).then(
-        ([accs, types]) => {
-          setAccounts(accs);
-          setExpenseTypes(types);
-        },
-      );
+      accountsApi.list(form.entityId).then(setAccounts);
     } else {
       setAccounts([]);
-      setExpenseTypes([]);
     }
   }, [form.entityId]);
 
@@ -131,8 +130,6 @@ export default function QuickAddForm({ entities, onSaved }: Props) {
             updateField("entityId", e.target.value);
             updateField("fromAccountId", undefined);
             updateField("toAccountId", undefined);
-            updateField("expenseTypeId", undefined);
-            updateField("expenseArticleId", undefined);
           }}
         />
 
