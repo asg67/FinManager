@@ -1,7 +1,7 @@
 /* ===== Dashboard ===== */
 
 .dashboard {
-  max-width: 1200px;
+  /* No max-width — fills available space on wide monitors */
 }
 
 /* ===== Glass Card (shared) ===== */

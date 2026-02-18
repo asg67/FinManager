@@ -24,7 +24,7 @@
   overflow-y: auto;
 }
 
-/* ===== Sidebar — floating rounded panel ===== */
+/* ===== Sidebar — two glass cards ===== */
 .sidebar {
   width: 240px;
   height: calc(100vh - var(--layout-gap) * 2);
@@ -32,14 +32,28 @@
   top: var(--layout-gap);
   display: flex;
   flex-direction: column;
-  background: var(--bg-base);
-  border-radius: var(--panel-radius);
+  gap: 12px;
+  background: transparent;
   transition: width 0.2s ease;
   flex-shrink: 0;
 }
 
 .sidebar--collapsed {
   width: 64px;
+}
+
+/* Glass card shared by nav and balance blocks */
+.sidebar__card {
+  background: var(--bg-base);
+  border-radius: var(--panel-radius);
+  overflow: hidden;
+}
+
+.sidebar__card--nav {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .sidebar__logo {
@@ -117,32 +131,34 @@
   padding: 0.75rem;
 }
 
-/* ===== Sidebar Balance Widget ===== */
-.sidebar__balance {
-  padding: 0.75rem 1rem 1rem;
-  margin: 0 0.75rem 0.75rem;
-  background: var(--bg-surface);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--glass-border);
+/* ===== Sidebar Balance Card ===== */
+.sidebar__balance-card {
+  padding: 1.25rem;
+  position: relative;
+  overflow: hidden;
 }
 
 .sidebar__balance-header {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  font-size: 0.75rem;
+  justify-content: space-between;
+  font-size: 0.8125rem;
   font-weight: 600;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  margin-bottom: 0.5rem;
+  color: var(--text-primary);
+  margin-bottom: 0.75rem;
+}
+
+.sidebar__balance-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .sidebar__balance-total {
-  font-size: 1.25rem;
+  font-size: 1.625rem;
   font-weight: 700;
   color: var(--text-primary);
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.25rem;
   font-variant-numeric: tabular-nums;
 }
 
@@ -150,6 +166,12 @@
   font-weight: 400;
   font-size: 0.875rem;
   color: var(--text-muted);
+}
+
+.sidebar__balance-hint {
+  font-size: 0.6875rem;
+  color: var(--text-dimmed);
+  margin-bottom: 0.75rem;
 }
 
 .sidebar__balance-accounts {
@@ -179,6 +201,69 @@
   color: var(--text-secondary);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
+}
+
+/* Decorative ovals */
+.sidebar__balance-decor {
+  position: relative;
+  height: 40px;
+  margin-top: 0.75rem;
+  border-radius: 50px;
+  background: rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+}
+
+.sidebar__balance-oval {
+  position: absolute;
+  height: 36px;
+  border-radius: 50px;
+}
+
+.sidebar__balance-oval--solid {
+  width: 100px;
+  background: #F5C84C;
+  left: 8px;
+}
+
+.sidebar__balance-oval--stroke {
+  width: 70px;
+  border: 2px solid #F5C84C;
+  right: 8px;
+  background: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 3px,
+    rgba(245, 168, 35, 0.15) 3px,
+    rgba(245, 168, 35, 0.15) 6px
+  );
+}
+
+[data-theme="dark"] .sidebar__balance-decor {
+  display: none;
+}
+
+/* Sign out button */
+.sidebar__signout {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.5rem;
+  border-radius: 50px;
+  background: transparent;
+  border: 1px solid var(--border-input);
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition);
+  width: fit-content;
+  margin: 0 auto;
+}
+
+.sidebar__signout:hover {
+  background: var(--bg-surface-hover);
+  color: var(--text-secondary);
 }
 
 /* ===== Header ===== */
@@ -346,6 +431,9 @@
 
 .mobile-sidebar .sidebar {
   height: 100%;
+}
+
+.mobile-sidebar .sidebar__card {
   border-radius: var(--panel-radius);
 }
 
@@ -659,48 +747,26 @@
 }
 
 /* ===== Light theme — glassmorphism on panels ===== */
-[data-theme="light"] .sidebar,
+[data-theme="light"] .sidebar__card,
 [data-theme="light"] .app-layout__main {
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.4);
 }
 
 [data-theme="light"] .sidebar__link--active {
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  background: rgba(255, 255, 255, 0.7);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.07);
 }
 
 [data-theme="light"] .sidebar__link--active svg {
   color: #F5A623;
 }
 
-[data-theme="light"] .sidebar__balance {
-  background: rgba(255, 255, 255, 0.6);
-  border-color: rgba(255, 255, 255, 0.6);
-  position: relative;
-  overflow: hidden;
-}
-
-[data-theme="light"] .sidebar__balance::before {
-  content: '';
-  position: absolute;
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  background: rgba(244, 215, 142, 0.35);
-  bottom: -20px;
-  right: -10px;
-}
-
-[data-theme="light"] .sidebar__balance::after {
-  content: '';
-  position: absolute;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: rgba(245, 166, 35, 0.25);
-  bottom: -5px;
-  right: 25px;
+[data-theme="light"] .sidebar__signout {
+  background: rgba(255, 255, 255, 0.4);
+  border-color: rgba(0, 0, 0, 0.06);
 }
 
 /* Light theme: subtle border on dropdowns/panels over glass */
