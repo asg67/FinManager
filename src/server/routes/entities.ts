@@ -23,16 +23,22 @@ router.get("/", async (req: Request, res: Response) => {
 
     const mine = req.query.mine === "true";
     const where: any = { companyId: user.companyId };
-    if (mine) {
-      // Check if user has explicit entity access
+    if (mine && user.role !== "owner") {
       const accessCount = await prisma.entityAccess.count({ where: { userId } });
       if (accessCount > 0) {
         where.OR = [
           { ownerId: userId },
           { entityAccess: { some: { userId } } },
         ];
+      } else {
+        // Match by last name
+        const lastName = user.name?.split(" ")[0];
+        if (lastName && lastName.length >= 2) {
+          where.name = { contains: lastName, mode: "insensitive" };
+        } else {
+          where.ownerId = userId;
+        }
       }
-      // If no explicit access — show all company entities
     }
 
     const entities = await prisma.entity.findMany({

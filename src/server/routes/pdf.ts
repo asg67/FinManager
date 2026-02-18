@@ -237,11 +237,18 @@ router.get("/transactions", async (req: Request, res: Response) => {
     let entFilter: any;
     if (!user?.companyId) {
       entFilter = { ownerId: userId };
+    } else if (user.role === "owner") {
+      entFilter = { companyId: user.companyId };
     } else {
       const accessCount = await prisma.entityAccess.count({ where: { userId } });
-      entFilter = accessCount > 0
-        ? { companyId: user.companyId, OR: [{ ownerId: userId }, { entityAccess: { some: { userId } } }] }
-        : { companyId: user.companyId };
+      if (accessCount > 0) {
+        entFilter = { companyId: user.companyId, OR: [{ ownerId: userId }, { entityAccess: { some: { userId } } }] };
+      } else {
+        const lastName = user.name?.split(" ")[0];
+        entFilter = lastName && lastName.length >= 2
+          ? { companyId: user.companyId, name: { contains: lastName, mode: "insensitive" } }
+          : { companyId: user.companyId, ownerId: userId };
+      }
     }
 
     const where: Prisma.BankTransactionWhereInput = {

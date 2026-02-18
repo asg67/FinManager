@@ -10,19 +10,27 @@ async function entityFilter(companyId: string | null, userId: string, mine: bool
   if (!companyId) return { ownerId: userId };
   if (!mine) return { companyId };
 
-  // Check if user has any explicit entity access
-  const accessCount = await prisma.entityAccess.count({ where: { userId } });
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { role: true, name: true } });
 
+  // Owner sees all company entities
+  if (user?.role === "owner") return { companyId };
+
+  // Check if user has explicit entity access
+  const accessCount = await prisma.entityAccess.count({ where: { userId } });
   if (accessCount > 0) {
-    // User has explicit assignments — show only those + owned
     return {
       companyId,
       OR: [{ ownerId: userId }, { entityAccess: { some: { userId } } }],
     };
   }
 
-  // No explicit restrictions — show all company entities
-  return { companyId };
+  // No explicit access — match by last name (first word of user name)
+  const lastName = user?.name?.split(" ")[0];
+  if (lastName && lastName.length >= 2) {
+    return { companyId, name: { contains: lastName, mode: "insensitive" } };
+  }
+
+  return { companyId, ownerId: userId };
 }
 
 // GET /api/analytics/summary — total income, expense, count for a period
