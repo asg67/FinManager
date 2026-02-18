@@ -233,6 +233,7 @@ export default {
     expensesTitle: "Add expense categories",
     expensesHint: "Add at least one expense category",
     expensePlaceholder: "e.g. Rent, Salary, Advertising",
+    articlePlaceholder: "e.g. Delivery, Commission",
   },
   company: {
     title: "Company",

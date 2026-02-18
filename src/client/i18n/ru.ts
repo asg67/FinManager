@@ -233,6 +233,7 @@ export default {
     expensesTitle: "Добавьте категории расходов",
     expensesHint: "Добавьте хотя бы одну категорию расходов",
     expensePlaceholder: "Например: Аренда, Зарплата, Реклама",
+    articlePlaceholder: "Например: Доставка, Комиссия",
   },
   company: {
     title: "Компания",

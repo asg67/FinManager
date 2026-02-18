@@ -8,9 +8,9 @@ import {
   Pencil,
   Trash2,
   Check,
+  ChevronDown,
   ChevronRight,
 } from "lucide-react";
-import clsx from "clsx";
 import { useAuthStore } from "../../stores/auth.js";
 import { companyApi } from "../../api/company.js";
 import { entitiesApi } from "../../api/entities.js";
@@ -34,19 +34,50 @@ const BANKS = [
   { value: "other", label: "Другой" },
 ];
 
-type Step = 0 | 1 | 2;
+function generateAccountName(
+  type: string,
+  bank: string | undefined,
+  entityName: string,
+  userName: string,
+): string {
+  const bankLabel =
+    bank && bank !== "other"
+      ? BANKS.find((b) => b.value === bank)?.label
+      : undefined;
+  switch (type) {
+    case "checking":
+      return bankLabel ? `р/с ${bankLabel} ${entityName}` : `р/с ${entityName}`;
+    case "card":
+      return bankLabel
+        ? `Карта ${bankLabel} ${entityName}`
+        : `Карта ${entityName}`;
+    case "cash":
+      return `Наличные ${userName}`;
+    case "deposit":
+      return `Депозит ${userName}`;
+    default:
+      return "";
+  }
+}
 
 export default function OnboardingWizard() {
   const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
-  const [step, setStep] = useState<Step>(0);
   const [completing, setCompleting] = useState(false);
+  const [entities, setEntities] = useState<Entity[]>([]);
+  const [entitiesLoading, setEntitiesLoading] = useState(true);
+  const [totalAccounts, setTotalAccounts] = useState(0);
+  const [totalTypes, setTotalTypes] = useState(0);
 
-  const steps = [
-    { icon: Landmark, label: t("onboarding.stepEntities") },
-    { icon: Wallet, label: t("onboarding.stepAccounts") },
-    { icon: Tags, label: t("onboarding.stepExpenses") },
-  ];
+  async function loadEntities() {
+    const data = await entitiesApi.list();
+    setEntities(data);
+    setEntitiesLoading(false);
+  }
+
+  useEffect(() => {
+    loadEntities();
+  }, []);
 
   async function handleComplete() {
     setCompleting(true);
@@ -59,68 +90,107 @@ export default function OnboardingWizard() {
     }
   }
 
+  const canComplete = entities.length > 0 && totalAccounts > 0 && totalTypes > 0;
+
   return (
     <div className="onboarding">
       <div className="onboarding__container">
-        <h1 className="onboarding__title">{user?.company?.name ?? "FinManager"}</h1>
+        <h1 className="onboarding__title">
+          {user?.company?.name ?? "FinManager"}
+        </h1>
         <p className="onboarding__subtitle">{t("onboarding.subtitle")}</p>
 
-        {/* Stepper */}
-        <div className="onboarding__stepper">
-          {steps.map(({ icon: Icon, label }, i) => (
-            <div
-              key={i}
-              className={clsx(
-                "onboarding__step-indicator",
-                i < step && "onboarding__step-indicator--done",
-                i === step && "onboarding__step-indicator--active",
-              )}
-            >
-              <div className="onboarding__step-circle">
-                {i < step ? <Check size={16} /> : <Icon size={16} />}
-              </div>
-              <span className="onboarding__step-label">{label}</span>
-            </div>
-          ))}
+        {/* Section 1: Entities */}
+        <div className="onboarding__section">
+          <div className="onboarding__section-header">
+            <Landmark size={18} className="onboarding__section-icon" />
+            <h2 className="onboarding__section-title">
+              {t("onboarding.entitiesTitle")}
+            </h2>
+            {entities.length > 0 && (
+              <span className="onboarding__badge">{entities.length}</span>
+            )}
+          </div>
+          <p className="onboarding__hint">{t("onboarding.entitiesHint")}</p>
+          <EntitiesBlock
+            entities={entities}
+            loading={entitiesLoading}
+            onReload={loadEntities}
+          />
         </div>
 
-        {/* Step content */}
-        <div className="onboarding__card">
-          {step === 0 && <StepEntities onNext={() => setStep(1)} />}
-          {step === 1 && <StepAccounts onNext={() => setStep(2)} onBack={() => setStep(0)} />}
-          {step === 2 && (
-            <StepExpenses
-              onComplete={handleComplete}
-              onBack={() => setStep(1)}
-              completing={completing}
+        {/* Section 2: Accounts */}
+        {entities.length > 0 && (
+          <div className="onboarding__section">
+            <div className="onboarding__section-header">
+              <Wallet size={18} className="onboarding__section-icon" />
+              <h2 className="onboarding__section-title">
+                {t("onboarding.accountsTitle")}
+              </h2>
+              {totalAccounts > 0 && (
+                <span className="onboarding__badge">{totalAccounts}</span>
+              )}
+            </div>
+            <p className="onboarding__hint">{t("onboarding.accountsHint")}</p>
+            <AccountsBlock
+              entities={entities}
+              userName={user?.name ?? ""}
+              onTotalChange={setTotalAccounts}
             />
-          )}
+          </div>
+        )}
+
+        {/* Section 3: Expense Categories */}
+        {entities.length > 0 && (
+          <div className="onboarding__section">
+            <div className="onboarding__section-header">
+              <Tags size={18} className="onboarding__section-icon" />
+              <h2 className="onboarding__section-title">
+                {t("onboarding.expensesTitle")}
+              </h2>
+              {totalTypes > 0 && (
+                <span className="onboarding__badge">{totalTypes}</span>
+              )}
+            </div>
+            <p className="onboarding__hint">{t("onboarding.expensesHint")}</p>
+            <ExpensesBlock
+              entities={entities}
+              onTotalChange={setTotalTypes}
+            />
+          </div>
+        )}
+
+        {/* Complete */}
+        <div className="onboarding__complete">
+          <Button
+            onClick={handleComplete}
+            disabled={!canComplete}
+            loading={completing}
+          >
+            <Check size={16} /> {t("onboarding.finish")}
+          </Button>
         </div>
       </div>
     </div>
   );
 }
 
-/* ─── Step 0: Entities ─── */
+/* ─── Entities Block ─── */
 
-function StepEntities({ onNext }: { onNext: () => void }) {
+function EntitiesBlock({
+  entities,
+  loading,
+  onReload,
+}: {
+  entities: Entity[];
+  loading: boolean;
+  onReload: () => Promise<void>;
+}) {
   const { t } = useTranslation();
-  const [entities, setEntities] = useState<Entity[]>([]);
-  const [loading, setLoading] = useState(true);
   const [name, setName] = useState("");
   const [saving, setSaving] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
-
-  async function load() {
-    const data = await entitiesApi.list();
-    setEntities(data);
-    setLoading(false);
-  }
-
-  useEffect(() => {
-    load();
-  }, []);
 
   async function handleAdd(e: FormEvent) {
     e.preventDefault();
@@ -129,7 +199,7 @@ function StepEntities({ onNext }: { onNext: () => void }) {
     try {
       await entitiesApi.create({ name: name.trim() });
       setName("");
-      await load();
+      await onReload();
     } finally {
       setSaving(false);
     }
@@ -139,19 +209,16 @@ function StepEntities({ onNext }: { onNext: () => void }) {
     if (!editName.trim()) return;
     await entitiesApi.update(id, { name: editName.trim() });
     setEditId(null);
-    await load();
+    await onReload();
   }
 
   async function handleDelete(id: string) {
     await entitiesApi.delete(id);
-    await load();
+    await onReload();
   }
 
   return (
     <div>
-      <h2 className="onboarding__step-title">{t("onboarding.entitiesTitle")}</h2>
-      <p className="onboarding__hint">{t("onboarding.entitiesHint")}</p>
-
       <form onSubmit={handleAdd} className="onboarding__inline-form">
         <Input
           value={name}
@@ -167,87 +234,95 @@ function StepEntities({ onNext }: { onNext: () => void }) {
       {loading ? (
         <div className="tab-loading">{t("common.loading")}</div>
       ) : (
-        <ul className="onboarding__list">
-          {entities.map((ent) => (
-            <li key={ent.id} className="onboarding__list-item">
-              {editId === ent.id ? (
-                <div className="onboarding__inline-form">
-                  <Input
-                    value={editName}
-                    onChange={(e) => setEditName(e.target.value)}
-                    autoFocus
-                  />
-                  <Button size="sm" onClick={() => handleSaveEdit(ent.id)}>
-                    <Check size={14} />
-                  </Button>
-                  <Button variant="secondary" size="sm" onClick={() => setEditId(null)}>
-                    {t("common.cancel")}
-                  </Button>
-                </div>
-              ) : (
-                <>
-                  <span>{ent.name}</span>
-                  <div className="onboarding__list-actions">
-                    <button
-                      type="button"
-                      className="icon-btn"
-                      onClick={() => {
-                        setEditId(ent.id);
-                        setEditName(ent.name);
-                      }}
+        entities.length > 0 && (
+          <ul className="onboarding__list">
+            {entities.map((ent) => (
+              <li key={ent.id} className="onboarding__list-item">
+                {editId === ent.id ? (
+                  <div className="onboarding__inline-form onboarding__inline-form--nested">
+                    <Input
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      autoFocus
+                    />
+                    <Button size="sm" onClick={() => handleSaveEdit(ent.id)}>
+                      <Check size={14} />
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => setEditId(null)}
                     >
-                      <Pencil size={14} />
-                    </button>
-                    <button
-                      type="button"
-                      className="icon-btn icon-btn--danger"
-                      onClick={() => handleDelete(ent.id)}
-                    >
-                      <Trash2 size={14} />
-                    </button>
+                      {t("common.cancel")}
+                    </Button>
                   </div>
-                </>
-              )}
-            </li>
-          ))}
-        </ul>
+                ) : (
+                  <>
+                    <span>{ent.name}</span>
+                    <div className="onboarding__list-actions">
+                      <button
+                        type="button"
+                        className="icon-btn"
+                        onClick={() => {
+                          setEditId(ent.id);
+                          setEditName(ent.name);
+                        }}
+                      >
+                        <Pencil size={14} />
+                      </button>
+                      <button
+                        type="button"
+                        className="icon-btn icon-btn--danger"
+                        onClick={() => handleDelete(ent.id)}
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </>
+                )}
+              </li>
+            ))}
+          </ul>
+        )
       )}
-
-      <div className="onboarding__actions">
-        <Button onClick={onNext} disabled={entities.length === 0}>
-          {t("onboarding.next")} <ChevronRight size={16} />
-        </Button>
-      </div>
     </div>
   );
 }
 
-/* ─── Step 1: Accounts ─── */
+/* ─── Accounts Block ─── */
 
-function StepAccounts({ onNext, onBack }: { onNext: () => void; onBack: () => void }) {
+function AccountsBlock({
+  entities,
+  userName,
+  onTotalChange,
+}: {
+  entities: Entity[];
+  userName: string;
+  onTotalChange: (total: number) => void;
+}) {
   const { t } = useTranslation();
-  const [entities, setEntities] = useState<Entity[]>([]);
   const [selectedEntity, setSelectedEntity] = useState("");
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
-  const [totalAccounts, setTotalAccounts] = useState(0);
-
-  // Form
-  const [form, setForm] = useState<CreateAccountPayload>({ name: "", type: "checking" });
   const [saving, setSaving] = useState(false);
+  const [accountType, setAccountType] = useState("checking");
+  const [accountBank, setAccountBank] = useState("");
+  const [accountName, setAccountName] = useState("");
 
+  // Sync selected entity when entities change
   useEffect(() => {
-    entitiesApi.list().then((data) => {
-      setEntities(data);
-      if (data.length > 0) setSelectedEntity(data[0].id);
-      setLoading(false);
-    });
-  }, []);
+    if (entities.length > 0) {
+      if (!selectedEntity || !entities.find((e) => e.id === selectedEntity)) {
+        setSelectedEntity(entities[0].id);
+      }
+    }
+  }, [entities]);
 
   async function loadAccounts() {
     if (!selectedEntity) return;
     const data = await accountsApi.list(selectedEntity);
     setAccounts(data);
+    setLoading(false);
   }
 
   async function countTotal() {
@@ -256,7 +331,7 @@ function StepAccounts({ onNext, onBack }: { onNext: () => void; onBack: () => vo
       const accs = await accountsApi.list(ent.id);
       total += accs.length;
     }
-    setTotalAccounts(total);
+    onTotalChange(total);
   }
 
   useEffect(() => {
@@ -267,13 +342,36 @@ function StepAccounts({ onNext, onBack }: { onNext: () => void; onBack: () => vo
     if (entities.length > 0) countTotal();
   }, [entities, accounts]);
 
+  // Auto-generate name when type/bank/entity changes
+  useEffect(() => {
+    const entityName =
+      entities.find((e) => e.id === selectedEntity)?.name ?? "";
+    const newName = generateAccountName(
+      accountType,
+      accountBank || undefined,
+      entityName,
+      userName,
+    );
+    setAccountName(newName);
+  }, [accountType, accountBank, selectedEntity, entities, userName]);
+
+  const showBank = accountType !== "cash" && accountType !== "deposit";
+
   async function handleAdd(e: FormEvent) {
     e.preventDefault();
-    if (!form.name.trim()) return;
+    if (!accountName.trim()) return;
     setSaving(true);
     try {
-      await accountsApi.create(selectedEntity, form);
-      setForm({ name: "", type: "checking" });
+      const payload: CreateAccountPayload = {
+        name: accountName.trim(),
+        type: accountType,
+      };
+      if (showBank && accountBank) {
+        payload.bank = accountBank;
+      }
+      await accountsApi.create(selectedEntity, payload);
+      setAccountType("checking");
+      setAccountBank("");
       await loadAccounts();
     } finally {
       setSaving(false);
@@ -285,46 +383,57 @@ function StepAccounts({ onNext, onBack }: { onNext: () => void; onBack: () => vo
     await loadAccounts();
   }
 
-  const showBank = form.type !== "cash";
-
   return (
     <div>
-      <h2 className="onboarding__step-title">{t("onboarding.accountsTitle")}</h2>
-      <p className="onboarding__hint">{t("onboarding.accountsHint")}</p>
-
       {entities.length > 1 && (
-        <Select
-          options={entities.map((e) => ({ value: e.id, label: e.name }))}
-          value={selectedEntity}
-          onChange={(e) => setSelectedEntity(e.target.value)}
-          label={t("settings.selectEntity")}
-        />
+        <div className="onboarding__entity-select">
+          <Select
+            options={entities.map((e) => ({ value: e.id, label: e.name }))}
+            value={selectedEntity}
+            onChange={(e) => setSelectedEntity(e.target.value)}
+            label={t("settings.selectEntity")}
+          />
+        </div>
       )}
 
       <form onSubmit={handleAdd} className="onboarding__account-form">
+        <div className="onboarding__account-row">
+          <Select
+            label={t("settings.accountType")}
+            options={ACCOUNT_TYPES.map((a) => ({
+              value: a.value,
+              label: t(a.labelKey),
+            }))}
+            value={accountType}
+            onChange={(e) => {
+              setAccountType(e.target.value);
+              if (e.target.value === "cash" || e.target.value === "deposit") {
+                setAccountBank("");
+              }
+            }}
+          />
+          {showBank && (
+            <Select
+              label={t("settings.bank")}
+              options={BANKS}
+              value={accountBank}
+              onChange={(e) => setAccountBank(e.target.value)}
+              placeholder={t("settings.selectBank")}
+            />
+          )}
+        </div>
         <Input
           label={t("settings.accountName")}
-          value={form.name}
-          onChange={(e) => setForm({ ...form, name: e.target.value })}
+          value={accountName}
+          onChange={(e) => setAccountName(e.target.value)}
           required
-          autoFocus
         />
-        <Select
-          label={t("settings.accountType")}
-          options={ACCOUNT_TYPES.map((a) => ({ value: a.value, label: t(a.labelKey) }))}
-          value={form.type}
-          onChange={(e) => setForm({ ...form, type: e.target.value })}
-        />
-        {showBank && (
-          <Select
-            label={t("settings.bank")}
-            options={BANKS}
-            value={form.bank ?? ""}
-            onChange={(e) => setForm({ ...form, bank: e.target.value || undefined })}
-            placeholder={t("settings.selectBank")}
-          />
-        )}
-        <Button type="submit" size="sm" loading={saving} disabled={!form.name.trim()}>
+        <Button
+          type="submit"
+          size="sm"
+          loading={saving}
+          disabled={!accountName.trim()}
+        >
           <Plus size={16} /> {t("common.add")}
         </Button>
       </form>
@@ -332,75 +441,70 @@ function StepAccounts({ onNext, onBack }: { onNext: () => void; onBack: () => vo
       {loading ? (
         <div className="tab-loading">{t("common.loading")}</div>
       ) : (
-        <ul className="onboarding__list">
-          {accounts.map((acc) => (
-            <li key={acc.id} className="onboarding__list-item">
-              <span>
-                {acc.name}{" "}
-                <span className="onboarding__list-meta">
-                  {ACCOUNT_TYPES.find((a) => a.value === acc.type)
-                    ? t(ACCOUNT_TYPES.find((a) => a.value === acc.type)!.labelKey)
-                    : acc.type}
+        accounts.length > 0 && (
+          <ul className="onboarding__list">
+            {accounts.map((acc) => (
+              <li key={acc.id} className="onboarding__list-item">
+                <span>
+                  {acc.name}{" "}
+                  <span className="onboarding__list-meta">
+                    {ACCOUNT_TYPES.find((a) => a.value === acc.type)
+                      ? t(
+                          ACCOUNT_TYPES.find((a) => a.value === acc.type)!
+                            .labelKey,
+                        )
+                      : acc.type}
+                  </span>
                 </span>
-              </span>
-              <button
-                type="button"
-                className="icon-btn icon-btn--danger"
-                onClick={() => handleDelete(acc.id)}
-              >
-                <Trash2 size={14} />
-              </button>
-            </li>
-          ))}
-        </ul>
+                <button
+                  type="button"
+                  className="icon-btn icon-btn--danger"
+                  onClick={() => handleDelete(acc.id)}
+                >
+                  <Trash2 size={14} />
+                </button>
+              </li>
+            ))}
+          </ul>
+        )
       )}
-
-      <div className="onboarding__actions">
-        <Button variant="secondary" onClick={onBack}>
-          {t("onboarding.back")}
-        </Button>
-        <Button onClick={onNext} disabled={totalAccounts === 0}>
-          {t("onboarding.next")} <ChevronRight size={16} />
-        </Button>
-      </div>
     </div>
   );
 }
 
-/* ─── Step 2: Expense Categories ─── */
+/* ─── Expenses Block ─── */
 
-function StepExpenses({
-  onComplete,
-  onBack,
-  completing,
+function ExpensesBlock({
+  entities,
+  onTotalChange,
 }: {
-  onComplete: () => void;
-  onBack: () => void;
-  completing: boolean;
+  entities: Entity[];
+  onTotalChange: (total: number) => void;
 }) {
   const { t } = useTranslation();
-  const [entities, setEntities] = useState<Entity[]>([]);
   const [selectedEntity, setSelectedEntity] = useState("");
   const [types, setTypes] = useState<ExpenseType[]>([]);
   const [loading, setLoading] = useState(true);
-  const [totalTypes, setTotalTypes] = useState(0);
-
-  // Form
-  const [typeName, setTypeName] = useState("");
   const [saving, setSaving] = useState(false);
+  const [typeName, setTypeName] = useState("");
+  const [expandedTypeId, setExpandedTypeId] = useState<string | null>(null);
+  const [articleName, setArticleName] = useState("");
+  const [savingArticle, setSavingArticle] = useState(false);
 
+  // Sync selected entity
   useEffect(() => {
-    entitiesApi.list().then((data) => {
-      setEntities(data);
-      if (data.length > 0) setSelectedEntity(data[0].id);
-      setLoading(false);
-    });
-  }, []);
+    if (entities.length > 0) {
+      if (!selectedEntity || !entities.find((e) => e.id === selectedEntity)) {
+        setSelectedEntity(entities[0].id);
+      }
+    }
+  }, [entities]);
 
   async function loadTypes() {
     if (!selectedEntity) return;
     const data = await expensesApi.listTypes(selectedEntity);
     setTypes(data);
+    setLoading(false);
   }
 
   async function countTotal() {
@@ -409,7 +513,7 @@ function StepExpenses({
       const data = await expensesApi.listTypes(ent.id);
       total += data.length;
     }
-    setTotalTypes(total);
+    onTotalChange(total);
   }
 
   useEffect(() => {
@@ -420,46 +524,76 @@ function StepExpenses({
     if (entities.length > 0) countTotal();
   }, [entities, types]);
 
-  async function handleAdd(e: FormEvent) {
+  async function handleAddType(e: FormEvent) {
     e.preventDefault();
     if (!typeName.trim()) return;
     setSaving(true);
     try {
-      await expensesApi.createType(selectedEntity, { name: typeName.trim() });
+      const created = await expensesApi.createType(selectedEntity, {
+        name: typeName.trim(),
+      });
       setTypeName("");
       await loadTypes();
+      setExpandedTypeId(created.id);
     } finally {
       setSaving(false);
     }
   }
 
-  async function handleDelete(id: string) {
+  async function handleDeleteType(id: string) {
     await expensesApi.deleteType(selectedEntity, id);
+    if (expandedTypeId === id) setExpandedTypeId(null);
+    await loadTypes();
+  }
+
+  async function handleAddArticle(e: FormEvent, typeId: string) {
+    e.preventDefault();
+    if (!articleName.trim()) return;
+    setSavingArticle(true);
+    try {
+      await expensesApi.createArticle(selectedEntity, typeId, {
+        name: articleName.trim(),
+      });
+      setArticleName("");
+      await loadTypes();
+    } finally {
+      setSavingArticle(false);
+    }
+  }
+
+  async function handleDeleteArticle(typeId: string, articleId: string) {
+    await expensesApi.deleteArticle(selectedEntity, typeId, articleId);
     await loadTypes();
   }
 
   return (
     <div>
-      <h2 className="onboarding__step-title">{t("onboarding.expensesTitle")}</h2>
-      <p className="onboarding__hint">{t("onboarding.expensesHint")}</p>
-
       {entities.length > 1 && (
-        <Select
-          options={entities.map((e) => ({ value: e.id, label: e.name }))}
-          value={selectedEntity}
-          onChange={(e) => setSelectedEntity(e.target.value)}
-          label={t("settings.selectEntity")}
-        />
+        <div className="onboarding__entity-select">
+          <Select
+            options={entities.map((e) => ({ value: e.id, label: e.name }))}
+            value={selectedEntity}
+            onChange={(e) => {
+              setSelectedEntity(e.target.value);
+              setExpandedTypeId(null);
+            }}
+            label={t("settings.selectEntity")}
+          />
+        </div>
       )}
 
-      <form onSubmit={handleAdd} className="onboarding__inline-form">
+      <form onSubmit={handleAddType} className="onboarding__inline-form">
         <Input
           value={typeName}
           onChange={(e) => setTypeName(e.target.value)}
           placeholder={t("onboarding.expensePlaceholder")}
-          autoFocus
         />
-        <Button type="submit" size="sm" loading={saving} disabled={!typeName.trim()}>
+        <Button
+          type="submit"
+          size="sm"
+          loading={saving}
+          disabled={!typeName.trim()}
+        >
           <Plus size={16} /> {t("common.add")}
         </Button>
       </form>
@@ -467,30 +601,87 @@ function StepExpenses({
       {loading ? (
         <div className="tab-loading">{t("common.loading")}</div>
       ) : (
-        <ul className="onboarding__list">
-          {types.map((type) => (
-            <li key={type.id} className="onboarding__list-item">
-              <span>{type.name}</span>
-              <button
-                type="button"
-                className="icon-btn icon-btn--danger"
-                onClick={() => handleDelete(type.id)}
-              >
-                <Trash2 size={14} />
-              </button>
-            </li>
-          ))}
-        </ul>
+        types.length > 0 && (
+          <ul className="onboarding__list">
+            {types.map((type) => (
+              <li key={type.id} className="onboarding__type-item">
+                <div className="onboarding__type-header">
+                  <button
+                    type="button"
+                    className="onboarding__type-toggle"
+                    onClick={() => {
+                      if (expandedTypeId === type.id) {
+                        setExpandedTypeId(null);
+                      } else {
+                        setExpandedTypeId(type.id);
+                        setArticleName("");
+                      }
+                    }}
+                  >
+                    {expandedTypeId === type.id ? (
+                      <ChevronDown size={14} />
+                    ) : (
+                      <ChevronRight size={14} />
+                    )}
+                    <span>{type.name}</span>
+                    {type.articles.length > 0 && (
+                      <span className="onboarding__list-meta">
+                        ({type.articles.length})
+                      </span>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    className="icon-btn icon-btn--danger"
+                    onClick={() => handleDeleteType(type.id)}
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+                {expandedTypeId === type.id && (
+                  <div className="onboarding__articles">
+                    {type.articles.map((article) => (
+                      <div
+                        key={article.id}
+                        className="onboarding__article-item"
+                      >
+                        <span>{article.name}</span>
+                        <button
+                          type="button"
+                          className="icon-btn icon-btn--danger"
+                          onClick={() =>
+                            handleDeleteArticle(type.id, article.id)
+                          }
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
+                    ))}
+                    <form
+                      onSubmit={(e) => handleAddArticle(e, type.id)}
+                      className="onboarding__inline-form onboarding__inline-form--small"
+                    >
+                      <Input
+                        value={articleName}
+                        onChange={(e) => setArticleName(e.target.value)}
+                        placeholder={t("onboarding.articlePlaceholder")}
+                      />
+                      <Button
+                        type="submit"
+                        size="sm"
+                        loading={savingArticle}
+                        disabled={!articleName.trim()}
+                      >
+                        <Plus size={14} />
+                      </Button>
+                    </form>
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+        )
       )}
-
-      <div className="onboarding__actions">
-        <Button variant="secondary" onClick={onBack}>
-          {t("onboarding.back")}
-        </Button>
-        <Button onClick={onComplete} disabled={totalTypes === 0} loading={completing}>
-          <Check size={16} /> {t("onboarding.finish")}
-        </Button>
-      </div>
     </div>
   );
 }
