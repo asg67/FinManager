@@ -33,12 +33,12 @@ router.get("/invite/:token", async (req: Request, res: Response) => {
       include: { company: { select: { name: true } } },
     });
 
-    if (!invite || invite.usedById || invite.expiresAt < new Date()) {
+    if (!invite || invite.expiresAt < new Date()) {
       res.status(404).json({ message: "Invite not found or expired" });
       return;
     }
 
-    res.json({ companyName: invite.company.name });
+    res.json({ companyName: invite.company.name, companyId: invite.companyId });
   } catch (error) {
     console.error("Check invite error:", error);
     res.status(500).json({ message: "Internal server error" });
@@ -55,7 +55,7 @@ router.post("/register-invite", validate(registerInviteSchema), async (req: Requ
       include: { company: true },
     });
 
-    if (!invite || invite.usedById || invite.expiresAt < new Date()) {
+    if (!invite || invite.expiresAt < new Date()) {
       res.status(400).json({ message: "Invite not found or expired" });
       return;
     }
@@ -88,12 +88,6 @@ router.post("/register-invite", validate(registerInviteSchema), async (req: Requ
       include: { company: true },
     });
 
-    // Mark invite as used
-    await prisma.invite.update({
-      where: { id: invite.id },
-      data: { usedById: user.id },
-    });
-
     const tokens = generateTokens(user.id, user.role);
 
     res.status(201).json({
@@ -124,6 +118,70 @@ router.post("/register-invite", validate(registerInviteSchema), async (req: Requ
 // ===== AUTHENTICATED ROUTES =====
 
 router.use(authMiddleware);
+
+// POST /api/company/join — join company via invite token (existing user)
+router.post("/join", async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.userId;
+    const { token } = req.body;
+
+    if (!token) {
+      res.status(400).json({ message: "Token is required" });
+      return;
+    }
+
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      res.status(404).json({ message: "User not found" });
+      return;
+    }
+
+    if (user.companyId) {
+      res.status(400).json({ message: "You already belong to a company" });
+      return;
+    }
+
+    const invite = await prisma.invite.findUnique({
+      where: { token },
+      include: { company: true },
+    });
+
+    if (!invite || invite.expiresAt < new Date()) {
+      res.status(400).json({ message: "Invite not found or expired" });
+      return;
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        companyId: invite.companyId,
+        role: "member",
+        invitedById: invite.createdById,
+      },
+      include: { company: true },
+    });
+
+    res.json({
+      id: updatedUser.id,
+      email: updatedUser.email,
+      name: updatedUser.name,
+      language: updatedUser.language,
+      theme: updatedUser.theme,
+      role: updatedUser.role,
+      companyId: updatedUser.companyId,
+      company: updatedUser.company ? {
+        id: updatedUser.company.id,
+        name: updatedUser.company.name,
+        onboardingDone: updatedUser.company.onboardingDone,
+        createdAt: updatedUser.company.createdAt.toISOString(),
+      } : null,
+      createdAt: updatedUser.createdAt.toISOString(),
+    });
+  } catch (error) {
+    console.error("Join company error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
 
 // POST /api/company — create company
 router.post("/", validate(createCompanySchema), async (req: Request, res: Response) => {

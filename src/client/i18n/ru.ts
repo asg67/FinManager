@@ -157,6 +157,8 @@ export default {
     fromTemplate: "Из шаблона",
     create: "Создать",
     exportCsv: "Экспорт CSV",
+    copyInviteLink: "Скопировать ссылку",
+    inviteLinkCopied: "Ссылка скопирована!",
     setupRequired: "Для работы с ДДС необходимо создать или присоединиться к компании",
     createCompanyOption: "Создать компанию",
     createCompanyDesc: "Создайте новую компанию и настройте ДДС",

@@ -159,6 +159,7 @@ function CompanyInfoPanel({ entities }: { entities: Entity[] }) {
 
 function DdsTable({ companyName }: { companyName?: string }) {
   const { t } = useTranslation();
+  const user = useAuthStore((s) => s.user);
   const [data, setData] = useState<PaginatedResponse<DdsOperation>>({
     data: [],
     total: 0,
@@ -181,6 +182,24 @@ function DdsTable({ companyName }: { companyName?: string }) {
 
   // Delete
   const [deleteOp, setDeleteOp] = useState<DdsOperation | null>(null);
+
+  // Invite link
+  const [inviteCopied, setInviteCopied] = useState(false);
+  const [inviteLoading, setInviteLoading] = useState(false);
+  const isOwner = user?.role === "owner";
+
+  async function handleCopyInviteLink() {
+    setInviteLoading(true);
+    try {
+      const inv = await companyApi.createInvite();
+      const url = `${window.location.origin}/register?invite=${inv.token}`;
+      await navigator.clipboard.writeText(url);
+      setInviteCopied(true);
+      setTimeout(() => setInviteCopied(false), 2000);
+    } finally {
+      setInviteLoading(false);
+    }
+  }
 
   const loadOperations = useCallback(async (f: OperationFilters) => {
     setLoading(true);
@@ -349,6 +368,16 @@ function DdsTable({ companyName }: { companyName?: string }) {
           {t("nav.dds")}{companyName ? ` · ${companyName}` : ""}
         </h1>
         <div className="page-header__actions">
+          {isOwner && (
+            <Button
+              variant="secondary"
+              onClick={handleCopyInviteLink}
+              loading={inviteLoading}
+            >
+              {inviteCopied ? <Check size={18} /> : <Copy size={18} />}
+              {inviteCopied ? t("dds.inviteLinkCopied") : t("dds.copyInviteLink")}
+            </Button>
+          )}
           <Button
             variant="secondary"
             onClick={() => exportApi.downloadDdsCsv({ entityId: filters.entityId })}

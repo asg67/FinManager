@@ -157,6 +157,8 @@ export default {
     fromTemplate: "From Template",
     create: "Create",
     exportCsv: "Export CSV",
+    copyInviteLink: "Copy Invite Link",
+    inviteLinkCopied: "Link copied!",
     setupRequired: "To use Cash Flow, you need to create or join a company",
     createCompanyOption: "Create Company",
     createCompanyDesc: "Create a new company and set up Cash Flow",

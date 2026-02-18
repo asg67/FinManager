@@ -5,6 +5,7 @@ import type {
   InviteInfo,
   AuthResponse,
   RegisterInvitePayload,
+  User,
 } from "@shared/types.js";
 
 export const companyApi = {
@@ -33,7 +34,10 @@ export const companyApi = {
     api.delete<void>(`/company/invites/${id}`),
 
   checkInvite: (token: string) =>
-    api.get<{ companyName: string }>(`/company/invite/${token}`),
+    api.get<{ companyName: string; companyId: string }>(`/company/invite/${token}`),
+
+  join: (token: string) =>
+    api.post<User>("/company/join", { token }),
 
   registerInvite: (data: RegisterInvitePayload) =>
     api.post<AuthResponse>("/company/register-invite", data),

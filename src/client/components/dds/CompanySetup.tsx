@@ -116,8 +116,10 @@ function JoinCompany({ onBack }: { onBack: () => void }) {
   const { t } = useTranslation();
   const [inviteInput, setInviteInput] = useState("");
   const [checking, setChecking] = useState(false);
+  const [joining, setJoining] = useState(false);
   const [error, setError] = useState("");
   const [companyName, setCompanyName] = useState<string | null>(null);
+  const [validToken, setValidToken] = useState<string | null>(null);
 
   function extractToken(input: string): string {
     // Accept full URL or just the token
@@ -133,6 +135,7 @@ function JoinCompany({ onBack }: { onBack: () => void }) {
     e.preventDefault();
     setError("");
     setCompanyName(null);
+    setValidToken(null);
     const token = extractToken(inviteInput);
     if (!token) return;
 
@@ -140,6 +143,7 @@ function JoinCompany({ onBack }: { onBack: () => void }) {
     try {
       const res = await companyApi.checkInvite(token);
       setCompanyName(res.companyName);
+      setValidToken(token);
     } catch {
       setError(t("auth.inviteExpired"));
     } finally {
@@ -147,10 +151,21 @@ function JoinCompany({ onBack }: { onBack: () => void }) {
     }
   }
 
-  // If invite is valid, user needs to re-register via invite link
-  // But since they're already logged in, we show them the company name
-  // and explain they need to use the invite link during registration
-  const token = extractToken(inviteInput);
+  async function handleJoin() {
+    if (!validToken) return;
+    setError("");
+    setJoining(true);
+    try {
+      const updatedUser = await companyApi.join(validToken);
+      useAuthStore.setState({ user: updatedUser });
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError(err.message);
+      }
+    } finally {
+      setJoining(false);
+    }
+  }
 
   return (
     <div className="company-setup__form-card">
@@ -167,28 +182,38 @@ function JoinCompany({ onBack }: { onBack: () => void }) {
       {companyName && (
         <div className="company-setup__invite-found">
           <p>{t("dds.inviteForCompany", { company: companyName })}</p>
-          <p className="company-setup__hint">{t("dds.inviteReregisterHint")}</p>
         </div>
       )}
 
-      <form onSubmit={handleCheck}>
-        <Input
-          label={t("dds.inviteLink")}
-          value={inviteInput}
-          onChange={(e) => setInviteInput(e.target.value)}
-          placeholder="https://fm.../register?invite=..."
-          required
-          autoFocus
-        />
+      {!companyName ? (
+        <form onSubmit={handleCheck}>
+          <Input
+            label={t("dds.inviteLink")}
+            value={inviteInput}
+            onChange={(e) => setInviteInput(e.target.value)}
+            placeholder="https://fm.../register?invite=..."
+            required
+            autoFocus
+          />
+          <div className="company-setup__actions">
+            <Button variant="secondary" type="button" onClick={onBack}>
+              {t("onboarding.back")}
+            </Button>
+            <Button type="submit" loading={checking} disabled={!inviteInput.trim()}>
+              {t("dds.checkInvite")}
+            </Button>
+          </div>
+        </form>
+      ) : (
         <div className="company-setup__actions">
           <Button variant="secondary" type="button" onClick={onBack}>
             {t("onboarding.back")}
           </Button>
-          <Button type="submit" loading={checking} disabled={!inviteInput.trim()}>
-            {t("dds.checkInvite")}
+          <Button onClick={handleJoin} loading={joining}>
+            {t("dds.joinCompanyOption")}
           </Button>
         </div>
-      </form>
+      )}
     </div>
   );
 }
