@@ -26,6 +26,7 @@ const DdsOperations = lazy(() => import("./pages/DdsOperations.js"));
 const Settings = lazy(() => import("./pages/Settings.js"));
 const Statements = lazy(() => import("./pages/Statements.js"));
 const Admin = lazy(() => import("./pages/Admin.js"));
+const ShareTarget = lazy(() => import("./pages/ShareTarget.js"));
 
 export default function App() {
   const { i18n } = useTranslation();
@@ -84,6 +85,7 @@ export default function App() {
             <Route path="/pdf" element={<Suspense fallback={pageFallback}><Statements /></Suspense>} />
             <Route path="/settings" element={<Suspense fallback={pageFallback}><Settings /></Suspense>} />
             <Route path="/admin" element={<Suspense fallback={pageFallback}><Admin /></Suspense>} />
+            <Route path="/share-target" element={<Suspense fallback={pageFallback}><ShareTarget /></Suspense>} />
           </Route>
         </Route>
 

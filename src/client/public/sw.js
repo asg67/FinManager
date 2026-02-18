@@ -1,5 +1,24 @@
-const CACHE_NAME = "finmanager-v1";
+const CACHE_NAME = "finmanager-v2";
 const STATIC_ASSETS = ["/", "/manifest.json"];
+
+// --- IndexedDB helpers for share target ---
+function openShareDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open("finmanager-share", 1);
+    req.onupgradeneeded = () => req.result.createObjectStore("files");
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+function saveSharedFile(db, file) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction("files", "readwrite");
+    tx.objectStore("files").put(file, "shared-pdf");
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
 
 // Install: cache shell
 self.addEventListener("install", (event) => {
@@ -19,12 +38,33 @@ self.addEventListener("activate", (event) => {
   self.clients.claim();
 });
 
-// Fetch: NetworkFirst for API, CacheFirst for static
+// Fetch: handle share target POST, then normal caching
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Skip non-GET requests
+  // Handle Web Share Target POST
+  if (request.method === "POST" && url.pathname === "/share-target") {
+    event.respondWith(
+      (async () => {
+        try {
+          const formData = await request.formData();
+          const file = formData.get("file");
+          if (file) {
+            const db = await openShareDB();
+            await saveSharedFile(db, file);
+            db.close();
+          }
+        } catch (e) {
+          console.error("Share target error:", e);
+        }
+        return Response.redirect("/share-target", 303);
+      })()
+    );
+    return;
+  }
+
+  // Skip other non-GET requests
   if (request.method !== "GET") return;
 
   // API calls: network first

@@ -19,9 +19,10 @@ interface Props {
   open: boolean;
   onClose: () => void;
   onDone: () => void;
+  initialFile?: File;
 }
 
-export default function StatementWizard({ open, onClose, onDone }: Props) {
+export default function StatementWizard({ open, onClose, onDone, initialFile }: Props) {
   const { t } = useTranslation();
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -64,7 +65,27 @@ export default function StatementWizard({ open, onClose, onDone }: Props) {
 
   function selectBank(code: string) {
     setBankCode(code);
-    setStep("upload");
+    if (initialFile) {
+      uploadFile(initialFile, code);
+    } else {
+      setStep("upload");
+    }
+  }
+
+  async function uploadFile(file: File, bank: string) {
+    setError("");
+    setStep("uploading");
+    try {
+      const result = await pdfApi.upload(file, accountId, bank);
+      setUploadResult(result);
+      const nonDup = new Set<number>();
+      result.transactions.forEach((tx, i) => { if (!tx.isDuplicate) nonDup.add(i); });
+      setSelected(nonDup);
+      setStep("preview");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Upload failed");
+      setStep(initialFile ? "bank" : "upload");
+    }
   }
 
   function goBack() {
@@ -74,19 +95,7 @@ export default function StatementWizard({ open, onClose, onDone }: Props) {
   async function handleFileSelect(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    setError("");
-    setStep("uploading");
-    try {
-      const result = await pdfApi.upload(file, accountId, bankCode);
-      setUploadResult(result);
-      const nonDup = new Set<number>();
-      result.transactions.forEach((tx, i) => { if (!tx.isDuplicate) nonDup.add(i); });
-      setSelected(nonDup);
-      setStep("preview");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Upload failed");
-      setStep("upload");
-    }
+    await uploadFile(file, bankCode);
     if (fileRef.current) fileRef.current.value = "";
   }
 
