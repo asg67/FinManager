@@ -28,7 +28,7 @@ export default {
     passwordsMismatch: "Пароли не совпадают",
   },
   nav: {
-    dashboard: "Дашборд",
+    dashboard: "Главная",
     dds: "ДДС",
     statements: "Выписки",
     analytics: "Аналитика",
@@ -46,8 +46,11 @@ export default {
     toggleMenu: "Меню",
   },
   dashboard: {
-    title: "Дашборд",
-    welcome: "Добро пожаловать",
+    title: "Главная",
+    welcome: "Привет",
+    exportReminder: "Через {{days}} дней нужно будет сделать выгрузку",
+    cardExpenses: "Траты по картам",
+    myBalance: "Мой баланс",
     role: "Роль",
     owner: "Владелец",
     employee: "Сотрудник",

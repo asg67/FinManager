@@ -28,21 +28,26 @@
   --text-dimmed: #5b6578;
   --text-placeholder: #475569;
 
-  /* Accent */
-  --accent: #38bdf8;
-  --accent-hover: #0ea5e9;
-  --accent-bg: rgba(56, 189, 248, 0.12);
-  --accent-gradient: linear-gradient(135deg, #0ea5e9, #06b6d4);
+  /* Accent — neutral gray */
+  --accent: #c8cdd5;
+  --accent-hover: #e2e8f0;
+  --accent-bg: rgba(200, 205, 213, 0.1);
+  --accent-gradient: linear-gradient(135deg, #3a3f4b, #23272f);
+
+  /* Semantic colors */
+  --color-income: #22c55e;
+  --color-expense: #ef4444;
+  --color-transfer: #94a3b8;
 
   /* Sidebar active */
-  --sidebar-active-bg: rgba(56, 189, 248, 0.12);
-  --sidebar-active-text: #38bdf8;
-  --sidebar-hover-bg: rgba(148, 163, 184, 0.06);
+  --sidebar-active-bg: rgba(255, 255, 255, 0.08);
+  --sidebar-active-text: #f1f5f9;
+  --sidebar-hover-bg: rgba(255, 255, 255, 0.04);
 
   /* Button */
-  --btn-primary-bg: #0ea5e9;
-  --btn-primary-hover: #0284c7;
-  --btn-primary-text: #ffffff;
+  --btn-primary-bg: #334155;
+  --btn-primary-hover: #475569;
+  --btn-primary-text: #f1f5f9;
 
   /* Error */
   --error-bg: rgba(239, 68, 68, 0.15);
@@ -94,20 +99,25 @@
   --text-dimmed: #94a3b8;
   --text-placeholder: #94a3b8;
 
-  /* Accent */
-  --accent: #0284c7;
-  --accent-hover: #0369a1;
-  --accent-bg: rgba(2, 132, 199, 0.08);
-  --accent-gradient: linear-gradient(135deg, #0ea5e9, #06b6d4);
+  /* Accent — neutral gray */
+  --accent: #4b5563;
+  --accent-hover: #374151;
+  --accent-bg: rgba(75, 85, 99, 0.08);
+  --accent-gradient: linear-gradient(135deg, #d1d5db, #9ca3af);
+
+  /* Semantic colors */
+  --color-income: #16a34a;
+  --color-expense: #dc2626;
+  --color-transfer: #6b7280;
 
   /* Sidebar active */
-  --sidebar-active-bg: rgba(2, 132, 199, 0.1);
-  --sidebar-active-text: #0284c7;
+  --sidebar-active-bg: rgba(0, 0, 0, 0.06);
+  --sidebar-active-text: #0f172a;
   --sidebar-hover-bg: rgba(0, 0, 0, 0.03);
 
   /* Button */
-  --btn-primary-bg: #0ea5e9;
-  --btn-primary-hover: #0284c7;
+  --btn-primary-bg: #1e293b;
+  --btn-primary-hover: #334155;
   --btn-primary-text: #ffffff;
 
   /* Error */
@@ -240,7 +250,7 @@ body,
 }
 
 .toast--info {
-  border-left: 3px solid #38bdf8;
+  border-left: 3px solid #94a3b8;
 }
 
 .toast--exiting {

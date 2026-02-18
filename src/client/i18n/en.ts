@@ -28,7 +28,7 @@ export default {
     passwordsMismatch: "Passwords don't match",
   },
   nav: {
-    dashboard: "Dashboard",
+    dashboard: "Home",
     dds: "Cash Flow",
     statements: "Statements",
     analytics: "Analytics",
@@ -46,8 +46,11 @@ export default {
     toggleMenu: "Menu",
   },
   dashboard: {
-    title: "Dashboard",
-    welcome: "Welcome",
+    title: "Home",
+    welcome: "Hello",
+    exportReminder: "Export needed in {{days}} days",
+    cardExpenses: "Card Expenses",
+    myBalance: "My Balance",
     role: "Role",
     owner: "Owner",
     employee: "Employee",

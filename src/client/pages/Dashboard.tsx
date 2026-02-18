@@ -27,10 +27,11 @@ import {
 } from "recharts";
 import { analyticsApi, type SummaryData, type CategoryData, type TimelinePoint, type AccountBalance, type RecentOperation } from "../api/analytics.js";
 import { entitiesApi } from "../api/entities.js";
+import { useAuthStore } from "../stores/auth.js";
 import { Select } from "../components/ui/index.js";
 import type { Entity } from "@shared/types.js";
 
-const CHART_COLORS = ["#38bdf8", "#f472b6", "#a78bfa", "#fb923c", "#34d399", "#fbbf24", "#f87171", "#818cf8"];
+const CHART_COLORS = ["#6b7280", "#9ca3af", "#4b5563", "#d1d5db", "#374151", "#a3a3a3", "#525252", "#e5e7eb"];
 const PERIOD_OPTIONS = [
   { value: "7", labelKey: "dashboard.7days" },
   { value: "30", labelKey: "dashboard.30days" },
@@ -41,6 +42,7 @@ const PERIOD_OPTIONS = [
 export default function Dashboard() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const user = useAuthStore((s) => s.user);
 
   const [entities, setEntities] = useState<Entity[]>([]);
   const [entityFilter, setEntityFilter] = useState("");
@@ -92,16 +94,25 @@ export default function Dashboard() {
   };
 
   const bankIcon = (type: string) => {
-    if (type === "card") return "💳";
-    if (type === "cash") return "💵";
-    if (type === "deposit") return "🏦";
-    return "🏛️";
+    if (type === "card") return <CreditCard size={18} />;
+    if (type === "cash") return <Wallet size={18} />;
+    return <Wallet size={18} />;
   };
+
+  const totalExpense = categories.reduce((sum, c) => sum + c.total, 0);
 
   return (
     <div className="dashboard page-enter">
-      <div className="page-header">
-        <h1 className="page-title">{t("dashboard.title")}</h1>
+      {/* Greeting + Filters Row */}
+      <div className="dash-top">
+        <div className="dash-greeting">
+          <h1 className="dash-greeting__name">
+            {t("dashboard.welcome")}, {user?.name || ""}
+          </h1>
+          <p className="dash-greeting__hint">
+            {t("dashboard.exportReminder", { days: 14 })}
+          </p>
+        </div>
         <div className="dashboard-filters">
           <Select
             options={[{ value: "", label: t("dds.allEntities") }, ...entities.map((e) => ({ value: e.id, label: e.name }))]}
@@ -117,34 +128,39 @@ export default function Dashboard() {
       </div>
 
       {loading ? (
-        <div className="tab-loading">{t("common.loading")}</div>
+        <div className="dash-skeleton-grid">
+          <div className="skeleton skeleton--card" />
+          <div className="skeleton skeleton--card" />
+          <div className="skeleton skeleton--card" />
+          <div className="skeleton skeleton--card" />
+        </div>
       ) : (
         <>
           {/* Summary Cards */}
           <div className="summary-cards">
-            <div className="summary-card summary-card--balance">
-              <div className="summary-card__icon"><Wallet size={24} /></div>
+            <div className="summary-card glass-card summary-card--balance">
+              <div className="summary-card__icon"><Wallet size={22} /></div>
               <div className="summary-card__content">
                 <div className="summary-card__label">{t("dashboard.balance")}</div>
                 <div className="summary-card__value">{formatMoney(summary?.balance ?? 0)} &#8381;</div>
               </div>
             </div>
-            <div className="summary-card summary-card--income">
-              <div className="summary-card__icon"><TrendingUp size={24} /></div>
+            <div className="summary-card glass-card summary-card--income">
+              <div className="summary-card__icon"><TrendingUp size={22} /></div>
               <div className="summary-card__content">
                 <div className="summary-card__label">{t("dashboard.income")}</div>
                 <div className="summary-card__value">+{formatMoney(summary?.totalIncome ?? 0)} &#8381;</div>
               </div>
             </div>
-            <div className="summary-card summary-card--expense">
-              <div className="summary-card__icon"><TrendingDown size={24} /></div>
+            <div className="summary-card glass-card summary-card--expense">
+              <div className="summary-card__icon"><TrendingDown size={22} /></div>
               <div className="summary-card__content">
                 <div className="summary-card__label">{t("dashboard.expense")}</div>
                 <div className="summary-card__value">-{formatMoney(summary?.totalExpense ?? 0)} &#8381;</div>
               </div>
             </div>
-            <div className="summary-card summary-card--count">
-              <div className="summary-card__icon"><Activity size={24} /></div>
+            <div className="summary-card glass-card summary-card--count">
+              <div className="summary-card__icon"><Activity size={22} /></div>
               <div className="summary-card__content">
                 <div className="summary-card__label">{t("dashboard.operations")}</div>
                 <div className="summary-card__value">{summary?.operationsCount ?? 0}</div>
@@ -152,43 +168,115 @@ export default function Dashboard() {
             </div>
           </div>
 
+          {/* Middle Row: Donut + Accounts */}
+          <div className="dash-middle">
+            {/* Donut — Card Expenses */}
+            <div className="glass-card dash-donut-card">
+              <h3 className="chart-title">{t("dashboard.cardExpenses")}</h3>
+              <div className="dash-donut-wrapper">
+                <ResponsiveContainer width="100%" height={220}>
+                  <PieChart>
+                    <Pie
+                      data={categories.length > 0 ? categories : [{ name: "-", total: 1 }]}
+                      dataKey="total"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={90}
+                      paddingAngle={categories.length > 1 ? 3 : 0}
+                      stroke="none"
+                    >
+                      {categories.length > 0
+                        ? categories.map((_, i) => (
+                            <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                          ))
+                        : <Cell fill="var(--bg-surface)" />
+                      }
+                    </Pie>
+                    <Tooltip
+                      contentStyle={{ background: "var(--bg-surface-solid)", border: "1px solid var(--glass-border)", borderRadius: 8, fontSize: 13 }}
+                      formatter={(value: number) => [`${formatMoney(value)} \u20bd`]}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="dash-donut-center">
+                  <span className="dash-donut-center__value">{formatMoney(totalExpense)}</span>
+                  <span className="dash-donut-center__label">&#8381;</span>
+                </div>
+              </div>
+              {/* Legend */}
+              <div className="dash-donut-legend">
+                {categories.slice(0, 5).map((cat, i) => (
+                  <div key={cat.expenseTypeId} className="dash-donut-legend__item">
+                    <span className="dash-donut-legend__dot" style={{ background: CHART_COLORS[i % CHART_COLORS.length] }} />
+                    <span className="dash-donut-legend__name">{cat.name}</span>
+                    <span className="dash-donut-legend__val">{formatMoney(cat.total)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Accounts */}
+            <div className="glass-card dash-accounts-card">
+              <h3 className="chart-title">{t("dashboard.accounts")}</h3>
+              <div className="dash-accounts-list">
+                {balances.map((acc) => (
+                  <div key={acc.id} className="dash-account-row">
+                    <div className="dash-account-row__icon">{bankIcon(acc.type)}</div>
+                    <div className="dash-account-row__info">
+                      <span className="dash-account-row__name">{acc.name}</span>
+                      <span className="dash-account-row__entity">{acc.entityName}</span>
+                    </div>
+                    <div className="dash-account-row__balance">
+                      {formatMoney(acc.balance)} <span className="currency">&#8381;</span>
+                    </div>
+                  </div>
+                ))}
+                {balances.length === 0 && (
+                  <div className="tab-empty">{t("settings.noAccounts")}</div>
+                )}
+              </div>
+            </div>
+          </div>
+
           {/* Charts Row */}
           <div className="charts-row">
             {/* Line Chart — Balance Timeline */}
-            <div className="chart-card chart-card--wide">
+            <div className="glass-card chart-card chart-card--wide">
               <h3 className="chart-title">{t("dashboard.balanceTimeline")}</h3>
               <ResponsiveContainer width="100%" height={260}>
                 <LineChart data={timeline}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                  <XAxis dataKey="date" tickFormatter={formatShortDate} stroke="var(--text-secondary)" fontSize={12} />
-                  <YAxis stroke="var(--text-secondary)" fontSize={12} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--glass-border)" />
+                  <XAxis dataKey="date" tickFormatter={formatShortDate} stroke="var(--text-muted)" fontSize={12} />
+                  <YAxis stroke="var(--text-muted)" fontSize={12} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
                   <Tooltip
-                    contentStyle={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 8 }}
+                    contentStyle={{ background: "var(--bg-surface-solid)", border: "1px solid var(--glass-border)", borderRadius: 8 }}
                     labelStyle={{ color: "var(--text-primary)" }}
-                    formatter={(value: number) => [`${formatMoney(value)} ₽`, ""]}
+                    formatter={(value: number) => [`${formatMoney(value)} \u20bd`, ""]}
                     labelFormatter={formatShortDate}
                   />
-                  <Line type="monotone" dataKey="balance" stroke="#38bdf8" strokeWidth={2} dot={false} />
-                  <Line type="monotone" dataKey="income" stroke="#22c55e" strokeWidth={1} dot={false} strokeDasharray="4 4" />
-                  <Line type="monotone" dataKey="expense" stroke="#ef4444" strokeWidth={1} dot={false} strokeDasharray="4 4" />
+                  <Line type="monotone" dataKey="balance" stroke="var(--text-muted)" strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="income" stroke="var(--color-income)" strokeWidth={1.5} dot={false} strokeDasharray="4 4" />
+                  <Line type="monotone" dataKey="expense" stroke="var(--color-expense)" strokeWidth={1.5} dot={false} strokeDasharray="4 4" />
                 </LineChart>
               </ResponsiveContainer>
             </div>
 
             {/* Bar Chart — Expenses by Category */}
             {categories.length > 0 && (
-              <div className="chart-card">
+              <div className="glass-card chart-card">
                 <h3 className="chart-title">{t("dashboard.expensesByCategory")}</h3>
                 <ResponsiveContainer width="100%" height={260}>
                   <BarChart data={categories} layout="vertical">
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                    <XAxis type="number" stroke="var(--text-secondary)" fontSize={12} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
-                    <YAxis type="category" dataKey="name" stroke="var(--text-secondary)" fontSize={12} width={100} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--glass-border)" />
+                    <XAxis type="number" stroke="var(--text-muted)" fontSize={12} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
+                    <YAxis type="category" dataKey="name" stroke="var(--text-muted)" fontSize={12} width={100} />
                     <Tooltip
-                      contentStyle={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 8 }}
-                      formatter={(value: number) => [`${formatMoney(value)} ₽`, t("dds.expense")]}
+                      contentStyle={{ background: "var(--bg-surface-solid)", border: "1px solid var(--glass-border)", borderRadius: 8 }}
+                      formatter={(value: number) => [`${formatMoney(value)} \u20bd`, t("dds.expense")]}
                     />
-                    <Bar dataKey="total" radius={[0, 4, 4, 0]}>
+                    <Bar dataKey="total" radius={[0, 6, 6, 0]}>
                       {categories.map((_, i) => (
                         <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
                       ))}
@@ -198,9 +286,9 @@ export default function Dashboard() {
               </div>
             )}
 
-            {/* Pie Chart — Expense Distribution */}
+            {/* Expense Distribution */}
             {categories.length > 0 && (
-              <div className="chart-card">
+              <div className="glass-card chart-card">
                 <h3 className="chart-title">{t("dashboard.expenseDistribution")}</h3>
                 <ResponsiveContainer width="100%" height={260}>
                   <PieChart>
@@ -213,6 +301,7 @@ export default function Dashboard() {
                       innerRadius={50}
                       outerRadius={90}
                       paddingAngle={2}
+                      stroke="none"
                       label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
                       labelLine={false}
                       fontSize={11}
@@ -222,8 +311,8 @@ export default function Dashboard() {
                       ))}
                     </Pie>
                     <Tooltip
-                      contentStyle={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 8 }}
-                      formatter={(value: number) => [`${formatMoney(value)} ₽`]}
+                      contentStyle={{ background: "var(--bg-surface-solid)", border: "1px solid var(--glass-border)", borderRadius: 8 }}
+                      formatter={(value: number) => [`${formatMoney(value)} \u20bd`]}
                     />
                   </PieChart>
                 </ResponsiveContainer>
@@ -231,64 +320,38 @@ export default function Dashboard() {
             )}
           </div>
 
-          {/* Bottom Row: Account Widgets + Recent Operations */}
-          <div className="dashboard-bottom">
-            {/* Account Widgets */}
-            <div className="account-widgets">
-              <h3 className="section-title">{t("dashboard.accounts")}</h3>
-              <div className="account-cards-scroll">
-                {balances.map((acc) => (
-                  <div key={acc.id} className={`account-widget account-widget--${acc.type}`}>
-                    <div className="account-widget__top">
-                      <span className="account-widget__icon">{bankIcon(acc.type)}</span>
-                      <span className="account-widget__bank">{acc.bank ?? acc.type}</span>
-                    </div>
-                    <div className="account-widget__name">{acc.name}</div>
-                    <div className="account-widget__entity">{acc.entityName}</div>
-                    <div className="account-widget__balance">
-                      {formatMoney(acc.balance)} <span className="currency">&#8381;</span>
-                    </div>
-                  </div>
-                ))}
-                {balances.length === 0 && (
-                  <div className="tab-empty">{t("settings.noAccounts")}</div>
-                )}
-              </div>
-            </div>
-
-            {/* Recent Operations */}
-            <div className="recent-operations">
-              <h3 className="section-title">{t("dashboard.recentOperations")}</h3>
-              <div className="recent-list">
-                {recent.map((op) => (
-                  <div
-                    key={`${op.source}-${op.id}`}
-                    className="recent-item"
-                    onClick={() => op.source === "dds" && navigate("/dds")}
-                  >
-                    <div className="recent-item__left">
-                      {opIcon(op.type)}
-                      <div>
-                        <div className="recent-item__desc">{op.description}</div>
-                        <div className="recent-item__meta">
-                          {op.account && <span>{op.account}</span>}
-                          {op.entity && <span> &middot; {op.entity}</span>}
-                        </div>
+          {/* Recent Operations */}
+          <div className="glass-card dash-recent">
+            <h3 className="chart-title">{t("dashboard.recentOperations")}</h3>
+            <div className="recent-list">
+              {recent.map((op) => (
+                <div
+                  key={`${op.source}-${op.id}`}
+                  className="recent-item"
+                  onClick={() => op.source === "dds" && navigate("/dds")}
+                >
+                  <div className="recent-item__left">
+                    {opIcon(op.type)}
+                    <div>
+                      <div className="recent-item__desc">{op.description}</div>
+                      <div className="recent-item__meta">
+                        {op.account && <span>{op.account}</span>}
+                        {op.entity && <span> &middot; {op.entity}</span>}
                       </div>
                     </div>
-                    <div className="recent-item__right">
-                      <div className={`recent-item__amount amount--${op.type}`}>
-                        {op.type === "income" ? "+" : op.type === "expense" ? "-" : ""}
-                        {formatMoney(op.amount)} &#8381;
-                      </div>
-                      <div className="recent-item__date">{formatShortDate(op.date)}</div>
-                    </div>
                   </div>
-                ))}
-                {recent.length === 0 && (
-                  <div className="tab-empty">{t("dds.noOperations")}</div>
-                )}
-              </div>
+                  <div className="recent-item__right">
+                    <div className={`recent-item__amount amount--${op.type}`}>
+                      {op.type === "income" ? "+" : op.type === "expense" ? "-" : ""}
+                      {formatMoney(op.amount)} &#8381;
+                    </div>
+                    <div className="recent-item__date">{formatShortDate(op.date)}</div>
+                  </div>
+                </div>
+              ))}
+              {recent.length === 0 && (
+                <div className="tab-empty">{t("dds.noOperations")}</div>
+              )}
             </div>
           </div>
         </>

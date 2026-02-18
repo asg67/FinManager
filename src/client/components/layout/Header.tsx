@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
-import { LogOut, Menu, Moon, Sun, Globe } from "lucide-react";
+import { LogOut, Menu, Moon, Sun, Globe, Settings } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../stores/auth.js";
 import { useThemeStore } from "../../stores/theme.js";
 import NotificationsDropdown from "./NotificationsDropdown.js";
@@ -10,6 +11,7 @@ interface HeaderProps {
 
 export default function Header({ onMenuClick }: HeaderProps) {
   const { t, i18n } = useTranslation();
+  const navigate = useNavigate();
   const { user, logout } = useAuthStore();
   const { theme, toggleTheme } = useThemeStore();
 
@@ -50,6 +52,16 @@ export default function Header({ onMenuClick }: HeaderProps) {
           aria-label={theme === "dark" ? t("header.lightTheme") : t("header.darkTheme")}
         >
           {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
+        </button>
+
+        <button
+          type="button"
+          className="header__icon-btn"
+          onClick={() => navigate("/settings")}
+          aria-label={t("nav.settings")}
+          title={t("nav.settings")}
+        >
+          <Settings size={20} />
         </button>
 
         <NotificationsDropdown />

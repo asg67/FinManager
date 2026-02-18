@@ -1,14 +1,17 @@
+import { useState, useEffect } from "react";
 import { NavLink } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
-  LayoutDashboard,
+  Home,
   ArrowLeftRight,
   FileText,
   Settings,
   ChevronLeft,
   ChevronRight,
+  Wallet,
 } from "lucide-react";
 import clsx from "clsx";
+import { analyticsApi, type AccountBalance } from "../../api/analytics.js";
 
 interface SidebarProps {
   collapsed: boolean;
@@ -17,9 +20,22 @@ interface SidebarProps {
 
 export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const { t } = useTranslation();
+  const [balances, setBalances] = useState<AccountBalance[]>([]);
+  const [totalBalance, setTotalBalance] = useState(0);
+
+  useEffect(() => {
+    analyticsApi.accountBalances().then((data) => {
+      setBalances(data.slice(0, 3));
+      setTotalBalance(data.reduce((sum, a) => sum + a.balance, 0));
+    }).catch(() => {});
+  }, []);
+
+  function formatMoney(n: number) {
+    return n.toLocaleString("ru-RU", { maximumFractionDigits: 0 });
+  }
 
   const navItems = [
-    { to: "/", icon: LayoutDashboard, label: t("nav.dashboard") },
+    { to: "/", icon: Home, label: t("nav.dashboard") },
     { to: "/dds", icon: ArrowLeftRight, label: t("nav.dds") },
     { to: "/pdf", icon: FileText, label: t("nav.statements") },
     { to: "/settings", icon: Settings, label: t("nav.settings") },
@@ -55,6 +71,27 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
           </NavLink>
         ))}
       </nav>
+
+      {/* Balance widget at bottom */}
+      {!collapsed && (
+        <div className="sidebar__balance">
+          <div className="sidebar__balance-header">
+            <Wallet size={16} />
+            <span>{t("dashboard.myBalance")}</span>
+          </div>
+          <div className="sidebar__balance-total">
+            {formatMoney(totalBalance)} <span className="sidebar__balance-currency">&#8381;</span>
+          </div>
+          <div className="sidebar__balance-accounts">
+            {balances.map((acc) => (
+              <div key={acc.id} className="sidebar__balance-row">
+                <span className="sidebar__balance-name">{acc.name}</span>
+                <span className="sidebar__balance-amount">{formatMoney(acc.balance)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </aside>
   );
 }

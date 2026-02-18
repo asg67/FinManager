@@ -4,12 +4,55 @@
   max-width: 1200px;
 }
 
+/* ===== Glass Card (shared) ===== */
+.glass-card {
+  background: var(--bg-surface);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
+  transition: border-color var(--transition), background var(--transition);
+}
+
+.glass-card:hover {
+  border-color: var(--glass-border-hover);
+}
+
+/* ===== Top: Greeting + Filters ===== */
+.dash-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+  gap: 1rem;
+}
+
+.dash-greeting__name {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 0.25rem;
+}
+
+.dash-greeting__hint {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+
 .dashboard-filters {
   display: flex;
   gap: 0.75rem;
+  flex-shrink: 0;
 }
 
-/* Summary Cards */
+.dash-skeleton-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+}
+
+/* ===== Summary Cards ===== */
 .summary-cards {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -21,57 +64,195 @@
   display: flex;
   align-items: center;
   gap: 1rem;
-  padding: 1.25rem;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  backdrop-filter: blur(12px);
 }
 
 .summary-card__icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 48px;
-  height: 48px;
+  width: 44px;
+  height: 44px;
   border-radius: 12px;
   flex-shrink: 0;
 }
 
 .summary-card--balance .summary-card__icon {
-  background: rgba(56, 189, 248, 0.15);
-  color: #38bdf8;
+  background: rgba(148, 163, 184, 0.15);
+  color: var(--text-muted);
 }
 
 .summary-card--income .summary-card__icon {
   background: rgba(34, 197, 94, 0.15);
-  color: #22c55e;
+  color: var(--color-income);
 }
 
 .summary-card--expense .summary-card__icon {
   background: rgba(239, 68, 68, 0.15);
-  color: #ef4444;
+  color: var(--color-expense);
 }
 
 .summary-card--count .summary-card__icon {
-  background: rgba(168, 85, 247, 0.15);
-  color: #a855f7;
+  background: rgba(148, 163, 184, 0.12);
+  color: var(--text-muted);
 }
 
 .summary-card__label {
   font-size: 0.8125rem;
-  color: var(--text-secondary);
+  color: var(--text-muted);
   margin-bottom: 0.25rem;
 }
 
 .summary-card__value {
-  font-size: 1.375rem;
+  font-size: 1.25rem;
   font-weight: 700;
   color: var(--text-primary);
   font-variant-numeric: tabular-nums;
 }
 
-/* Charts */
+/* ===== Middle Row: Donut + Accounts ===== */
+.dash-middle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+/* Donut Card */
+.dash-donut-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.dash-donut-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dash-donut-center {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+}
+
+.dash-donut-center__value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.dash-donut-center__label {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+}
+
+.dash-donut-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  margin-top: 0.5rem;
+}
+
+.dash-donut-legend__item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+}
+
+.dash-donut-legend__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.dash-donut-legend__name {
+  color: var(--text-muted);
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dash-donut-legend__val {
+  color: var(--text-secondary);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Accounts Card */
+.dash-accounts-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.dash-accounts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
+}
+
+.dash-account-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border-radius: var(--radius-md);
+  transition: background 0.15s;
+}
+
+.dash-account-row:hover {
+  background: var(--bg-surface-hover);
+}
+
+.dash-account-row__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--bg-surface-hover);
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.dash-account-row__info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.dash-account-row__name {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dash-account-row__entity {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.dash-account-row__balance {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+/* ===== Charts Row ===== */
 .charts-row {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -80,10 +261,7 @@
 }
 
 .chart-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 1.25rem;
+  /* glass-card provides base styles */
 }
 
 .chart-card--wide {
@@ -97,83 +275,11 @@
   margin-bottom: 1rem;
 }
 
-/* Dashboard Bottom */
-.dashboard-bottom {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
+/* ===== Recent Operations ===== */
+.dash-recent {
+  margin-bottom: 1.5rem;
 }
 
-.section-title {
-  font-size: 0.9375rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 1rem;
-}
-
-/* Account Widgets */
-.account-cards-scroll {
-  display: flex;
-  gap: 0.75rem;
-  overflow-x: auto;
-  padding-bottom: 0.5rem;
-  -webkit-overflow-scrolling: touch;
-}
-
-.account-widget {
-  min-width: 200px;
-  padding: 1rem;
-  border-radius: var(--radius);
-  background: linear-gradient(135deg, var(--bg-card), var(--bg-hover));
-  border: 1px solid var(--border);
-  flex-shrink: 0;
-}
-
-.account-widget__top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 0.75rem;
-}
-
-.account-widget__icon {
-  font-size: 1.5rem;
-}
-
-.account-widget__bank {
-  font-size: 0.75rem;
-  color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.account-widget__name {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 0.125rem;
-}
-
-.account-widget__entity {
-  font-size: 0.75rem;
-  color: var(--text-secondary);
-  margin-bottom: 0.75rem;
-}
-
-.account-widget__balance {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: var(--text-primary);
-  font-variant-numeric: tabular-nums;
-}
-
-.currency {
-  font-weight: 400;
-  font-size: 0.875rem;
-  color: var(--text-secondary);
-}
-
-/* Recent Operations */
 .recent-list {
   display: flex;
   flex-direction: column;
@@ -185,13 +291,13 @@
   align-items: center;
   justify-content: space-between;
   padding: 0.625rem 0.75rem;
-  border-radius: var(--radius);
+  border-radius: var(--radius-md);
   cursor: pointer;
   transition: background 0.15s;
 }
 
 .recent-item:hover {
-  background: var(--bg-hover);
+  background: var(--bg-surface-hover);
 }
 
 .recent-item__left {
@@ -206,15 +312,15 @@
 }
 
 .recent-icon--income {
-  color: #22c55e;
+  color: var(--color-income);
 }
 
 .recent-icon--expense {
-  color: #ef4444;
+  color: var(--color-expense);
 }
 
 .recent-icon--transfer {
-  color: #3b82f6;
+  color: var(--color-transfer);
 }
 
 .recent-item__desc {
@@ -223,12 +329,12 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 180px;
+  max-width: 220px;
 }
 
 .recent-item__meta {
   font-size: 0.75rem;
-  color: var(--text-secondary);
+  color: var(--text-muted);
 }
 
 .recent-item__right {
@@ -242,9 +348,45 @@
   font-variant-numeric: tabular-nums;
 }
 
+.amount--income {
+  color: var(--color-income);
+}
+
+.amount--expense {
+  color: var(--color-expense);
+}
+
+.amount--transfer {
+  color: var(--color-transfer);
+}
+
 .recent-item__date {
   font-size: 0.75rem;
-  color: var(--text-secondary);
+  color: var(--text-muted);
+}
+
+.currency {
+  font-weight: 400;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+/* ===== Account Widgets (kept for compatibility) ===== */
+.account-cards-scroll {
+  display: flex;
+  gap: 0.75rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+  -webkit-overflow-scrolling: touch;
+}
+
+.account-widget {
+  min-width: 200px;
+  padding: 1rem;
+  border-radius: var(--radius-lg);
+  background: var(--bg-surface);
+  border: 1px solid var(--glass-border);
+  flex-shrink: 0;
 }
 
 /* ===== Responsive ===== */
@@ -253,23 +395,35 @@
     grid-template-columns: repeat(2, 1fr);
   }
 
-  .charts-row {
+  .dash-skeleton-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .dash-middle {
     grid-template-columns: 1fr;
   }
 
-  .dashboard-bottom {
+  .charts-row {
     grid-template-columns: 1fr;
   }
 }
 
 @media (max-width: 768px) {
-  .summary-cards {
-    grid-template-columns: 1fr 1fr;
+  .dash-top {
+    flex-direction: column;
   }
 
   .dashboard-filters {
     flex-direction: column;
     width: 100%;
+  }
+
+  .summary-cards {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .dash-skeleton-grid {
+    grid-template-columns: 1fr 1fr;
   }
 
   .summary-card__value {
@@ -281,8 +435,8 @@
     height: 40px;
   }
 
-  .account-widget {
-    min-width: 170px;
+  .dash-greeting__name {
+    font-size: 1.25rem;
   }
 }
 
@@ -291,24 +445,19 @@
     grid-template-columns: 1fr;
   }
 
+  .dash-skeleton-grid {
+    grid-template-columns: 1fr;
+  }
+
   .summary-card {
     padding: 1rem;
   }
 
-  .chart-card {
-    padding: 0.75rem;
+  .glass-card {
+    padding: 1rem;
   }
 
   .recent-item__desc {
-    max-width: 120px;
-  }
-
-  .account-widget {
-    min-width: 150px;
-    padding: 0.75rem;
-  }
-
-  .account-widget__balance {
-    font-size: 1rem;
+    max-width: 140px;
   }
 }
