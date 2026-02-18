@@ -47,7 +47,7 @@ app.use("/api/export", exportRouter);
 
 // In production, serve the built client
 if (config.NODE_ENV === "production") {
-  const clientDist = path.resolve(__dirname, "../../client/dist");
+  const clientDist = path.resolve(__dirname, "../client/dist");
   app.use(express.static(clientDist));
 
   // SPA fallback — any non-API route serves index.html
