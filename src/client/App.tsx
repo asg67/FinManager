@@ -3,10 +3,12 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuthStore } from "./stores/auth.js";
 import ProtectedRoute from "./components/ProtectedRoute.js";
 import GuestRoute from "./components/GuestRoute.js";
+import AppLayout from "./components/layout/AppLayout.js";
 import Login from "./pages/Login.js";
 import Register from "./pages/Register.js";
 import Dashboard from "./pages/Dashboard.js";
 import "./styles/auth.css";
+import "./styles/layout.css";
 
 export default function App() {
   const init = useAuthStore((s) => s.init);
@@ -32,9 +34,11 @@ export default function App() {
         <Route path="/register" element={<Register />} />
       </Route>
 
-      {/* Protected routes */}
+      {/* Protected routes with layout */}
       <Route element={<ProtectedRoute />}>
-        <Route path="/" element={<Dashboard />} />
+        <Route element={<AppLayout />}>
+          <Route path="/" element={<Dashboard />} />
+        </Route>
       </Route>
 
       {/* Fallback */}

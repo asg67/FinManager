@@ -1,17 +1,25 @@
 import { useAuthStore } from "../stores/auth.js";
 
 export default function Dashboard() {
-  const { user, logout } = useAuthStore();
+  const user = useAuthStore((s) => s.user);
 
   return (
-    <div style={{ padding: "2rem" }}>
-      <h1>Dashboard</h1>
-      <p>Добро пожаловать, {user?.name}!</p>
-      <p>Email: {user?.email}</p>
-      <p>Роль: {user?.role}</p>
-      <button type="button" onClick={logout}>
-        Выйти
-      </button>
+    <div>
+      <h1 className="page-title">Дашборд</h1>
+      <div className="card-grid">
+        <div className="card">
+          <div className="card__label">Добро пожаловать</div>
+          <div className="card__value">{user?.name}</div>
+        </div>
+        <div className="card">
+          <div className="card__label">Email</div>
+          <div className="card__value">{user?.email}</div>
+        </div>
+        <div className="card">
+          <div className="card__label">Роль</div>
+          <div className="card__value">{user?.role === "owner" ? "Владелец" : "Сотрудник"}</div>
+        </div>
+      </div>
     </div>
   );
 }
