@@ -52,6 +52,7 @@ router.post("/operations", validate(createOperationSchema), async (req: Request,
         toAccount: { select: { name: true, type: true } },
         expenseType: { select: { name: true } },
         expenseArticle: { select: { name: true } },
+        user: { select: { name: true } },
       },
     });
 
@@ -111,6 +112,7 @@ router.get("/operations", async (req: Request, res: Response) => {
           toAccount: { select: { name: true, type: true } },
           expenseType: { select: { name: true } },
           expenseArticle: { select: { name: true } },
+          user: { select: { name: true } },
         },
         orderBy: { createdAt: "desc" },
         skip,
@@ -160,6 +162,7 @@ router.put("/operations/:id", validate(updateOperationSchema), async (req: Reque
         toAccount: { select: { name: true, type: true } },
         expenseType: { select: { name: true } },
         expenseArticle: { select: { name: true } },
+        user: { select: { name: true } },
       },
     });
 

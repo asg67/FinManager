@@ -1,18 +1,20 @@
 import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { Plus, Search, ChevronLeft, ChevronRight, Download } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight, Download, Info, Users, Building2, Link2, Copy, Check, ChevronDown } from "lucide-react";
 import { useAuthStore } from "../stores/auth.js";
 import { ddsApi, type OperationFilters } from "../api/dds.js";
 import { entitiesApi } from "../api/entities.js";
 import { accountsApi } from "../api/accounts.js";
 import { expensesApi } from "../api/expenses.js";
 import { exportApi } from "../api/export.js";
+import { companyApi } from "../api/company.js";
 import { Button, Select, Input, Table } from "../components/ui/index.js";
 import OperationWizard from "../components/dds/OperationWizard.js";
+import QuickAddForm from "../components/dds/QuickAddForm.js";
 import DeleteConfirm from "../components/dds/DeleteConfirm.js";
 import CompanySetup from "../components/dds/CompanySetup.js";
 import OnboardingWizard from "../components/onboarding/OnboardingWizard.js";
-import type { DdsOperation, Entity, Account, ExpenseType, PaginatedResponse } from "@shared/types.js";
+import type { DdsOperation, Entity, Account, ExpenseType, PaginatedResponse, InviteInfo } from "@shared/types.js";
 import { Pencil, Trash2 } from "lucide-react";
 
 const OP_TYPES = [
@@ -50,6 +52,109 @@ export default function DdsOperations() {
   return <DdsTable companyName={companyName} />;
 }
 
+/* ─── Company Info Panel ─── */
+
+function CompanyInfoPanel({ entities }: { entities: Entity[] }) {
+  const { t } = useTranslation();
+  const user = useAuthStore((s) => s.user);
+  const [open, setOpen] = useState(false);
+  const [members, setMembers] = useState<{ id: string; name: string; email: string; role: string }[]>([]);
+  const [invite, setInvite] = useState<InviteInfo | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [creating, setCreating] = useState(false);
+
+  useEffect(() => {
+    if (open && members.length === 0) {
+      companyApi.listMembers().then(setMembers);
+    }
+  }, [open, members.length]);
+
+  async function handleCreateInvite() {
+    setCreating(true);
+    try {
+      const inv = await companyApi.createInvite();
+      setInvite(inv);
+    } finally {
+      setCreating(false);
+    }
+  }
+
+  function handleCopy() {
+    if (!invite) return;
+    const url = `${window.location.origin}/register?invite=${invite.token}`;
+    navigator.clipboard.writeText(url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  const isOwner = user?.role === "owner";
+
+  return (
+    <div className={`company-info ${open ? "company-info--open" : ""}`}>
+      <button type="button" className="company-info__toggle" onClick={() => setOpen(!open)}>
+        <Info size={16} />
+        <span>{t("company.companyInfo")}</span>
+        <ChevronDown size={14} className={`company-info__chevron ${open ? "company-info__chevron--open" : ""}`} />
+      </button>
+
+      {open && (
+        <div className="company-info__body">
+          <div className="company-info__section">
+            <div className="company-info__section-header">
+              <Users size={15} />
+              <span>{t("company.members")}</span>
+            </div>
+            <div className="company-info__list">
+              {members.map((m) => (
+                <span key={m.id} className="company-info__chip">
+                  {m.name}
+                  {m.role === "owner" && <span className="company-info__role">({t("company.owner")})</span>}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          <div className="company-info__section">
+            <div className="company-info__section-header">
+              <Building2 size={15} />
+              <span>{t("company.entities")}</span>
+            </div>
+            <div className="company-info__list">
+              {entities.map((e) => (
+                <span key={e.id} className="company-info__chip">{e.name}</span>
+              ))}
+            </div>
+          </div>
+
+          {isOwner && (
+            <div className="company-info__section">
+              <div className="company-info__section-header">
+                <Link2 size={15} />
+                <span>{t("company.inviteLink")}</span>
+              </div>
+              {invite ? (
+                <div className="company-info__invite-row">
+                  <code className="company-info__invite-url">
+                    {`${window.location.origin}/register?invite=${invite.token}`}
+                  </code>
+                  <button type="button" className="icon-btn" onClick={handleCopy} title={t("common.copy")}>
+                    {copied ? <Check size={14} /> : <Copy size={14} />}
+                  </button>
+                </div>
+              ) : (
+                <Button variant="secondary" size="sm" onClick={handleCreateInvite} loading={creating}>
+                  <Link2 size={14} />
+                  {t("company.createInvite")}
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ─── DDS Table (extracted to avoid hooks-after-return) ─── */
 
 function DdsTable({ companyName }: { companyName?: string }) {
@@ -70,7 +175,7 @@ function DdsTable({ companyName }: { companyName?: string }) {
   const [filters, setFilters] = useState<OperationFilters>({ page: 1, limit: 20 });
   const [searchInput, setSearchInput] = useState("");
 
-  // Wizard
+  // Wizard (edit only)
   const [wizardOpen, setWizardOpen] = useState(false);
   const [editOp, setEditOp] = useState<DdsOperation | null>(null);
 
@@ -123,11 +228,6 @@ function DdsTable({ companyName }: { companyName?: string }) {
     setFilters((prev) => ({ ...prev, page }));
   }
 
-  function openCreate() {
-    setEditOp(null);
-    setWizardOpen(true);
-  }
-
   function openEdit(op: DdsOperation) {
     setEditOp(op);
     setWizardOpen(true);
@@ -167,6 +267,11 @@ function DdsTable({ companyName }: { companyName?: string }) {
       render: (r: DdsOperation) => formatDate(r.createdAt),
     },
     {
+      key: "userName",
+      header: t("dds.userName"),
+      render: (r: DdsOperation) => r.user.name,
+    },
+    {
       key: "entity",
       header: t("dds.entity"),
       render: (r: DdsOperation) => r.entity.name,
@@ -191,11 +296,6 @@ function DdsTable({ companyName }: { companyName?: string }) {
       render: (r: DdsOperation) => r.toAccount?.name ?? "—",
     },
     {
-      key: "expenseType",
-      header: t("dds.expenseType"),
-      render: (r: DdsOperation) => r.expenseType?.name ?? "—",
-    },
-    {
       key: "amount",
       header: t("dds.amount"),
       className: "table-amount",
@@ -204,6 +304,21 @@ function DdsTable({ companyName }: { companyName?: string }) {
           {formatAmount(r.amount, r.operationType)}
         </span>
       ),
+    },
+    {
+      key: "expenseType",
+      header: t("dds.expenseType"),
+      render: (r: DdsOperation) => r.expenseType?.name ?? "—",
+    },
+    {
+      key: "expenseArticle",
+      header: t("dds.expenseArticle"),
+      render: (r: DdsOperation) => r.expenseArticle?.name ?? "—",
+    },
+    {
+      key: "orderNumber",
+      header: t("dds.orderNumber"),
+      render: (r: DdsOperation) => r.orderNumber ?? "—",
     },
     {
       key: "comment",
@@ -241,12 +356,11 @@ function DdsTable({ companyName }: { companyName?: string }) {
             <Download size={18} />
             {t("dds.exportCsv")}
           </Button>
-          <Button onClick={openCreate}>
-            <Plus size={18} />
-            {t("dds.addOperation")}
-          </Button>
         </div>
       </div>
+
+      {/* Company Info */}
+      <CompanyInfoPanel entities={entities} />
 
       {/* Filters */}
       <div className="dds-filters">
@@ -279,6 +393,9 @@ function DdsTable({ companyName }: { companyName?: string }) {
           </button>
         </div>
       </div>
+
+      {/* Quick Add Form */}
+      <QuickAddForm entities={entities} onSaved={() => loadOperations(filters)} />
 
       {/* Table */}
       {loading ? (

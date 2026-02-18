@@ -138,6 +138,7 @@ export interface DdsOperation {
   entityId: string;
   entity: { name: string };
   userId: string;
+  user: { name: string };
   createdAt: string;
 }
 

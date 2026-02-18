@@ -15,7 +15,8 @@ export default function Register() {
   const [companyName, setCompanyName] = useState<string | null>(null);
   const [inviteError, setInviteError] = useState(false);
 
-  const [name, setName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [firstName, setFirstName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -40,6 +41,8 @@ export default function Register() {
       setLocalError(t("auth.passwordsMismatch"));
       return;
     }
+
+    const name = `${lastName} ${firstName}`.trim();
 
     try {
       if (inviteToken) {
@@ -115,15 +118,28 @@ export default function Register() {
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label htmlFor="name">{t("auth.name")}</label>
+            <label htmlFor="lastName">{t("auth.lastName")}</label>
             <input
-              id="name"
+              id="lastName"
               type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
               required
-              autoComplete="name"
-              placeholder={t("auth.namePlaceholder")}
+              autoComplete="family-name"
+              placeholder={t("auth.lastNamePlaceholder")}
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="firstName">{t("auth.firstName")}</label>
+            <input
+              id="firstName"
+              type="text"
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              required
+              autoComplete="given-name"
+              placeholder={t("auth.firstNamePlaceholder")}
             />
           </div>
 

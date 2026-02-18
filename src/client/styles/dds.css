@@ -352,6 +352,189 @@
   }
 }
 
+/* ===== Company Info Panel ===== */
+
+.company-info {
+  margin-bottom: 1rem;
+}
+
+.company-info__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  font-family: inherit;
+}
+
+.company-info__toggle:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.company-info__chevron {
+  transition: transform 0.2s;
+}
+
+.company-info__chevron--open {
+  transform: rotate(180deg);
+}
+
+.company-info__body {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.75rem;
+  padding: 1rem 1.25rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.company-info__section {
+  min-width: 0;
+}
+
+.company-info__section-header {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-bottom: 0.5rem;
+}
+
+.company-info__list {
+  display: flex;
+  gap: 0.375rem;
+  flex-wrap: wrap;
+}
+
+.company-info__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.625rem;
+  background: var(--bg-hover);
+  border-radius: 999px;
+  font-size: 0.8125rem;
+  color: var(--text-primary);
+}
+
+.company-info__role {
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+}
+
+.company-info__invite-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.company-info__invite-url {
+  padding: 0.25rem 0.5rem;
+  background: var(--bg-hover);
+  border-radius: var(--radius);
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ===== Quick Add Form ===== */
+
+.quick-add {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.quick-add__templates {
+  display: flex;
+  gap: 0.375rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.625rem;
+}
+
+.quick-add__row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+}
+
+.quick-add__row:last-of-type {
+  margin-bottom: 0;
+}
+
+.quick-add__row .input-field {
+  flex: 1;
+  min-width: 120px;
+  margin-bottom: 0;
+}
+
+.quick-add__row .btn {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.quick-add__op-types {
+  display: flex;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+
+.quick-add__op-types .op-type-btn {
+  padding: 0.375rem 0.625rem;
+  font-size: 0.8125rem;
+}
+
+.quick-add__error {
+  margin-top: 0.5rem;
+  padding: 0.375rem 0.625rem;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: var(--radius);
+  color: var(--danger);
+  font-size: 0.8125rem;
+}
+
+.btn--success {
+  background: #22c55e !important;
+  border-color: #22c55e !important;
+}
+
+/* ── Table horizontal scroll for wide tables ── */
+.dds-page .table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.dds-page .table {
+  min-width: 1100px;
+}
+
+.dds-page .table th,
+.dds-page .table td {
+  white-space: nowrap;
+  font-size: 0.8125rem;
+}
+
 /* ===== Responsive ===== */
 @media (max-width: 768px) {
   .dds-filters {
@@ -368,15 +551,5 @@
 
   .wizard-op-types__btns {
     flex-direction: column;
-  }
-
-  /* Hide less important columns on mobile */
-  .table th:nth-child(5),
-  .table td:nth-child(5),
-  .table th:nth-child(6),
-  .table td:nth-child(6),
-  .table th:nth-child(8),
-  .table td:nth-child(8) {
-    display: none;
   }
 }
