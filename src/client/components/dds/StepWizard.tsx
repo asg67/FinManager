@@ -400,7 +400,7 @@ export default function StepWizard({ open, onClose, onDone, editOperation, entit
               onChange={(e) => updateField("comment", e.target.value || undefined)}
             />
 
-            <Button onClick={() => setStep("review")} disabled={!form.amount}>
+            <Button onClick={() => setStep("review")} disabled={!form.amount || (isIncome && !form.toAccountId) || (isTransfer && (!form.fromAccountId || !form.toAccountId))}>
               {t("common.next")}
             </Button>
           </div>
