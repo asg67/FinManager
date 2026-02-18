@@ -65,8 +65,8 @@ export const analyticsApi = {
   byCategory: (filters: AnalyticsFilters = {}) =>
     api.get<CategoryData[]>(`/analytics/by-category${qs(filters)}`),
 
-  timeline: (days: number = 30, entityId?: string, mine?: string) =>
-    api.get<TimelinePoint[]>(`/analytics/timeline${qs({ days: String(days), entityId, mine })}`),
+  timeline: (opts: { days?: number; from?: string; entityId?: string; mine?: string } = {}) =>
+    api.get<TimelinePoint[]>(`/analytics/timeline${qs({ days: opts.days != null ? String(opts.days) : undefined, from: opts.from, entityId: opts.entityId, mine: opts.mine })}`),
 
   accountBalances: (entityId?: string, mine?: string) =>
     api.get<AccountBalance[]>(`/analytics/account-balances${qs({ entityId, mine })}`),

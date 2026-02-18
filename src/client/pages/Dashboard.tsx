@@ -33,13 +33,52 @@ const CATEGORY_COLORS_DARK: Record<string, string> = {
   deposit: "#d1d5db",
 };
 
-const TIMELINE_PERIODS = [
-  { key: "7d", label: "7д", days: 7 },
-  { key: "30d", label: "1мес", days: 30 },
-  { key: "90d", label: "3мес", days: 90 },
-  { key: "180d", label: "6мес", days: 180 },
-  { key: "365d", label: "1г", days: 365 },
+type PeriodKey = "week" | "1m" | "3m" | "6m" | "1y";
+
+const TIMELINE_PERIODS: { key: PeriodKey; label: string }[] = [
+  { key: "week", label: "Неделя" },
+  { key: "1m", label: "1мес" },
+  { key: "3m", label: "3мес" },
+  { key: "6m", label: "6мес" },
+  { key: "1y", label: "1г" },
 ];
+
+function periodFrom(key: PeriodKey): string {
+  const now = new Date();
+  let d: Date;
+  switch (key) {
+    case "week": {
+      const day = now.getDay();
+      const diff = day === 0 ? 6 : day - 1;
+      d = new Date(now);
+      d.setDate(now.getDate() - diff);
+      break;
+    }
+    case "1m":
+      d = new Date(now.getFullYear(), now.getMonth(), 1);
+      break;
+    case "3m":
+      d = new Date(now.getFullYear(), now.getMonth() - 2, 1);
+      break;
+    case "6m":
+      d = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+      break;
+    case "1y":
+      d = new Date(now.getFullYear(), now.getMonth() - 11, 1);
+      break;
+  }
+  return d.toISOString().slice(0, 10);
+}
+
+function periodDaysHint(key: PeriodKey): number {
+  switch (key) {
+    case "week": return 7;
+    case "1m": return 30;
+    case "3m": return 90;
+    case "6m": return 180;
+    case "1y": return 365;
+  }
+}
 
 function defaultFrom() {
   const d = new Date();
@@ -102,7 +141,7 @@ export default function Dashboard() {
 
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
   const [chartType, setChartType] = useState<ChartType>("bar");
-  const [timelineDays, setTimelineDays] = useState(30);
+  const [timelinePeriod, setTimelinePeriod] = useState<PeriodKey>("1m");
 
   const [summary, setSummary] = useState<SummaryData | null>(null);
   const [timeline, setTimeline] = useState<TimelinePoint[]>([]);
@@ -129,7 +168,7 @@ export default function Dashboard() {
     const filters = { from: dateFrom, to: dateTo, mine: "true" };
     Promise.all([
       analyticsApi.summary(filters),
-      analyticsApi.timeline(timelineDays, undefined, "true"),
+      analyticsApi.timeline({ from: periodFrom(timelinePeriod), mine: "true" }),
       analyticsApi.accountBalances(undefined, "true"),
       analyticsApi.recent(10, "true"),
     ]).then(([sum, tl, bal, rec]) => {
@@ -144,8 +183,8 @@ export default function Dashboard() {
   const isInitialMount = useRef(true);
   useEffect(() => {
     if (isInitialMount.current) { isInitialMount.current = false; return; }
-    analyticsApi.timeline(timelineDays, undefined, "true").then(setTimeline);
-  }, [timelineDays]);
+    analyticsApi.timeline({ from: periodFrom(timelinePeriod), mine: "true" }).then(setTimeline);
+  }, [timelinePeriod]);
 
   /* Computed */
   const grouped = useMemo(() => {
@@ -169,15 +208,16 @@ export default function Dashboard() {
 
   const chartData = useMemo(() => timeline.map((t) => ({ date: t.date, value: t.balance })), [timeline]);
 
+  const daysHint = periodDaysHint(timelinePeriod);
   const xTickInterval = useMemo(() => {
     const len = chartData.length;
     if (len === 0) return 0;
-    if (timelineDays <= 7) return 0;
-    if (timelineDays <= 30) return Math.max(0, Math.ceil(len / 15) - 1);
-    if (timelineDays <= 90) return Math.max(0, Math.ceil(len / 12) - 1);
-    if (timelineDays <= 180) return Math.max(0, Math.ceil(len / 10) - 1);
+    if (daysHint <= 7) return 0;
+    if (daysHint <= 31) return Math.max(0, Math.ceil(len / 15) - 1);
+    if (daysHint <= 90) return Math.max(0, Math.ceil(len / 12) - 1);
+    if (daysHint <= 180) return Math.max(0, Math.ceil(len / 10) - 1);
     return Math.max(0, Math.ceil(len / 12) - 1);
-  }, [chartData.length, timelineDays]);
+  }, [chartData.length, daysHint]);
 
   const calcBalance = summary?.balance ?? balances.reduce((s, a) => s + a.balance, 0);
   const calcIncome = summary?.totalIncome ?? 0;
@@ -348,7 +388,7 @@ export default function Dashboard() {
                     </div>
                     <div className="timeline-periods">
                       {TIMELINE_PERIODS.map((p) => (
-                        <button key={p.key} type="button" className={`timeline-period-btn${timelineDays === p.days ? " timeline-period-btn--active" : ""}`} onClick={() => setTimelineDays(p.days)}>{p.label}</button>
+                        <button key={p.key} type="button" className={`timeline-period-btn${timelinePeriod === p.key ? " timeline-period-btn--active" : ""}`} onClick={() => setTimelinePeriod(p.key)}>{p.label}</button>
                       ))}
                     </div>
                   </div>
@@ -357,7 +397,7 @@ export default function Dashboard() {
                       {chartType === "bar" ? (
                         <BarChart data={chartData}>
                           <CartesianGrid strokeDasharray="3 3" stroke="var(--glass-border)" />
-                          <XAxis dataKey="date" tick={{ fontSize: 11, fill: "#999" }} stroke="#999" interval={xTickInterval} tickFormatter={(v) => formatXTick(v, timelineDays)} />
+                          <XAxis dataKey="date" tick={{ fontSize: 11, fill: "#999" }} stroke="#999" interval={xTickInterval} tickFormatter={(v) => formatXTick(v, daysHint)} />
                           <YAxis tick={{ fontSize: 11, fill: "#999" }} stroke="#999" tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
                           <Tooltip contentStyle={ttStyle} formatter={(value: number) => [`${formatMoney(value)} ₽`]} labelFormatter={formatTooltipDate} />
                           <Bar dataKey="value" fill={accentColor} radius={[10, 10, 0, 0]} maxBarSize={30} />
@@ -366,7 +406,7 @@ export default function Dashboard() {
                         <AreaChart data={chartData}>
                           <defs><linearGradient id="balanceGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor={accentColor} stopOpacity={0.15} /><stop offset="95%" stopColor={accentColor} stopOpacity={0} /></linearGradient></defs>
                           <CartesianGrid strokeDasharray="3 3" stroke="var(--glass-border)" />
-                          <XAxis dataKey="date" tick={{ fontSize: 11, fill: "#999" }} stroke="#999" interval={xTickInterval} tickFormatter={(v) => formatXTick(v, timelineDays)} />
+                          <XAxis dataKey="date" tick={{ fontSize: 11, fill: "#999" }} stroke="#999" interval={xTickInterval} tickFormatter={(v) => formatXTick(v, daysHint)} />
                           <YAxis tick={{ fontSize: 11, fill: "#999" }} stroke="#999" tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
                           <Tooltip contentStyle={ttStyle} formatter={(value: number) => [`${formatMoney(value)} ₽`]} labelFormatter={formatTooltipDate} />
                           <Area type="monotone" dataKey="value" stroke={accentColor} strokeWidth={2.5} fill="url(#balanceGrad)" fillOpacity={0.6} />

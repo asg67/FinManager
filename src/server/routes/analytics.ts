@@ -129,11 +129,16 @@ router.get("/by-category", async (req: Request, res: Response) => {
 router.get("/timeline", async (req: Request, res: Response) => {
   try {
     const userId = req.user!.userId;
-    const { entityId, days, mine } = req.query as Record<string, string>;
+    const { entityId, days, mine, from } = req.query as Record<string, string>;
 
-    const numDays = parseInt(days) || 30;
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - numDays);
+    let startDate: Date;
+    if (from) {
+      startDate = new Date(from + "T00:00:00");
+    } else {
+      const numDays = parseInt(days) || 30;
+      startDate = new Date();
+      startDate.setDate(startDate.getDate() - numDays);
+    }
     startDate.setHours(0, 0, 0, 0);
 
     const user = await prisma.user.findUnique({ where: { id: userId } });
