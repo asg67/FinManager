@@ -7,6 +7,33 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ============ COMPANY ============
+
+model Company {
+  id             String   @id @default(uuid())
+  name           String
+  onboardingDone Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  users    User[]
+  entities Entity[]
+  invites  Invite[]
+}
+
+model Invite {
+  id          String    @id @default(uuid())
+  token       String    @unique @default(uuid())
+  companyId   String
+  company     Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  createdById String
+  createdBy   User      @relation("InviteCreator", fields: [createdById], references: [id])
+  usedById    String?
+  usedBy      User?     @relation("InviteUsed", fields: [usedById], references: [id])
+  expiresAt   DateTime
+  createdAt   DateTime  @default(now())
+}
+
 // ============ AUTH & USERS ============
 
 model User {
@@ -15,21 +42,25 @@ model User {
   passwordHash String
   name         String
   language     String   @default("ru")
-  theme        String   @default("dark")
+  theme        String   @default("light")
   role         String   @default("owner")
+  companyId    String?
+  company      Company? @relation(fields: [companyId], references: [id])
   invitedById  String?
   invitedBy    User?    @relation("Invitations", fields: [invitedById], references: [id])
   invitees     User[]   @relation("Invitations")
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  permission   Permission?
-  entities     Entity[]
-  entityAccess EntityAccess[]
-  ddsOperations DdsOperation[]
-  pdfUploads   PdfUpload[]
-  notifications Notification[]
-  ddsTemplates DdsTemplate[]
+  permission      Permission?
+  entities        Entity[]
+  entityAccess    EntityAccess[]
+  ddsOperations   DdsOperation[]
+  pdfUploads      PdfUpload[]
+  notifications   Notification[]
+  ddsTemplates    DdsTemplate[]
+  invitesCreated  Invite[]  @relation("InviteCreator")
+  invitesUsed     Invite[]  @relation("InviteUsed")
 }
 
 model Permission {
@@ -49,6 +80,8 @@ model Entity {
   name      String
   ownerId   String
   owner     User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

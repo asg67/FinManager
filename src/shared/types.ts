@@ -1,5 +1,28 @@
 // Shared types between client and server
 
+export interface Company {
+  id: string;
+  name: string;
+  onboardingDone: boolean;
+  createdAt: string;
+}
+
+export interface OnboardingStatus {
+  hasEntities: boolean;
+  hasAccounts: boolean;
+  hasExpenseTypes: boolean;
+  done: boolean;
+}
+
+export interface InviteInfo {
+  id: string;
+  token: string;
+  expiresAt: string;
+  used: boolean;
+  usedByName?: string;
+  createdAt: string;
+}
+
 export interface User {
   id: string;
   email: string;
@@ -7,6 +30,8 @@ export interface User {
   language: string;
   theme: string;
   role: string;
+  companyId: string | null;
+  company: Company | null;
   createdAt: string;
 }
 
@@ -34,6 +59,13 @@ export interface UpdateProfilePayload {
   name?: string;
   language?: "ru" | "en";
   theme?: "dark" | "light";
+}
+
+export interface RegisterInvitePayload {
+  email: string;
+  password: string;
+  name: string;
+  token: string;
 }
 
 export interface ApiError {

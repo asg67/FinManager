@@ -8,18 +8,14 @@ const router = Router({ mergeParams: true });
 
 router.use(authMiddleware);
 
-// Helper: check entity ownership
-async function checkEntityAccess(entityId: string, userId: string, role: string) {
+// Helper: check entity access via company
+async function checkEntityAccess(entityId: string, userId: string) {
   const entity = await prisma.entity.findUnique({ where: { id: entityId } });
   if (!entity) return { error: 404 as const, message: "Entity not found" };
 
-  if (role === "owner") {
-    if (entity.ownerId !== userId) return { error: 403 as const, message: "Access denied" };
-  } else {
-    const access = await prisma.entityAccess.findUnique({
-      where: { userId_entityId: { userId, entityId } },
-    });
-    if (!access) return { error: 403 as const, message: "Access denied" };
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user?.companyId || entity.companyId !== user.companyId) {
+    return { error: 403 as const, message: "Access denied" };
   }
 
   return { entity };
@@ -28,7 +24,7 @@ async function checkEntityAccess(entityId: string, userId: string, role: string)
 // GET /api/entities/:entityId/accounts
 router.get("/", async (req: Request, res: Response) => {
   try {
-    const check = await checkEntityAccess(req.params.entityId, req.user!.userId, req.user!.role);
+    const check = await checkEntityAccess(req.params.entityId, req.user!.userId);
     if ("error" in check) {
       res.status(check.error).json({ message: check.message });
       return;
@@ -54,7 +50,7 @@ router.post("/", validate(createAccountSchema), async (req: Request, res: Respon
       return;
     }
 
-    const check = await checkEntityAccess(req.params.entityId, req.user!.userId, req.user!.role);
+    const check = await checkEntityAccess(req.params.entityId, req.user!.userId);
     if ("error" in check) {
       res.status(check.error).json({ message: check.message });
       return;
@@ -86,7 +82,7 @@ router.put("/:id", validate(updateAccountSchema), async (req: Request, res: Resp
       return;
     }
 
-    const check = await checkEntityAccess(req.params.entityId, req.user!.userId, req.user!.role);
+    const check = await checkEntityAccess(req.params.entityId, req.user!.userId);
     if ("error" in check) {
       res.status(check.error).json({ message: check.message });
       return;
@@ -120,7 +116,7 @@ router.delete("/:id", async (req: Request, res: Response) => {
       return;
     }
 
-    const check = await checkEntityAccess(req.params.entityId, req.user!.userId, req.user!.role);
+    const check = await checkEntityAccess(req.params.entityId, req.user!.userId);
     if ("error" in check) {
       res.status(check.error).json({ message: check.message });
       return;

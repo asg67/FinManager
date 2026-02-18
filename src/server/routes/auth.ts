@@ -37,6 +37,8 @@ function sanitizeUser(user: {
   language: string;
   theme: string;
   role: string;
+  companyId: string | null;
+  company?: { id: string; name: string; onboardingDone: boolean; createdAt: Date } | null;
   createdAt: Date;
 }) {
   return {
@@ -46,6 +48,13 @@ function sanitizeUser(user: {
     language: user.language,
     theme: user.theme,
     role: user.role,
+    companyId: user.companyId,
+    company: user.company ? {
+      id: user.company.id,
+      name: user.company.name,
+      onboardingDone: user.company.onboardingDone,
+      createdAt: user.company.createdAt.toISOString(),
+    } : null,
     createdAt: user.createdAt.toISOString(),
   };
 }
@@ -78,6 +87,7 @@ router.post("/register", validate(registerSchema), async (req: Request, res: Res
           },
         },
       },
+      include: { company: true },
     });
 
     const tokens = generateTokens(user.id, user.role);
@@ -97,7 +107,10 @@ router.post("/login", validate(loginSchema), async (req: Request, res: Response)
   try {
     const { email, password } = req.body;
 
-    const user = await prisma.user.findUnique({ where: { email } });
+    const user = await prisma.user.findUnique({
+      where: { email },
+      include: { company: true },
+    });
     if (!user) {
       res.status(401).json({ message: "Invalid credentials" });
       return;
@@ -152,6 +165,7 @@ router.get("/me", authMiddleware, async (req: Request, res: Response) => {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.user!.userId },
+      include: { company: true },
     });
 
     if (!user) {
@@ -181,6 +195,7 @@ router.put(
       const user = await prisma.user.update({
         where: { id: req.user!.userId },
         data: updates,
+        include: { company: true },
       });
 
       res.json(sanitizeUser(user));

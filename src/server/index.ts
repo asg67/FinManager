@@ -13,6 +13,7 @@ import ddsRouter from "./routes/dds.js";
 import pdfRouter from "./routes/pdf.js";
 import analyticsRouter from "./routes/analytics.js";
 import employeesRouter from "./routes/employees.js";
+import companyRouter from "./routes/company.js";
 import notificationsRouter from "./routes/notifications.js";
 import exportRouter from "./routes/export.js";
 import { errorHandler } from "./middleware/errorHandler.js";
@@ -40,6 +41,7 @@ app.use("/api/dds", ddsRouter);
 app.use("/api/pdf", pdfRouter);
 app.use("/api/analytics", analyticsRouter);
 app.use("/api/employees", employeesRouter);
+app.use("/api/company", companyRouter);
 app.use("/api/notifications", notificationsRouter);
 app.use("/api/export", exportRouter);
 

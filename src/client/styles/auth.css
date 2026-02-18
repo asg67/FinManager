@@ -74,6 +74,17 @@ body {
   line-height: 1;
 }
 
+.auth-invite-info {
+  text-align: center;
+  color: var(--accent);
+  font-weight: 500;
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+  padding: 0.5rem;
+  background: var(--accent-bg, rgba(245, 166, 35, 0.08));
+  border-radius: var(--radius-md);
+}
+
 .form-group {
   margin-bottom: 1rem;
 }

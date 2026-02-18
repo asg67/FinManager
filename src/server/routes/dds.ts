@@ -21,13 +21,14 @@ router.post("/operations", validate(createOperationSchema), async (req: Request,
     const userId = req.user!.userId;
     const { operationType, amount, entityId, fromAccountId, toAccountId, expenseTypeId, expenseArticleId, orderNumber, comment } = req.body;
 
-    // Verify entity access
+    // Verify entity belongs to user's company
+    const user = await prisma.user.findUnique({ where: { id: userId } });
     const entity = await prisma.entity.findUnique({ where: { id: entityId } });
     if (!entity) {
       res.status(404).json({ message: "Entity not found" });
       return;
     }
-    if (req.user!.role === "owner" && entity.ownerId !== userId) {
+    if (!user?.companyId || entity.companyId !== user.companyId) {
       res.status(403).json({ message: "Access denied" });
       return;
     }
@@ -65,7 +66,6 @@ router.post("/operations", validate(createOperationSchema), async (req: Request,
 router.get("/operations", async (req: Request, res: Response) => {
   try {
     const userId = req.user!.userId;
-    const role = req.user!.role;
 
     const { entityId, operationType, accountId, from, to, search, page, limit } =
       req.query as Record<string, string>;
@@ -74,13 +74,15 @@ router.get("/operations", async (req: Request, res: Response) => {
     const limitNum = Math.min(100, Math.max(1, parseInt(limit) || 20));
     const skip = (pageNum - 1) * limitNum;
 
-    // Build where clause
-    const where: Prisma.DdsOperationWhereInput = {};
+    // Get user's company
+    const user = await prisma.user.findUnique({ where: { id: userId } });
 
-    if (role === "owner") {
-      where.entity = { ownerId: userId };
+    // Build where clause — all company members see all operations
+    const where: Prisma.DdsOperationWhereInput = {};
+    if (user?.companyId) {
+      where.entity = { companyId: user.companyId };
     } else {
-      where.entity = { entityAccess: { some: { userId } } };
+      where.entity = { ownerId: userId };
     }
 
     if (entityId) where.entityId = entityId;
@@ -133,7 +135,7 @@ router.get("/operations", async (req: Request, res: Response) => {
 // PUT /api/dds/operations/:id
 router.put("/operations/:id", validate(updateOperationSchema), async (req: Request, res: Response) => {
   try {
-    const userId = req.user!.userId;
+    const user = await prisma.user.findUnique({ where: { id: req.user!.userId } });
     const op = await prisma.ddsOperation.findUnique({
       where: { id: req.params.id },
       include: { entity: true },
@@ -144,7 +146,7 @@ router.put("/operations/:id", validate(updateOperationSchema), async (req: Reque
       return;
     }
 
-    if (req.user!.role === "owner" && op.entity.ownerId !== userId) {
+    if (!user?.companyId || op.entity.companyId !== user.companyId) {
       res.status(403).json({ message: "Access denied" });
       return;
     }
@@ -171,7 +173,7 @@ router.put("/operations/:id", validate(updateOperationSchema), async (req: Reque
 // DELETE /api/dds/operations/:id
 router.delete("/operations/:id", async (req: Request, res: Response) => {
   try {
-    const userId = req.user!.userId;
+    const user = await prisma.user.findUnique({ where: { id: req.user!.userId } });
     const op = await prisma.ddsOperation.findUnique({
       where: { id: req.params.id },
       include: { entity: true },
@@ -182,7 +184,7 @@ router.delete("/operations/:id", async (req: Request, res: Response) => {
       return;
     }
 
-    if (req.user!.role === "owner" && op.entity.ownerId !== userId) {
+    if (!user?.companyId || op.entity.companyId !== user.companyId) {
       res.status(403).json({ message: "Access denied" });
       return;
     }

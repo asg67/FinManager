@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { Plus, Search, ChevronLeft, ChevronRight, Download } from "lucide-react";
+import { useAuthStore } from "../stores/auth.js";
 import { ddsApi, type OperationFilters } from "../api/dds.js";
 import { entitiesApi } from "../api/entities.js";
 import { accountsApi } from "../api/accounts.js";
@@ -21,6 +22,7 @@ const OP_TYPES = [
 
 export default function DdsOperations() {
   const { t } = useTranslation();
+  const companyName = useAuthStore((s) => s.user?.company?.name);
   const [data, setData] = useState<PaginatedResponse<DdsOperation>>({
     data: [],
     total: 0,
@@ -197,7 +199,9 @@ export default function DdsOperations() {
   return (
     <div className="dds-page page-enter">
       <div className="page-header">
-        <h1 className="page-title">{t("nav.dds")}</h1>
+        <h1 className="page-title">
+          {t("nav.dds")}{companyName ? ` · ${companyName}` : ""}
+        </h1>
         <div className="page-header__actions">
           <Button
             variant="secondary"

@@ -16,7 +16,12 @@ router.use(authMiddleware);
 async function checkEntityOwnership(entityId: string, userId: string) {
   const entity = await prisma.entity.findUnique({ where: { id: entityId } });
   if (!entity) return { error: 404 as const, message: "Entity not found" };
-  if (entity.ownerId !== userId) return { error: 403 as const, message: "Access denied" };
+
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user?.companyId || entity.companyId !== user.companyId) {
+    return { error: 403 as const, message: "Access denied" };
+  }
+
   return { entity };
 }
 

@@ -1,18 +1,36 @@
-import { useState, type FormEvent } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useState, useEffect, type FormEvent } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuthStore } from "../stores/auth.js";
+import { companyApi } from "../api/company.js";
+import { setAccessToken } from "../api/client.js";
 
 export default function Register() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { register, isLoading, error, clearError } = useAuthStore();
+
+  const inviteToken = searchParams.get("invite");
+  const [companyName, setCompanyName] = useState<string | null>(null);
+  const [inviteError, setInviteError] = useState(false);
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [localError, setLocalError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  // Check invite validity
+  useEffect(() => {
+    if (inviteToken) {
+      companyApi.checkInvite(inviteToken).then(
+        (res) => setCompanyName(res.companyName),
+        () => setInviteError(true),
+      );
+    }
+  }, [inviteToken]);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -24,20 +42,60 @@ export default function Register() {
     }
 
     try {
-      await register({ email, password, name });
-      navigate("/");
-    } catch {
-      // error is set in store
+      if (inviteToken) {
+        // Register via invite
+        setSubmitting(true);
+        const res = await companyApi.registerInvite({
+          email,
+          password,
+          name,
+          token: inviteToken,
+        });
+        setAccessToken(res.accessToken);
+        localStorage.setItem("refreshToken", res.refreshToken);
+        useAuthStore.setState({ user: res.user });
+        navigate("/");
+      } else {
+        await register({ email, password, name });
+        navigate("/");
+      }
+    } catch (err: any) {
+      if (err?.message) setLocalError(err.message);
+    } finally {
+      setSubmitting(false);
     }
   }
 
   const displayError = localError || error;
+  const loading = isLoading || submitting;
+
+  if (inviteToken && inviteError) {
+    return (
+      <div className="auth-page">
+        <div className="auth-card">
+          <h1>FinManager</h1>
+          <div className="auth-error" role="alert">
+            {t("auth.inviteExpired")}
+          </div>
+          <p className="auth-link">
+            <Link to="/register">{t("auth.registerAction")}</Link>
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="auth-page">
       <div className="auth-card">
         <h1>FinManager</h1>
         <h2>{t("auth.register")}</h2>
+
+        {inviteToken && companyName && (
+          <p className="auth-invite-info">
+            {t("auth.inviteJoin", { company: companyName })}
+          </p>
+        )}
 
         {displayError && (
           <div className="auth-error" role="alert">
@@ -110,8 +168,8 @@ export default function Register() {
             />
           </div>
 
-          <button type="submit" className="btn-primary" disabled={isLoading}>
-            {isLoading ? t("auth.registerLoading") : t("auth.registerAction")}
+          <button type="submit" className="btn-primary" disabled={loading}>
+            {loading ? t("auth.registerLoading") : t("auth.registerAction")}
           </button>
         </form>
 

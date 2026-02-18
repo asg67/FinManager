@@ -26,6 +26,12 @@ router.post("/invite", validate(inviteEmployeeSchema), async (req: Request, res:
     const { email, password, name, entityIds, permissions } = req.body;
     const ownerId = req.user!.userId;
 
+    const owner = await prisma.user.findUnique({ where: { id: ownerId } });
+    if (!owner?.companyId) {
+      res.status(400).json({ message: "Create a company first" });
+      return;
+    }
+
     // Check email not taken
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) {
@@ -33,12 +39,12 @@ router.post("/invite", validate(inviteEmployeeSchema), async (req: Request, res:
       return;
     }
 
-    // Verify all entities belong to this owner
+    // Verify all entities belong to this company
     const entities = await prisma.entity.findMany({
-      where: { id: { in: entityIds }, ownerId },
+      where: { id: { in: entityIds }, companyId: owner.companyId },
     });
     if (entities.length !== entityIds.length) {
-      res.status(400).json({ message: "Some entities not found or not owned by you" });
+      res.status(400).json({ message: "Some entities not found or not in your company" });
       return;
     }
 
@@ -51,6 +57,7 @@ router.post("/invite", validate(inviteEmployeeSchema), async (req: Request, res:
         name,
         role: "employee",
         invitedById: ownerId,
+        companyId: owner.companyId,
         permission: {
           create: permissions,
         },
@@ -86,15 +93,19 @@ router.post("/invite", validate(inviteEmployeeSchema), async (req: Request, res:
   }
 });
 
-// GET /api/employees — list employees invited by current owner
+// GET /api/employees — list company employees
 router.get("/", async (req: Request, res: Response) => {
   try {
     if (!ownerOnly(req, res)) return;
 
-    const ownerId = req.user!.userId;
+    const owner = await prisma.user.findUnique({ where: { id: req.user!.userId } });
+    if (!owner?.companyId) {
+      res.json([]);
+      return;
+    }
 
     const employees = await prisma.user.findMany({
-      where: { invitedById: ownerId, role: "employee" },
+      where: { companyId: owner.companyId, role: "employee" },
       include: {
         permission: true,
         entityAccess: { include: { entity: { select: { id: true, name: true } } } },
@@ -131,12 +142,16 @@ router.put("/:id", validate(updateEmployeeSchema), async (req: Request, res: Res
   try {
     if (!ownerOnly(req, res)) return;
 
-    const ownerId = req.user!.userId;
+    const owner = await prisma.user.findUnique({ where: { id: req.user!.userId } });
+    if (!owner?.companyId) {
+      res.status(400).json({ message: "No company" });
+      return;
+    }
     const employeeId = req.params.id as string;
 
-    // Verify employee belongs to this owner
+    // Verify employee belongs to this company
     const employee = await prisma.user.findFirst({
-      where: { id: employeeId, invitedById: ownerId, role: "employee" },
+      where: { id: employeeId, companyId: owner.companyId, role: "employee" },
     });
     if (!employee) {
       res.status(404).json({ message: "Employee not found" });
@@ -161,12 +176,12 @@ router.put("/:id", validate(updateEmployeeSchema), async (req: Request, res: Res
 
     // Update entity access if provided
     if (entityIds) {
-      // Verify all entities belong to owner
+      // Verify all entities belong to company
       const entities = await prisma.entity.findMany({
-        where: { id: { in: entityIds }, ownerId },
+        where: { id: { in: entityIds }, companyId: owner.companyId },
       });
       if (entities.length !== entityIds.length) {
-        res.status(400).json({ message: "Some entities not found or not owned by you" });
+        res.status(400).json({ message: "Some entities not found or not in your company" });
         return;
       }
 
@@ -213,11 +228,15 @@ router.delete("/:id", async (req: Request, res: Response) => {
   try {
     if (!ownerOnly(req, res)) return;
 
-    const ownerId = req.user!.userId;
+    const owner = await prisma.user.findUnique({ where: { id: req.user!.userId } });
+    if (!owner?.companyId) {
+      res.status(400).json({ message: "No company" });
+      return;
+    }
     const employeeId = req.params.id as string;
 
     const employee = await prisma.user.findFirst({
-      where: { id: employeeId, invitedById: ownerId, role: "employee" },
+      where: { id: employeeId, companyId: owner.companyId, role: "employee" },
     });
     if (!employee) {
       res.status(404).json({ message: "Employee not found" });

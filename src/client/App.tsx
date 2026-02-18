@@ -5,6 +5,7 @@ import { useAuthStore } from "./stores/auth.js";
 import { useThemeStore } from "./stores/theme.js";
 import ProtectedRoute from "./components/ProtectedRoute.js";
 import GuestRoute from "./components/GuestRoute.js";
+import OnboardingGuard from "./components/OnboardingGuard.js";
 import AppLayout from "./components/layout/AppLayout.js";
 import ToastContainer from "./components/ui/ToastContainer.js";
 import Login from "./pages/Login.js";
@@ -18,6 +19,7 @@ import "./styles/settings.css";
 import "./styles/dds.css";
 import "./styles/pdf.css";
 import "./styles/dashboard.css";
+import "./styles/onboarding.css";
 
 // Lazy-loaded pages for code splitting
 const Dashboard = lazy(() => import("./pages/Dashboard.js"));
@@ -76,11 +78,13 @@ export default function App() {
 
         {/* Protected routes with layout */}
         <Route element={<ProtectedRoute />}>
+          <Route element={<OnboardingGuard />}>
           <Route element={<AppLayout />}>
             <Route path="/" element={<Suspense fallback={pageFallback}><Dashboard /></Suspense>} />
             <Route path="/dds" element={<Suspense fallback={pageFallback}><DdsOperations /></Suspense>} />
             <Route path="/pdf" element={<Suspense fallback={pageFallback}><Statements /></Suspense>} />
             <Route path="/settings" element={<Suspense fallback={pageFallback}><Settings /></Suspense>} />
+          </Route>
           </Route>
         </Route>
 

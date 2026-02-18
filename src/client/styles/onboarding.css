@@ -1,0 +1,247 @@
+/* ─── Onboarding Wizard ─── */
+
+.onboarding {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-base);
+  padding: 2rem 1rem;
+}
+
+.onboarding__container {
+  width: 100%;
+  max-width: 640px;
+}
+
+.onboarding__title {
+  text-align: center;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.25rem;
+}
+
+.onboarding__subtitle {
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  margin-bottom: 2rem;
+}
+
+/* Stepper */
+.onboarding__stepper {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 2rem;
+}
+
+.onboarding__step-indicator {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  flex: 1;
+  max-width: 120px;
+}
+
+.onboarding__step-circle {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-card);
+  border: 2px solid var(--border);
+  color: var(--text-secondary);
+  transition: all 0.2s ease;
+}
+
+.onboarding__step-indicator--active .onboarding__step-circle {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-bg, rgba(245, 166, 35, 0.1));
+}
+
+.onboarding__step-indicator--done .onboarding__step-circle {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
+.onboarding__step-label {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  text-align: center;
+  white-space: nowrap;
+}
+
+.onboarding__step-indicator--active .onboarding__step-label {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+/* Card */
+.onboarding__card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 2rem;
+  backdrop-filter: blur(12px);
+}
+
+.onboarding__step-title {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+}
+
+.onboarding__hint {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  margin-bottom: 1.25rem;
+}
+
+.onboarding__success {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--accent);
+  font-weight: 500;
+  margin-bottom: 1rem;
+}
+
+/* Inline form */
+.onboarding__inline-form {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-end;
+  margin-bottom: 1rem;
+}
+
+.onboarding__inline-form .form-group {
+  flex: 1;
+  margin-bottom: 0;
+}
+
+.onboarding__account-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.onboarding__account-form .form-group {
+  margin-bottom: 0;
+}
+
+.onboarding__account-form > button {
+  grid-column: 1 / -1;
+  justify-self: start;
+}
+
+/* List */
+.onboarding__list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1.5rem;
+}
+
+.onboarding__list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.9rem;
+}
+
+.onboarding__list-item:last-child {
+  border-bottom: none;
+}
+
+.onboarding__list-actions {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.onboarding__list-meta {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}
+
+/* Invite section */
+.onboarding__invite-section {
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: var(--bg-base);
+  border-radius: 10px;
+  border: 1px solid var(--border);
+}
+
+.onboarding__invite-hint {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  margin-bottom: 0.75rem;
+}
+
+.onboarding__invite-link {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--bg-card);
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.onboarding__invite-link code {
+  flex: 1;
+  font-size: 0.8rem;
+  color: var(--text-primary);
+  word-break: break-all;
+}
+
+/* Actions */
+.onboarding__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+/* Mobile */
+@media (max-width: 640px) {
+  .onboarding {
+    padding: 1rem 0.75rem;
+  }
+
+  .onboarding__card {
+    padding: 1.25rem;
+  }
+
+  .onboarding__stepper {
+    gap: 0.25rem;
+  }
+
+  .onboarding__step-label {
+    font-size: 0.6rem;
+  }
+
+  .onboarding__step-circle {
+    width: 30px;
+    height: 30px;
+  }
+
+  .onboarding__account-form {
+    grid-template-columns: 1fr;
+  }
+
+  .onboarding__inline-form {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

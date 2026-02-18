@@ -13,24 +13,20 @@ router.use(authMiddleware);
 router.get("/", async (req: Request, res: Response) => {
   try {
     const userId = req.user!.userId;
-    const role = req.user!.role;
 
-    let entities;
-    if (role === "owner") {
-      // Owner sees entities they own
-      entities = await prisma.entity.findMany({
-        where: { ownerId: userId },
-        include: { _count: { select: { accounts: true } } },
-        orderBy: { createdAt: "asc" },
-      });
-    } else {
-      // Employee sees entities they have access to
-      entities = await prisma.entity.findMany({
-        where: { entityAccess: { some: { userId } } },
-        include: { _count: { select: { accounts: true } } },
-        orderBy: { createdAt: "asc" },
-      });
+    // Get user's company
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user?.companyId) {
+      res.json([]);
+      return;
     }
+
+    // All company members see all company entities
+    const entities = await prisma.entity.findMany({
+      where: { companyId: user.companyId },
+      include: { _count: { select: { accounts: true } } },
+      orderBy: { createdAt: "asc" },
+    });
 
     res.json(entities);
   } catch (error) {
@@ -42,7 +38,7 @@ router.get("/", async (req: Request, res: Response) => {
 // GET /api/entities/:id — get single entity
 router.get("/:id", async (req: Request, res: Response) => {
   try {
-    const userId = req.user!.userId;
+    const user = await prisma.user.findUnique({ where: { id: req.user!.userId } });
     const entity = await prisma.entity.findUnique({
       where: { id: req.params.id },
       include: {
@@ -59,15 +55,10 @@ router.get("/:id", async (req: Request, res: Response) => {
       return;
     }
 
-    // Check access
-    if (entity.ownerId !== userId) {
-      const access = await prisma.entityAccess.findUnique({
-        where: { userId_entityId: { userId, entityId: entity.id } },
-      });
-      if (!access) {
-        res.status(403).json({ message: "Access denied" });
-        return;
-      }
+    // Check company access
+    if (!user?.companyId || entity.companyId !== user.companyId) {
+      res.status(403).json({ message: "Access denied" });
+      return;
     }
 
     res.json(entity);
@@ -85,10 +76,17 @@ router.post("/", validate(createEntitySchema), async (req: Request, res: Respons
       return;
     }
 
+    const user = await prisma.user.findUnique({ where: { id: req.user!.userId } });
+    if (!user?.companyId) {
+      res.status(400).json({ message: "Create a company first" });
+      return;
+    }
+
     const entity = await prisma.entity.create({
       data: {
         name: req.body.name,
         ownerId: req.user!.userId,
+        companyId: user.companyId,
       },
     });
 
