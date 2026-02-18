@@ -6,6 +6,7 @@ import { config } from "./config.js";
 import authRouter from "./routes/auth.js";
 import entitiesRouter from "./routes/entities.js";
 import accountsRouter from "./routes/accounts.js";
+import expensesRouter from "./routes/expenses.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 
 const app = express();
@@ -23,6 +24,7 @@ app.get("/api/health", (_req, res) => {
 app.use("/api/auth", authRouter);
 app.use("/api/entities", entitiesRouter);
 app.use("/api/entities/:entityId/accounts", accountsRouter);
+app.use("/api/entities/:entityId/expense-types", expensesRouter);
 
 // Error handler (must be last)
 app.use(errorHandler);
