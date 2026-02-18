@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { Search, ChevronLeft, ChevronRight, Download, Info, Users, Building2, Link2, Copy, Check, ChevronDown } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight, Download, Info, Users, Building2, Link2, Copy, Check, ChevronDown, Plus } from "lucide-react";
 import { Navigate } from "react-router-dom";
 import { useAuthStore } from "../stores/auth.js";
 import { ddsApi, type OperationFilters } from "../api/dds.js";
@@ -9,11 +9,10 @@ import { accountsApi } from "../api/accounts.js";
 import { exportApi } from "../api/export.js";
 import { companyApi } from "../api/company.js";
 import { Button, Select, Input, Table } from "../components/ui/index.js";
-import OperationWizard from "../components/dds/OperationWizard.js";
-import QuickAddForm from "../components/dds/QuickAddForm.js";
+import StepWizard from "../components/dds/StepWizard.js";
 import DeleteConfirm from "../components/dds/DeleteConfirm.js";
 import CompanySetup from "../components/dds/CompanySetup.js";
-import type { DdsOperation, Entity, Account, ExpenseType, PaginatedResponse, InviteInfo } from "@shared/types.js";
+import type { DdsOperation, Entity, Account, PaginatedResponse, InviteInfo } from "@shared/types.js";
 import { Pencil, Trash2 } from "lucide-react";
 
 const OP_TYPES = [
@@ -168,7 +167,6 @@ function DdsTable({ companyName }: { companyName?: string }) {
   });
   const [entities, setEntities] = useState<Entity[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
-  const [expenseTypes, setExpenseTypes] = useState<ExpenseType[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Filters
@@ -214,19 +212,12 @@ function DdsTable({ companyName }: { companyName?: string }) {
     entitiesApi.list().then(setEntities);
   }, []);
 
-  // Load accounts & expense types for the selected entity filter
+  // Load accounts for the selected entity filter
   useEffect(() => {
     if (filters.entityId) {
-      Promise.all([
-        accountsApi.list(filters.entityId),
-        expensesApi.listTypes(filters.entityId),
-      ]).then(([accs, types]) => {
-        setAccounts(accs);
-        setExpenseTypes(types);
-      });
+      accountsApi.list(filters.entityId).then(setAccounts);
     } else {
       setAccounts([]);
-      setExpenseTypes([]);
     }
   }, [filters.entityId]);
 
@@ -384,6 +375,10 @@ function DdsTable({ companyName }: { companyName?: string }) {
             <Download size={18} />
             {t("dds.exportCsv")}
           </Button>
+          <Button onClick={() => { setEditOp(null); setWizardOpen(true); }}>
+            <Plus size={18} />
+            {t("dds.addOperation")}
+          </Button>
         </div>
       </div>
 
@@ -421,9 +416,6 @@ function DdsTable({ companyName }: { companyName?: string }) {
           </button>
         </div>
       </div>
-
-      {/* Quick Add Form */}
-      <QuickAddForm entities={entities} onSaved={() => loadOperations(filters)} />
 
       {/* Table */}
       {loading ? (
@@ -464,8 +456,8 @@ function DdsTable({ companyName }: { companyName?: string }) {
         </>
       )}
 
-      {/* Operation Wizard */}
-      <OperationWizard
+      {/* Step Wizard (create + edit) */}
+      <StepWizard
         open={wizardOpen}
         onClose={() => { setWizardOpen(false); setEditOp(null); }}
         onDone={handleWizardDone}

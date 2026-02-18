@@ -194,11 +194,6 @@ router.post("/", validate(createCompanySchema), async (req: Request, res: Respon
       return;
     }
 
-    if (user.companyId) {
-      res.status(400).json({ message: "You already have a company" });
-      return;
-    }
-
     // Check for duplicate name
     const existing = await prisma.company.findUnique({ where: { name: req.body.name } });
     if (existing) {
@@ -209,8 +204,15 @@ router.post("/", validate(createCompanySchema), async (req: Request, res: Respon
     const company = await prisma.company.create({
       data: {
         name: req.body.name,
+        createdById: userId,
         users: { connect: { id: userId } },
       },
+    });
+
+    // Switch user to the new company
+    await prisma.user.update({
+      where: { id: userId },
+      data: { companyId: company.id },
     });
 
     res.status(201).json({
@@ -503,6 +505,82 @@ router.get("/expense-types", async (req: Request, res: Response) => {
     })));
   } catch (error) {
     console.error("List company expense types error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// GET /api/company/my-companies — list companies created by this user
+router.get("/my-companies", async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.userId;
+
+    const companies = await prisma.company.findMany({
+      where: { createdById: userId },
+      orderBy: { createdAt: "desc" },
+      include: {
+        _count: { select: { users: true, entities: true } },
+      },
+    });
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { companyId: true },
+    });
+
+    res.json(companies.map((c) => ({
+      id: c.id,
+      name: c.name,
+      onboardingDone: c.onboardingDone,
+      isActive: c.id === user?.companyId,
+      usersCount: c._count.users,
+      entitiesCount: c._count.entities,
+      createdAt: c.createdAt.toISOString(),
+    })));
+  } catch (error) {
+    console.error("My companies error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// POST /api/company/switch/:id — switch active company
+router.post("/switch/:id", async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.userId;
+    const companyId = req.params.id;
+
+    const company = await prisma.company.findFirst({
+      where: { id: companyId, createdById: userId },
+    });
+
+    if (!company) {
+      res.status(404).json({ message: "Company not found" });
+      return;
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: { companyId: company.id },
+      include: { company: true },
+    });
+
+    res.json({
+      id: updatedUser.id,
+      email: updatedUser.email,
+      name: updatedUser.name,
+      language: updatedUser.language,
+      theme: updatedUser.theme,
+      role: updatedUser.role,
+      companyId: updatedUser.companyId,
+      company: updatedUser.company ? {
+        id: updatedUser.company.id,
+        name: updatedUser.company.name,
+        onboardingDone: updatedUser.company.onboardingDone,
+        createdAt: updatedUser.company.createdAt.toISOString(),
+      } : null,
+      createdAt: updatedUser.createdAt.toISOString(),
+    });
+  } catch (error) {
+    console.error("Switch company error:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 });

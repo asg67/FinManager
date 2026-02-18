@@ -50,4 +50,20 @@ export const companyApi = {
 
   listExpenseTypes: () =>
     api.get<ExpenseType[]>("/company/expense-types"),
+
+  listMyCompanies: () =>
+    api.get<CompanyListItem[]>("/company/my-companies"),
+
+  switchCompany: (id: string) =>
+    api.post<User>(`/company/switch/${id}`),
 };
+
+export interface CompanyListItem {
+  id: string;
+  name: string;
+  onboardingDone: boolean;
+  isActive: boolean;
+  usersCount: number;
+  entitiesCount: number;
+  createdAt: string;
+}
