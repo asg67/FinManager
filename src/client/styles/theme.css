@@ -2,33 +2,42 @@
 
 :root,
 [data-theme="dark"] {
-  /* Background */
-  --bg-base: #0f172a;
-  --bg-surface: rgba(30, 41, 59, 0.6);
-  --bg-surface-solid: #1e293b;
+  /* Page background (visible between floating panels) */
+  --bg-page: #0b0f1a;
+  --bg-page-gradient: linear-gradient(160deg, #1a0e2e 0%, #0b0f1a 40%, #091520 100%);
+
+  /* Panel backgrounds (sidebar + main content) */
+  --bg-base: #131825;
+  --bg-surface: rgba(30, 41, 59, 0.5);
+  --bg-surface-solid: #1a2030;
   --bg-surface-hover: rgba(148, 163, 184, 0.08);
   --bg-overlay: rgba(0, 0, 0, 0.5);
   --bg-input: rgba(15, 23, 42, 0.6);
 
   /* Glassmorphism */
-  --glass-bg: rgba(30, 41, 59, 0.8);
-  --glass-bg-strong: rgba(15, 23, 42, 0.95);
+  --glass-bg: rgba(19, 24, 37, 0.9);
+  --glass-bg-strong: rgba(19, 24, 37, 0.98);
   --glass-blur: blur(12px);
-  --glass-border: rgba(148, 163, 184, 0.08);
-  --glass-border-hover: rgba(148, 163, 184, 0.15);
+  --glass-border: rgba(148, 163, 184, 0.06);
+  --glass-border-hover: rgba(148, 163, 184, 0.12);
 
   /* Text */
   --text-primary: #f1f5f9;
   --text-secondary: #e2e8f0;
-  --text-muted: #94a3b8;
-  --text-dimmed: #64748b;
+  --text-muted: #8994a7;
+  --text-dimmed: #5b6578;
   --text-placeholder: #475569;
 
   /* Accent */
   --accent: #38bdf8;
   --accent-hover: #0ea5e9;
-  --accent-bg: rgba(56, 189, 248, 0.1);
+  --accent-bg: rgba(56, 189, 248, 0.12);
   --accent-gradient: linear-gradient(135deg, #0ea5e9, #06b6d4);
+
+  /* Sidebar active */
+  --sidebar-active-bg: rgba(56, 189, 248, 0.12);
+  --sidebar-active-text: #38bdf8;
+  --sidebar-hover-bg: rgba(148, 163, 184, 0.06);
 
   /* Button */
   --btn-primary-bg: #0ea5e9;
@@ -41,33 +50,42 @@
   --error-text: #fca5a5;
 
   /* Border */
-  --border-color: rgba(148, 163, 184, 0.1);
-  --border-input: rgba(148, 163, 184, 0.2);
+  --border-color: rgba(148, 163, 184, 0.08);
+  --border-input: rgba(148, 163, 184, 0.15);
+
+  /* Layout */
+  --layout-gap: 12px;
+  --panel-radius: 20px;
 
   /* Misc */
   --radius-sm: 6px;
   --radius-md: 8px;
   --radius-lg: 16px;
+  --radius-xl: 20px;
   --transition: 0.2s ease;
 
   color-scheme: dark;
 }
 
 [data-theme="light"] {
-  /* Background */
-  --bg-base: #f1f5f9;
+  /* Page background */
+  --bg-page: #e4e9f0;
+  --bg-page-gradient: linear-gradient(160deg, #e4e9f0 0%, #dce2ea 100%);
+
+  /* Panel backgrounds */
+  --bg-base: #ffffff;
   --bg-surface: rgba(255, 255, 255, 0.8);
   --bg-surface-solid: #ffffff;
-  --bg-surface-hover: rgba(0, 0, 0, 0.04);
+  --bg-surface-hover: rgba(0, 0, 0, 0.03);
   --bg-overlay: rgba(0, 0, 0, 0.3);
   --bg-input: rgba(255, 255, 255, 0.9);
 
   /* Glassmorphism */
-  --glass-bg: rgba(255, 255, 255, 0.75);
-  --glass-bg-strong: rgba(255, 255, 255, 0.95);
+  --glass-bg: rgba(255, 255, 255, 0.85);
+  --glass-bg-strong: rgba(255, 255, 255, 0.98);
   --glass-blur: blur(12px);
-  --glass-border: rgba(0, 0, 0, 0.06);
-  --glass-border-hover: rgba(0, 0, 0, 0.1);
+  --glass-border: rgba(0, 0, 0, 0.05);
+  --glass-border-hover: rgba(0, 0, 0, 0.08);
 
   /* Text */
   --text-primary: #0f172a;
@@ -82,6 +100,11 @@
   --accent-bg: rgba(2, 132, 199, 0.08);
   --accent-gradient: linear-gradient(135deg, #0ea5e9, #06b6d4);
 
+  /* Sidebar active */
+  --sidebar-active-bg: rgba(2, 132, 199, 0.1);
+  --sidebar-active-text: #0284c7;
+  --sidebar-hover-bg: rgba(0, 0, 0, 0.03);
+
   /* Button */
   --btn-primary-bg: #0ea5e9;
   --btn-primary-hover: #0284c7;
@@ -93,14 +116,20 @@
   --error-text: #dc2626;
 
   /* Border */
-  --border-color: rgba(0, 0, 0, 0.06);
-  --border-input: rgba(0, 0, 0, 0.12);
+  --border-color: rgba(0, 0, 0, 0.05);
+  --border-input: rgba(0, 0, 0, 0.1);
+
+  /* Layout */
+  --layout-gap: 12px;
+  --panel-radius: 20px;
 
   color-scheme: light;
 }
 
 /* ===== Theme transition ===== */
 body,
+.app-layout,
+.app-layout__main,
 .sidebar,
 .header,
 .card,
