@@ -6,6 +6,7 @@ import {
   ArrowLeftRight,
   FileText,
   Settings,
+  Shield,
   ChevronLeft,
   ChevronRight,
   Wallet,
@@ -22,7 +23,9 @@ interface SidebarProps {
 
 export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const { t } = useTranslation();
+  const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
+  const isOwner = user?.role === "owner";
   const [balances, setBalances] = useState<AccountBalance[]>([]);
   const [totalBalance, setTotalBalance] = useState(0);
 
@@ -45,6 +48,7 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
 
   const toolItems = [
     { to: "/settings", icon: Settings, label: t("nav.settings") },
+    ...(isOwner ? [{ to: "/admin", icon: Shield, label: t("nav.admin") }] : []),
   ];
 
   return (

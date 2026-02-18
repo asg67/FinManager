@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { Search, ChevronLeft, ChevronRight, Download, Info, Users, Building2, Link2, Copy, Check, ChevronDown } from "lucide-react";
+import { Navigate } from "react-router-dom";
 import { useAuthStore } from "../stores/auth.js";
 import { ddsApi, type OperationFilters } from "../api/dds.js";
 import { entitiesApi } from "../api/entities.js";
 import { accountsApi } from "../api/accounts.js";
-import { expensesApi } from "../api/expenses.js";
 import { exportApi } from "../api/export.js";
 import { companyApi } from "../api/company.js";
 import { Button, Select, Input, Table } from "../components/ui/index.js";
@@ -13,7 +13,6 @@ import OperationWizard from "../components/dds/OperationWizard.js";
 import QuickAddForm from "../components/dds/QuickAddForm.js";
 import DeleteConfirm from "../components/dds/DeleteConfirm.js";
 import CompanySetup from "../components/dds/CompanySetup.js";
-import OnboardingWizard from "../components/onboarding/OnboardingWizard.js";
 import type { DdsOperation, Entity, Account, ExpenseType, PaginatedResponse, InviteInfo } from "@shared/types.js";
 import { Pencil, Trash2 } from "lucide-react";
 
@@ -29,9 +28,14 @@ export default function DdsOperations() {
   const user = useAuthStore((s) => s.user);
   const companyName = user?.company?.name;
   const hasCompany = !!user?.companyId;
-  const onboardingDone = user?.company?.onboardingDone ?? false;
+  const isOwner = user?.role === "owner";
 
-  // If no company → show CompanySetup
+  // Owner without company → redirect to /admin for setup
+  if (!hasCompany && isOwner) {
+    return <Navigate to="/admin" replace />;
+  }
+
+  // Member without company → show invite join form
   if (!hasCompany) {
     return (
       <div className="dds-page page-enter">
@@ -41,11 +45,6 @@ export default function DdsOperations() {
         <CompanySetup />
       </div>
     );
-  }
-
-  // If company exists but onboarding not done → owner sees OnboardingWizard, members see DDS table
-  if (!onboardingDone && user?.role === "owner") {
-    return <OnboardingWizard />;
   }
 
   // Normal DDS view

@@ -42,6 +42,7 @@ export default {
     analytics: "Аналитика",
     employees: "Сотрудники",
     settings: "Настройки",
+    admin: "Админка",
     tools: "Инструменты",
     more: "Ещё",
   },
