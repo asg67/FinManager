@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 import { Menu, Moon, Sun, Globe } from "lucide-react";
 import { useAuthStore } from "../../stores/auth.js";
 import { useThemeStore } from "../../stores/theme.js";
@@ -10,6 +11,7 @@ interface HeaderProps {
 
 export default function Header({ onMenuClick }: HeaderProps) {
   const { t, i18n } = useTranslation();
+  const navigate = useNavigate();
   const { user, updateProfile } = useAuthStore();
   const { theme, toggleTheme } = useThemeStore();
 
@@ -59,12 +61,20 @@ export default function Header({ onMenuClick }: HeaderProps) {
 
         <NotificationsDropdown />
 
-        <div className="header__user">
+        <button
+          type="button"
+          className="header__user"
+          onClick={() => navigate("/settings")}
+        >
           <div className="header__avatar">
-            {user?.name?.charAt(0).toUpperCase()}
+            {user?.avatar ? (
+              <img src={user.avatar} alt="" className="header__avatar-img" />
+            ) : (
+              user?.name?.charAt(0).toUpperCase()
+            )}
           </div>
           <span className="header__user-name">{user?.name}</span>
-        </div>
+        </button>
       </div>
     </header>
   );
