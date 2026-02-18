@@ -4,8 +4,6 @@ import {
   LayoutDashboard,
   ArrowLeftRight,
   FileText,
-  BarChart3,
-  Users,
   Settings,
   ChevronLeft,
   ChevronRight,
@@ -24,8 +22,6 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
     { to: "/", icon: LayoutDashboard, label: t("nav.dashboard") },
     { to: "/dds", icon: ArrowLeftRight, label: t("nav.dds") },
     { to: "/pdf", icon: FileText, label: t("nav.statements") },
-    { to: "/analytics", icon: BarChart3, label: t("nav.analytics") },
-    { to: "/employees", icon: Users, label: t("nav.employees") },
     { to: "/settings", icon: Settings, label: t("nav.settings") },
   ];
 

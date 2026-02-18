@@ -1,7 +1,8 @@
 import { useTranslation } from "react-i18next";
-import { Bell, LogOut, Menu, Moon, Sun, Globe } from "lucide-react";
+import { LogOut, Menu, Moon, Sun, Globe } from "lucide-react";
 import { useAuthStore } from "../../stores/auth.js";
 import { useThemeStore } from "../../stores/theme.js";
+import NotificationsDropdown from "./NotificationsDropdown.js";
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -51,9 +52,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
           {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
         </button>
 
-        <button type="button" className="header__icon-btn" aria-label={t("header.notifications")}>
-          <Bell size={20} />
-        </button>
+        <NotificationsDropdown />
 
         <div className="header__user">
           <div className="header__avatar">

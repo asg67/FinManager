@@ -132,3 +132,48 @@ export interface PaginatedResponse<T> {
   limit: number;
   totalPages: number;
 }
+
+// === Employees ===
+
+export interface EmployeePermissions {
+  dds: boolean;
+  pdfUpload: boolean;
+  analytics: boolean;
+  export: boolean;
+}
+
+export interface Employee {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+  createdAt: string;
+  permissions: EmployeePermissions | null;
+  entities: { id: string; name: string }[];
+}
+
+export interface InviteEmployeePayload {
+  email: string;
+  password: string;
+  name: string;
+  entityIds: string[];
+  permissions: EmployeePermissions;
+}
+
+export interface UpdateEmployeePayload {
+  name?: string;
+  entityIds?: string[];
+  permissions?: EmployeePermissions;
+}
+
+// === Notifications ===
+
+export interface Notification {
+  id: string;
+  userId: string;
+  type: string;
+  title: string;
+  body: string;
+  read: boolean;
+  createdAt: string;
+}

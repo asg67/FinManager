@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, lazy, Suspense } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useAuthStore } from "./stores/auth.js";
@@ -6,12 +6,9 @@ import { useThemeStore } from "./stores/theme.js";
 import ProtectedRoute from "./components/ProtectedRoute.js";
 import GuestRoute from "./components/GuestRoute.js";
 import AppLayout from "./components/layout/AppLayout.js";
+import ToastContainer from "./components/ui/ToastContainer.js";
 import Login from "./pages/Login.js";
 import Register from "./pages/Register.js";
-import Dashboard from "./pages/Dashboard.js";
-import Settings from "./pages/Settings.js";
-import DdsOperations from "./pages/DdsOperations.js";
-import Statements from "./pages/Statements.js";
 import "./i18n/index.js";
 import "./styles/theme.css";
 import "./styles/auth.css";
@@ -21,6 +18,12 @@ import "./styles/settings.css";
 import "./styles/dds.css";
 import "./styles/pdf.css";
 import "./styles/dashboard.css";
+
+// Lazy-loaded pages for code splitting
+const Dashboard = lazy(() => import("./pages/Dashboard.js"));
+const DdsOperations = lazy(() => import("./pages/DdsOperations.js"));
+const Settings = lazy(() => import("./pages/Settings.js"));
+const Statements = lazy(() => import("./pages/Statements.js"));
 
 export default function App() {
   const { i18n } = useTranslation();
@@ -51,31 +54,40 @@ export default function App() {
   if (!isInitialized) {
     return (
       <div className="auth-page" style={{ background: "var(--bg-base)", color: "var(--text-secondary)" }}>
-        Loading...
+        <div className="skeleton skeleton--text" style={{ width: 120 }} />
       </div>
     );
   }
 
+  const pageFallback = (
+    <div className="tab-loading" style={{ padding: "3rem", textAlign: "center" }}>
+      <div className="skeleton skeleton--text" style={{ width: 200, margin: "0 auto" }} />
+    </div>
+  );
+
   return (
-    <Routes>
-      {/* Guest-only routes */}
-      <Route element={<GuestRoute />}>
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-      </Route>
-
-      {/* Protected routes with layout */}
-      <Route element={<ProtectedRoute />}>
-        <Route element={<AppLayout />}>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/dds" element={<DdsOperations />} />
-          <Route path="/pdf" element={<Statements />} />
-          <Route path="/settings" element={<Settings />} />
+    <>
+      <Routes>
+        {/* Guest-only routes */}
+        <Route element={<GuestRoute />}>
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
         </Route>
-      </Route>
 
-      {/* Fallback */}
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+        {/* Protected routes with layout */}
+        <Route element={<ProtectedRoute />}>
+          <Route element={<AppLayout />}>
+            <Route path="/" element={<Suspense fallback={pageFallback}><Dashboard /></Suspense>} />
+            <Route path="/dds" element={<Suspense fallback={pageFallback}><DdsOperations /></Suspense>} />
+            <Route path="/pdf" element={<Suspense fallback={pageFallback}><Statements /></Suspense>} />
+            <Route path="/settings" element={<Suspense fallback={pageFallback}><Settings /></Suspense>} />
+          </Route>
+        </Route>
+
+        {/* Fallback */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+      <ToastContainer />
+    </>
   );
 }

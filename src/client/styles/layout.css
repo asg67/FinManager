@@ -317,7 +317,161 @@
   color: var(--text-primary);
 }
 
+/* ===== Page header actions ===== */
+.page-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* ===== Notifications Dropdown ===== */
+.notif-dropdown {
+  position: relative;
+}
+
+.notif-trigger {
+  position: relative;
+}
+
+.notif-badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 8px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 0.625rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 3px;
+  line-height: 1;
+}
+
+.notif-panel {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  width: 360px;
+  max-height: 480px;
+  background: var(--bg-surface-solid);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  z-index: 100;
+  margin-top: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  animation: modal-fade-in 0.15s ease;
+}
+
+.notif-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.notif-panel__header h4 {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.notif-panel__mark-all {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 0.75rem;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius-sm);
+}
+
+.notif-panel__mark-all:hover {
+  background: var(--accent-bg);
+}
+
+.notif-panel__list {
+  overflow-y: auto;
+  flex: 1;
+}
+
+.notif-panel__empty {
+  padding: 2rem 1rem;
+  text-align: center;
+  color: var(--text-dimmed);
+  font-size: 0.875rem;
+}
+
+.notif-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--glass-border);
+  transition: background 0.15s;
+}
+
+.notif-item:last-child {
+  border-bottom: none;
+}
+
+.notif-item:hover {
+  background: var(--bg-surface-hover);
+}
+
+.notif-item--unread {
+  background: rgba(56, 189, 248, 0.05);
+}
+
+.notif-item--unread:hover {
+  background: rgba(56, 189, 248, 0.08);
+}
+
+.notif-item__content {
+  flex: 1;
+  min-width: 0;
+}
+
+.notif-item__title {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.125rem;
+}
+
+.notif-item__body {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.notif-item__time {
+  font-size: 0.6875rem;
+  color: var(--text-dimmed);
+  margin-top: 0.25rem;
+}
+
+.notif-item__actions {
+  display: flex;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+
 /* ===== Responsive ===== */
+
 @media (max-width: 768px) {
   /* Hide desktop sidebar */
   .app-layout > .sidebar {
@@ -350,5 +504,77 @@
   .app-layout__content {
     padding: 1rem;
     padding-bottom: calc(60px + 1rem); /* space for bottom nav */
+  }
+
+  /* Touch-friendly: min 44px tap targets */
+  .header__icon-btn,
+  .theme-toggle {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .mobile-nav__link {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  /* Page header stacks on mobile */
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .page-header__actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .page-header__actions .btn {
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* Modal fullscreen on mobile */
+  .modal-overlay {
+    padding: 0;
+    align-items: flex-end;
+  }
+
+  .modal {
+    max-width: 100%;
+    max-height: 95vh;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  }
+
+  /* Notifications panel fullscreen-ish on mobile */
+  .notif-panel {
+    position: fixed;
+    top: 56px;
+    right: 0;
+    left: 0;
+    width: 100%;
+    max-height: calc(100vh - 56px - 60px);
+    border-radius: 0;
+    margin-top: 0;
+  }
+
+  /* Page title smaller on mobile */
+  .page-title {
+    font-size: 1.25rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .header {
+    padding: 0 0.75rem;
+  }
+
+  .header__actions {
+    gap: 0.25rem;
+  }
+
+  .app-layout__content {
+    padding: 0.75rem;
+    padding-bottom: calc(60px + 0.75rem);
   }
 }

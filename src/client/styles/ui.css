@@ -304,3 +304,113 @@
   padding: 2rem 1rem;
   color: var(--text-dimmed);
 }
+
+/* ===== Form groups ===== */
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+/* ===== Checkbox group ===== */
+.checkbox-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.checkbox-item input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+/* ===== Icon button ===== */
+.icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: color var(--transition), background var(--transition);
+}
+
+.icon-btn:hover {
+  color: var(--text-secondary);
+  background: var(--bg-surface-hover);
+}
+
+.icon-btn--danger:hover {
+  color: var(--error-text);
+  background: rgba(239, 68, 68, 0.1);
+}
+
+/* ===== Text helpers ===== */
+.text-secondary {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 768px) {
+  /* Make table scrollable */
+  .table-wrap {
+    border-radius: var(--radius-md);
+  }
+
+  .table {
+    font-size: 0.8125rem;
+  }
+
+  .table th,
+  .table td {
+    padding: 0.5rem 0.625rem;
+  }
+
+  /* Modal buttons stack on very small screens */
+  .modal__footer {
+    flex-wrap: wrap;
+  }
+
+  .modal__footer .btn {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .table th,
+  .table td {
+    padding: 0.375rem 0.5rem;
+    font-size: 0.75rem;
+  }
+
+  .checkbox-group {
+    gap: 0.75rem;
+  }
+
+  .checkbox-item {
+    min-height: 44px;
+  }
+}

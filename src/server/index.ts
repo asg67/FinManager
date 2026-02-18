@@ -10,6 +10,9 @@ import expensesRouter from "./routes/expenses.js";
 import ddsRouter from "./routes/dds.js";
 import pdfRouter from "./routes/pdf.js";
 import analyticsRouter from "./routes/analytics.js";
+import employeesRouter from "./routes/employees.js";
+import notificationsRouter from "./routes/notifications.js";
+import exportRouter from "./routes/export.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 
 const app = express();
@@ -31,6 +34,9 @@ app.use("/api/entities/:entityId/expense-types", expensesRouter);
 app.use("/api/dds", ddsRouter);
 app.use("/api/pdf", pdfRouter);
 app.use("/api/analytics", analyticsRouter);
+app.use("/api/employees", employeesRouter);
+app.use("/api/notifications", notificationsRouter);
+app.use("/api/export", exportRouter);
 
 // Error handler (must be last)
 app.use(errorHandler);

@@ -4,7 +4,6 @@ import {
   LayoutDashboard,
   ArrowLeftRight,
   FileText,
-  BarChart3,
   Settings,
 } from "lucide-react";
 import clsx from "clsx";
@@ -16,8 +15,7 @@ export default function MobileNav() {
     { to: "/", icon: LayoutDashboard, label: t("nav.dashboard") },
     { to: "/dds", icon: ArrowLeftRight, label: t("nav.dds") },
     { to: "/pdf", icon: FileText, label: t("nav.statements") },
-    { to: "/analytics", icon: BarChart3, label: t("nav.analytics") },
-    { to: "/settings", icon: Settings, label: t("nav.more") },
+    { to: "/settings", icon: Settings, label: t("nav.settings") },
   ];
 
   return (

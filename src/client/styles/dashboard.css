@@ -290,4 +290,25 @@
   .summary-cards {
     grid-template-columns: 1fr;
   }
+
+  .summary-card {
+    padding: 1rem;
+  }
+
+  .chart-card {
+    padding: 0.75rem;
+  }
+
+  .recent-item__desc {
+    max-width: 120px;
+  }
+
+  .account-widget {
+    min-width: 150px;
+    padding: 0.75rem;
+  }
+
+  .account-widget__balance {
+    font-size: 1rem;
+  }
 }

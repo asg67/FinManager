@@ -17,7 +17,7 @@ export default function Statements() {
   ];
 
   return (
-    <div className="statements-page">
+    <div className="statements-page page-enter">
       <h1 className="page-title">{t("nav.statements")}</h1>
 
       <div className="settings-tabs">

@@ -1,16 +1,19 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Building2, Wallet, Tags, FileText } from "lucide-react";
+import { Building2, Wallet, Tags, FileText, Users } from "lucide-react";
 import clsx from "clsx";
+import { useAuthStore } from "../stores/auth.js";
 import EntitiesTab from "../components/settings/EntitiesTab.js";
 import AccountsTab from "../components/settings/AccountsTab.js";
 import ExpensesTab from "../components/settings/ExpensesTab.js";
 import TemplatesTab from "../components/settings/TemplatesTab.js";
+import EmployeesTab from "../components/settings/EmployeesTab.js";
 
-type Tab = "entities" | "accounts" | "expenses" | "templates";
+type Tab = "entities" | "accounts" | "expenses" | "templates" | "employees";
 
 export default function Settings() {
   const { t } = useTranslation();
+  const user = useAuthStore((s) => s.user);
   const [activeTab, setActiveTab] = useState<Tab>("entities");
 
   const tabs: { key: Tab; label: string; icon: typeof Building2 }[] = [
@@ -18,10 +21,13 @@ export default function Settings() {
     { key: "accounts", label: t("settings.accounts"), icon: Wallet },
     { key: "expenses", label: t("settings.expenses"), icon: Tags },
     { key: "templates", label: t("settings.templates"), icon: FileText },
+    ...(user?.role === "owner"
+      ? [{ key: "employees" as Tab, label: t("nav.employees"), icon: Users }]
+      : []),
   ];
 
   return (
-    <div className="settings-page">
+    <div className="settings-page page-enter">
       <h1 className="page-title">{t("nav.settings")}</h1>
 
       <div className="settings-tabs">
@@ -43,6 +49,7 @@ export default function Settings() {
         {activeTab === "accounts" && <AccountsTab />}
         {activeTab === "expenses" && <ExpensesTab />}
         {activeTab === "templates" && <TemplatesTab />}
+        {activeTab === "employees" && <EmployeesTab />}
       </div>
     </div>
   );

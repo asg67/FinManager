@@ -99,7 +99,7 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="dashboard">
+    <div className="dashboard page-enter">
       <div className="page-header">
         <h1 className="page-title">{t("dashboard.title")}</h1>
         <div className="dashboard-filters">

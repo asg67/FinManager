@@ -143,6 +143,7 @@ export default {
     toAccount: "To Account",
     fromTemplate: "From Template",
     create: "Create",
+    exportCsv: "Export CSV",
   },
   pdf: {
     uploadTab: "Upload PDF",
@@ -167,5 +168,24 @@ export default {
     status: "Status",
     allDirections: "All directions",
     noTransactions: "No bank transactions",
+  },
+  employees: {
+    name: "Name",
+    invite: "Invite Employee",
+    inviteEmployee: "Invite Employee",
+    editEmployee: "Edit Employee",
+    noEmployees: "No employees. Invite your first one.",
+    deleteConfirm: "Delete this employee? They will lose access to all entities.",
+    entities: "Entities",
+    permissions: "Permissions",
+    export: "Export",
+  },
+  notifications: {
+    empty: "No notifications",
+    markRead: "Mark as read",
+    markAllRead: "Mark all as read",
+    justNow: "Just now",
+    minutesAgo: "{{count}}m ago",
+    hoursAgo: "{{count}}h ago",
   },
 } as const;

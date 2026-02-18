@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { Plus, Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Search, ChevronLeft, ChevronRight, Download } from "lucide-react";
 import { ddsApi, type OperationFilters } from "../api/dds.js";
 import { entitiesApi } from "../api/entities.js";
 import { accountsApi } from "../api/accounts.js";
 import { expensesApi } from "../api/expenses.js";
+import { exportApi } from "../api/export.js";
 import { Button, Select, Input, Table } from "../components/ui/index.js";
 import OperationWizard from "../components/dds/OperationWizard.js";
 import DeleteConfirm from "../components/dds/DeleteConfirm.js";
@@ -194,13 +195,22 @@ export default function DdsOperations() {
   ];
 
   return (
-    <div className="dds-page">
+    <div className="dds-page page-enter">
       <div className="page-header">
         <h1 className="page-title">{t("nav.dds")}</h1>
-        <Button onClick={openCreate}>
-          <Plus size={18} />
-          {t("dds.addOperation")}
-        </Button>
+        <div className="page-header__actions">
+          <Button
+            variant="secondary"
+            onClick={() => exportApi.downloadDdsCsv({ entityId: filters.entityId })}
+          >
+            <Download size={18} />
+            {t("dds.exportCsv")}
+          </Button>
+          <Button onClick={openCreate}>
+            <Plus size={18} />
+            {t("dds.addOperation")}
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}

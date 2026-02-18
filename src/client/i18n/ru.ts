@@ -143,6 +143,7 @@ export default {
     toAccount: "Счёт зачисления",
     fromTemplate: "Из шаблона",
     create: "Создать",
+    exportCsv: "Экспорт CSV",
   },
   pdf: {
     uploadTab: "Загрузка PDF",
@@ -167,5 +168,24 @@ export default {
     status: "Статус",
     allDirections: "Все направления",
     noTransactions: "Нет банковских операций",
+  },
+  employees: {
+    name: "Имя",
+    invite: "Пригласить сотрудника",
+    inviteEmployee: "Пригласить сотрудника",
+    editEmployee: "Редактировать сотрудника",
+    noEmployees: "Нет сотрудников. Пригласите первого.",
+    deleteConfirm: "Удалить сотрудника? Он потеряет доступ ко всем ИП.",
+    entities: "ИП / Организации",
+    permissions: "Права доступа",
+    export: "Экспорт",
+  },
+  notifications: {
+    empty: "Нет уведомлений",
+    markRead: "Отметить как прочитанное",
+    markAllRead: "Прочитать все",
+    justNow: "Только что",
+    minutesAgo: "{{count}} мин. назад",
+    hoursAgo: "{{count}} ч. назад",
   },
 } as const;
