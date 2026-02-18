@@ -4,6 +4,7 @@ import cors from "cors";
 import helmet from "helmet";
 import { config } from "./config.js";
 import authRouter from "./routes/auth.js";
+import entitiesRouter from "./routes/entities.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 
 const app = express();
@@ -19,12 +20,16 @@ app.get("/api/health", (_req, res) => {
 
 // Routes
 app.use("/api/auth", authRouter);
+app.use("/api/entities", entitiesRouter);
 
 // Error handler (must be last)
 app.use(errorHandler);
 
-app.listen(config.PORT, () => {
-  console.log(`Server running on http://localhost:${config.PORT}`);
-});
+// Only listen when running directly (not in tests)
+if (process.env.NODE_ENV !== "test") {
+  app.listen(config.PORT, () => {
+    console.log(`Server running on http://localhost:${config.PORT}`);
+  });
+}
 
 export default app;
