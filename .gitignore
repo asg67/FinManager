@@ -22,6 +22,7 @@ Desktop.ini
 .DS_Store
 
 # Logs
+logs/
 *.log
 npm-debug.log*
 
@@ -34,6 +35,10 @@ prisma/*.db-journal
 
 # Docker
 docker-data/
+
+# Python
+pdf-service/venv/
+__pycache__/
 
 # Misc
 *.tsbuildinfo

@@ -2,6 +2,8 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
+import path from "path";
+import { fileURLToPath } from "url";
 import { config } from "./config.js";
 import authRouter from "./routes/auth.js";
 import entitiesRouter from "./routes/entities.js";
@@ -15,9 +17,12 @@ import notificationsRouter from "./routes/notifications.js";
 import exportRouter from "./routes/export.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const app = express();
 
-app.use(helmet());
+app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors());
 app.use(express.json());
 
@@ -38,7 +43,20 @@ app.use("/api/employees", employeesRouter);
 app.use("/api/notifications", notificationsRouter);
 app.use("/api/export", exportRouter);
 
-// Error handler (must be last)
+// Error handler (must be last — placed after static/SPA below)
+
+// In production, serve the built client
+if (config.NODE_ENV === "production") {
+  const clientDist = path.resolve(__dirname, "../../client/dist");
+  app.use(express.static(clientDist));
+
+  // SPA fallback — any non-API route serves index.html
+  app.get("*", (_req, res, next) => {
+    if (_req.path.startsWith("/api")) return next();
+    res.sendFile(path.join(clientDist, "index.html"));
+  });
+}
+
 app.use(errorHandler);
 
 // Only listen when running directly (not in tests)
