@@ -77,6 +77,9 @@ export default {
     "30days": "30 дней",
     "90days": "90 дней",
     "1year": "1 год",
+    from: "С",
+    to: "По",
+    apply: "Применить",
   },
   settings: {
     entities: "ИП / Организации",

@@ -77,6 +77,9 @@ export default {
     "30days": "30 days",
     "90days": "90 days",
     "1year": "1 year",
+    from: "From",
+    to: "To",
+    apply: "Apply",
   },
   settings: {
     entities: "Entities",

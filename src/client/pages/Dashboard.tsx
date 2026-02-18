@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import {
@@ -10,6 +10,7 @@ import {
   ArrowDownRight,
   ArrowRightLeft,
   CreditCard,
+  Calendar,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -26,21 +27,29 @@ import {
   Cell,
 } from "recharts";
 import { analyticsApi, type SummaryData, type CategoryData, type TimelinePoint, type AccountBalance, type RecentOperation } from "../api/analytics.js";
-import { entitiesApi } from "../api/entities.js";
 import { useAuthStore } from "../stores/auth.js";
 import { useThemeStore } from "../stores/theme.js";
-import { Select } from "../components/ui/index.js";
-import type { Entity } from "@shared/types.js";
 
 const CHART_COLORS_LIGHT = ["#F5A623", "#1A1A1A", "#D9D9D9", "#F4D78E", "#6B6B6B", "#EDAA3B", "#999999", "#333333"];
 const CHART_COLORS_DARK = ["#6b7280", "#9ca3af", "#4b5563", "#d1d5db", "#374151", "#a3a3a3", "#525252", "#e5e7eb"];
 
-const PERIOD_OPTIONS = [
-  { value: "7", labelKey: "dashboard.7days" },
-  { value: "30", labelKey: "dashboard.30days" },
-  { value: "90", labelKey: "dashboard.90days" },
-  { value: "365", labelKey: "dashboard.1year" },
-];
+function defaultFrom() {
+  const d = new Date();
+  d.setDate(d.getDate() - 30);
+  return d.toISOString().slice(0, 10);
+}
+function today() {
+  return new Date().toISOString().slice(0, 10);
+}
+function formatRange(from: string, to: string) {
+  const f = new Date(from);
+  const t = new Date(to);
+  const fmt = (d: Date) => d.toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit", year: "2-digit" });
+  return `${fmt(f)} — ${fmt(t)}`;
+}
+function daysBetween(from: string, to: string) {
+  return Math.max(1, Math.round((new Date(to).getTime() - new Date(from).getTime()) / 86400000));
+}
 
 export default function Dashboard() {
   const { t } = useTranslation();
@@ -51,9 +60,12 @@ export default function Dashboard() {
   const chartColors = theme === "light" ? CHART_COLORS_LIGHT : CHART_COLORS_DARK;
   const balanceLineColor = theme === "light" ? "#1A1A1A" : "#8994a7";
 
-  const [entities, setEntities] = useState<Entity[]>([]);
-  const [entityFilter, setEntityFilter] = useState("");
-  const [period, setPeriod] = useState("30");
+  const [dateFrom, setDateFrom] = useState(defaultFrom);
+  const [dateTo, setDateTo] = useState(today);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [tmpFrom, setTmpFrom] = useState(defaultFrom);
+  const [tmpTo, setTmpTo] = useState(today);
+  const pickerRef = useRef<HTMLDivElement>(null);
 
   const [summary, setSummary] = useState<SummaryData | null>(null);
   const [categories, setCategories] = useState<CategoryData[]>([]);
@@ -62,18 +74,32 @@ export default function Dashboard() {
   const [recent, setRecent] = useState<RecentOperation[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Close picker on outside click
   useEffect(() => {
-    entitiesApi.list({ mine: true }).then(setEntities);
-  }, []);
+    function handleClick(e: MouseEvent) {
+      if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) {
+        setPickerOpen(false);
+      }
+    }
+    if (pickerOpen) document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [pickerOpen]);
+
+  function applyDates() {
+    setDateFrom(tmpFrom);
+    setDateTo(tmpTo);
+    setPickerOpen(false);
+  }
 
   useEffect(() => {
     setLoading(true);
-    const filters = { entityId: entityFilter || undefined, mine: "true" };
+    const filters = { from: dateFrom, to: dateTo, mine: "true" };
+    const days = daysBetween(dateFrom, dateTo);
     Promise.all([
       analyticsApi.summary(filters),
       analyticsApi.byCategory(filters),
-      analyticsApi.timeline(parseInt(period), filters.entityId, "true"),
-      analyticsApi.accountBalances(filters.entityId, "true"),
+      analyticsApi.timeline(days, undefined, "true"),
+      analyticsApi.accountBalances(undefined, "true"),
       analyticsApi.recent(10, "true"),
     ]).then(([sum, cats, tl, bal, rec]) => {
       setSummary(sum);
@@ -83,7 +109,7 @@ export default function Dashboard() {
       setRecent(rec);
       setLoading(false);
     });
-  }, [entityFilter, period]);
+  }, [dateFrom, dateTo]);
 
   function formatMoney(n: number) {
     return n.toLocaleString("ru-RU", { maximumFractionDigits: 0 });
@@ -117,27 +143,39 @@ export default function Dashboard() {
 
   return (
     <div className="dashboard page-enter">
-      {/* Greeting + Filters */}
+      {/* Greeting + Date picker */}
       <div className="dash-top">
         <div className="dash-greeting">
           <h1 className="dash-greeting__name">
             {t("dashboard.welcome")}, {user?.name || ""}
           </h1>
-          <p className="dash-greeting__hint">
-            {t("dashboard.exportReminder", { days: 14 })}
-          </p>
         </div>
-        <div className="dashboard-filters">
-          <Select
-            options={[{ value: "", label: t("dds.allEntities") }, ...entities.map((e) => ({ value: e.id, label: e.name }))]}
-            value={entityFilter}
-            onChange={(e) => setEntityFilter(e.target.value)}
-          />
-          <Select
-            options={PERIOD_OPTIONS.map((o) => ({ value: o.value, label: t(o.labelKey) }))}
-            value={period}
-            onChange={(e) => setPeriod(e.target.value)}
-          />
+        <div className="dashboard-filters" ref={pickerRef}>
+          <button
+            type="button"
+            className="dash-date-btn"
+            onClick={() => { setTmpFrom(dateFrom); setTmpTo(dateTo); setPickerOpen(!pickerOpen); }}
+          >
+            <Calendar size={16} />
+            <span>{formatRange(dateFrom, dateTo)}</span>
+          </button>
+          {pickerOpen && (
+            <div className="dash-date-picker">
+              <div className="dash-date-picker__row">
+                <label className="dash-date-picker__label">
+                  {t("dashboard.from")}
+                  <input type="date" className="dash-date-picker__input" value={tmpFrom} onChange={(e) => setTmpFrom(e.target.value)} />
+                </label>
+                <label className="dash-date-picker__label">
+                  {t("dashboard.to")}
+                  <input type="date" className="dash-date-picker__input" value={tmpTo} onChange={(e) => setTmpTo(e.target.value)} />
+                </label>
+              </div>
+              <button type="button" className="btn btn--primary btn--sm dash-date-picker__apply" onClick={applyDates}>
+                {t("dashboard.apply")}
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
