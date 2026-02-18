@@ -47,7 +47,11 @@ export default function Header({ onMenuClick }: HeaderProps) {
         <button
           type="button"
           className="theme-toggle"
-          onClick={toggleTheme}
+          onClick={() => {
+            const next = theme === "dark" ? "light" : "dark";
+            toggleTheme();
+            updateProfile({ theme: next }).catch(() => {});
+          }}
           aria-label={theme === "dark" ? t("header.lightTheme") : t("header.darkTheme")}
         >
           {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
