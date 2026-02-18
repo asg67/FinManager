@@ -26,7 +26,7 @@ export default function Statements() {
   const [wizardOpen, setWizardOpen] = useState(false);
 
   useEffect(() => {
-    entitiesApi.list().then(setEntities);
+    entitiesApi.list({ mine: true }).then(setEntities);
   }, []);
 
   useEffect(() => {

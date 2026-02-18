@@ -2,7 +2,8 @@ import { api } from "./client.js";
 import type { Entity } from "@shared/types.js";
 
 export const entitiesApi = {
-  list: () => api.get<Entity[]>("/entities"),
+  list: (opts?: { mine?: boolean }) =>
+    api.get<Entity[]>(`/entities${opts?.mine ? "?mine=true" : ""}`),
 
   get: (id: string) => api.get<Entity>(`/entities/${id}`),
 

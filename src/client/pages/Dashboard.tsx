@@ -63,18 +63,18 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    entitiesApi.list().then(setEntities);
+    entitiesApi.list({ mine: true }).then(setEntities);
   }, []);
 
   useEffect(() => {
     setLoading(true);
-    const filters = { entityId: entityFilter || undefined };
+    const filters = { entityId: entityFilter || undefined, mine: "true" };
     Promise.all([
       analyticsApi.summary(filters),
       analyticsApi.byCategory(filters),
-      analyticsApi.timeline(parseInt(period), filters.entityId),
-      analyticsApi.accountBalances(filters.entityId),
-      analyticsApi.recent(10),
+      analyticsApi.timeline(parseInt(period), filters.entityId, "true"),
+      analyticsApi.accountBalances(filters.entityId, "true"),
+      analyticsApi.recent(10, "true"),
     ]).then(([sum, cats, tl, bal, rec]) => {
       setSummary(sum);
       setCategories(cats);

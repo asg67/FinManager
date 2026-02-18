@@ -45,6 +45,8 @@ export interface AnalyticsFilters {
   entityId?: string;
   from?: string;
   to?: string;
+  mine?: string;
+  [key: string]: string | undefined;
 }
 
 function qs(filters: Record<string, string | undefined>) {
@@ -63,12 +65,12 @@ export const analyticsApi = {
   byCategory: (filters: AnalyticsFilters = {}) =>
     api.get<CategoryData[]>(`/analytics/by-category${qs(filters)}`),
 
-  timeline: (days: number = 30, entityId?: string) =>
-    api.get<TimelinePoint[]>(`/analytics/timeline${qs({ days: String(days), entityId })}`),
+  timeline: (days: number = 30, entityId?: string, mine?: string) =>
+    api.get<TimelinePoint[]>(`/analytics/timeline${qs({ days: String(days), entityId, mine })}`),
 
-  accountBalances: (entityId?: string) =>
-    api.get<AccountBalance[]>(`/analytics/account-balances${qs({ entityId })}`),
+  accountBalances: (entityId?: string, mine?: string) =>
+    api.get<AccountBalance[]>(`/analytics/account-balances${qs({ entityId, mine })}`),
 
-  recent: (limit: number = 10) =>
-    api.get<RecentOperation[]>(`/analytics/recent?limit=${limit}`),
+  recent: (limit: number = 10, mine?: string) =>
+    api.get<RecentOperation[]>(`/analytics/recent${qs({ limit: String(limit), mine })}`),
 };

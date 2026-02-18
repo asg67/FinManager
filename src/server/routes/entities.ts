@@ -21,9 +21,17 @@ router.get("/", async (req: Request, res: Response) => {
       return;
     }
 
-    // All company members see all company entities
+    const mine = req.query.mine === "true";
+    const where: any = { companyId: user.companyId };
+    if (mine) {
+      where.OR = [
+        { ownerId: userId },
+        { entityAccess: { some: { userId } } },
+      ];
+    }
+
     const entities = await prisma.entity.findMany({
-      where: { companyId: user.companyId },
+      where,
       include: { _count: { select: { accounts: true } } },
       orderBy: { createdAt: "asc" },
     });
