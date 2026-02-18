@@ -20,6 +20,7 @@ import "./styles/ui.css";
 import "./styles/settings.css";
 import "./styles/dds.css";
 import "./styles/pdf.css";
+import "./styles/dashboard.css";
 
 export default function App() {
   const { i18n } = useTranslation();

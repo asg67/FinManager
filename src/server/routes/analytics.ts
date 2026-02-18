@@ -1,0 +1,282 @@
+import { Router, Request, Response } from "express";
+import { prisma } from "../prisma.js";
+import { authMiddleware } from "../middleware/auth.js";
+import { Prisma } from "@prisma/client";
+
+const router = Router();
+router.use(authMiddleware);
+
+// GET /api/analytics/summary — total income, expense, count for a period
+router.get("/summary", async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.userId;
+    const { entityId, from, to } = req.query as Record<string, string>;
+
+    const where: Prisma.DdsOperationWhereInput = {
+      entity: { ownerId: userId },
+    };
+    if (entityId) where.entityId = entityId;
+    if (from || to) {
+      where.createdAt = {};
+      if (from) where.createdAt.gte = new Date(from);
+      if (to) where.createdAt.lte = new Date(to);
+    }
+
+    const [incomeAgg, expenseAgg, count] = await Promise.all([
+      prisma.ddsOperation.aggregate({
+        where: { ...where, operationType: "income" },
+        _sum: { amount: true },
+      }),
+      prisma.ddsOperation.aggregate({
+        where: { ...where, operationType: "expense" },
+        _sum: { amount: true },
+      }),
+      prisma.ddsOperation.count({ where }),
+    ]);
+
+    const totalIncome = incomeAgg._sum.amount?.toNumber() ?? 0;
+    const totalExpense = expenseAgg._sum.amount?.toNumber() ?? 0;
+
+    res.json({
+      totalIncome,
+      totalExpense,
+      balance: totalIncome - totalExpense,
+      operationsCount: count,
+    });
+  } catch (error) {
+    console.error("Summary error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// GET /api/analytics/by-category — expenses grouped by expense type
+router.get("/by-category", async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.userId;
+    const { entityId, from, to } = req.query as Record<string, string>;
+
+    const where: Prisma.DdsOperationWhereInput = {
+      entity: { ownerId: userId },
+      operationType: "expense",
+      expenseTypeId: { not: null },
+    };
+    if (entityId) where.entityId = entityId;
+    if (from || to) {
+      where.createdAt = {};
+      if (from) where.createdAt.gte = new Date(from);
+      if (to) where.createdAt.lte = new Date(to);
+    }
+
+    const groups = await prisma.ddsOperation.groupBy({
+      by: ["expenseTypeId"],
+      where,
+      _sum: { amount: true },
+      _count: true,
+      orderBy: { _sum: { amount: "desc" } },
+    });
+
+    // Enrich with expense type names
+    const typeIds = groups.map((g) => g.expenseTypeId!).filter(Boolean);
+    const types = await prisma.expenseType.findMany({
+      where: { id: { in: typeIds } },
+      select: { id: true, name: true },
+    });
+    const typeMap = new Map(types.map((t) => [t.id, t.name]));
+
+    const result = groups.map((g) => ({
+      expenseTypeId: g.expenseTypeId,
+      name: typeMap.get(g.expenseTypeId!) ?? "Unknown",
+      total: g._sum.amount?.toNumber() ?? 0,
+      count: g._count,
+    }));
+
+    res.json(result);
+  } catch (error) {
+    console.error("By category error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// GET /api/analytics/timeline — daily aggregated amounts for line chart
+router.get("/timeline", async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.userId;
+    const { entityId, days } = req.query as Record<string, string>;
+
+    const numDays = parseInt(days) || 30;
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - numDays);
+    startDate.setHours(0, 0, 0, 0);
+
+    const where: Prisma.DdsOperationWhereInput = {
+      entity: { ownerId: userId },
+      createdAt: { gte: startDate },
+    };
+    if (entityId) where.entityId = entityId;
+
+    const operations = await prisma.ddsOperation.findMany({
+      where,
+      select: {
+        operationType: true,
+        amount: true,
+        createdAt: true,
+      },
+      orderBy: { createdAt: "asc" },
+    });
+
+    // Group by day
+    const dayMap = new Map<string, { income: number; expense: number }>();
+
+    // Initialize all days
+    for (let d = new Date(startDate); d <= new Date(); d.setDate(d.getDate() + 1)) {
+      const key = d.toISOString().slice(0, 10);
+      dayMap.set(key, { income: 0, expense: 0 });
+    }
+
+    for (const op of operations) {
+      const key = op.createdAt.toISOString().slice(0, 10);
+      const entry = dayMap.get(key) ?? { income: 0, expense: 0 };
+      const amount = op.amount.toNumber();
+      if (op.operationType === "income") {
+        entry.income += amount;
+      } else if (op.operationType === "expense") {
+        entry.expense += amount;
+      }
+      dayMap.set(key, entry);
+    }
+
+    // Convert to array with running balance
+    let runningBalance = 0;
+    const timeline = Array.from(dayMap.entries()).map(([date, { income, expense }]) => {
+      runningBalance += income - expense;
+      return { date, income, expense, balance: runningBalance };
+    });
+
+    res.json(timeline);
+  } catch (error) {
+    console.error("Timeline error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// GET /api/analytics/account-balances — calculated balance per account
+router.get("/account-balances", async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.userId;
+    const { entityId } = req.query as Record<string, string>;
+
+    const accountWhere: Prisma.AccountWhereInput = {
+      entity: { ownerId: userId },
+    };
+    if (entityId) accountWhere.entityId = entityId;
+
+    const accounts = await prisma.account.findMany({
+      where: accountWhere,
+      select: {
+        id: true,
+        name: true,
+        type: true,
+        bank: true,
+        entityId: true,
+        entity: { select: { name: true } },
+      },
+    });
+
+    const balances = await Promise.all(
+      accounts.map(async (acc) => {
+        const [incomingAgg, outgoingAgg] = await Promise.all([
+          prisma.ddsOperation.aggregate({
+            where: { toAccountId: acc.id },
+            _sum: { amount: true },
+          }),
+          prisma.ddsOperation.aggregate({
+            where: { fromAccountId: acc.id },
+            _sum: { amount: true },
+          }),
+        ]);
+
+        const incoming = incomingAgg._sum.amount?.toNumber() ?? 0;
+        const outgoing = outgoingAgg._sum.amount?.toNumber() ?? 0;
+
+        return {
+          id: acc.id,
+          name: acc.name,
+          type: acc.type,
+          bank: acc.bank,
+          entityName: acc.entity.name,
+          balance: incoming - outgoing,
+        };
+      }),
+    );
+
+    res.json(balances);
+  } catch (error) {
+    console.error("Account balances error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// GET /api/analytics/recent — latest operations (DDS + bank transactions)
+router.get("/recent", async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.userId;
+    const limitNum = Math.min(20, parseInt(req.query.limit as string) || 10);
+
+    const [ddsOps, bankTxs] = await Promise.all([
+      prisma.ddsOperation.findMany({
+        where: { entity: { ownerId: userId } },
+        include: {
+          entity: { select: { name: true } },
+          fromAccount: { select: { name: true } },
+          toAccount: { select: { name: true } },
+          expenseType: { select: { name: true } },
+        },
+        orderBy: { createdAt: "desc" },
+        take: limitNum,
+      }),
+      prisma.bankTransaction.findMany({
+        where: { account: { entity: { ownerId: userId } } },
+        include: {
+          account: { select: { name: true, bank: true } },
+        },
+        orderBy: { date: "desc" },
+        take: limitNum,
+      }),
+    ]);
+
+    // Merge and sort by date
+    const merged = [
+      ...ddsOps.map((op) => ({
+        id: op.id,
+        source: "dds" as const,
+        date: op.createdAt.toISOString(),
+        type: op.operationType,
+        amount: op.amount.toNumber(),
+        description: op.comment ?? op.expenseType?.name ?? op.operationType,
+        entity: op.entity.name,
+        account: op.operationType === "income"
+          ? op.toAccount?.name
+          : op.fromAccount?.name,
+      })),
+      ...bankTxs.map((tx) => ({
+        id: tx.id,
+        source: "bank" as const,
+        date: tx.date.toISOString(),
+        type: tx.direction,
+        amount: tx.amount.toNumber(),
+        description: tx.counterparty ?? tx.purpose ?? tx.direction,
+        entity: null as string | null,
+        account: tx.account.name,
+      })),
+    ]
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, limitNum);
+
+    res.json(merged);
+  } catch (error) {
+    console.error("Recent error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+export default router;
