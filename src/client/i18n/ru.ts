@@ -207,6 +207,10 @@ export default {
     noTransactions: "Нет банковских операций",
     bankAccountsTab: "Расчётные счета",
     bankAccountsPlaceholder: "Раздел в разработке. Здесь будет интеграция с банковскими API для автоматической выгрузки данных.",
+    uploadStatement: "Загрузить выписку",
+    selectBank: "Выберите банк",
+    selectAccount: "Выберите счёт",
+    uploadFile: "Загрузите файл",
   },
   employees: {
     name: "Имя",

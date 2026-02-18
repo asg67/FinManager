@@ -207,6 +207,10 @@ export default {
     noTransactions: "No bank transactions",
     bankAccountsTab: "Bank Accounts",
     bankAccountsPlaceholder: "This section is under development. Bank API integration for automatic data export will be available here.",
+    uploadStatement: "Upload Statement",
+    selectBank: "Select Bank",
+    selectAccount: "Select Account",
+    uploadFile: "Upload File",
   },
   employees: {
     name: "Name",
