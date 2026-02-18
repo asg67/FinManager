@@ -80,6 +80,7 @@ export default {
     from: "From",
     to: "To",
     apply: "Apply",
+    noData: "No data",
   },
   settings: {
     entities: "Entities",

@@ -80,6 +80,7 @@ export default {
     from: "С",
     to: "По",
     apply: "Применить",
+    noData: "Нет данных",
   },
   settings: {
     entities: "ИП / Организации",
