@@ -8,6 +8,7 @@
 .glass-card {
   background: var(--bg-surface);
   backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);
   padding: 1.25rem;
@@ -16,6 +17,10 @@
 
 .glass-card:hover {
   border-color: var(--glass-border-hover);
+}
+
+[data-theme="light"] .glass-card {
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04);
 }
 
 /* ===== Top: Greeting + Filters ===== */
@@ -96,6 +101,17 @@
   color: var(--text-muted);
 }
 
+/* Light theme: orange accents on balance & count icons */
+[data-theme="light"] .summary-card--balance .summary-card__icon {
+  background: rgba(245, 166, 35, 0.15);
+  color: #F5A623;
+}
+
+[data-theme="light"] .summary-card--count .summary-card__icon {
+  background: rgba(245, 166, 35, 0.1);
+  color: #EDAA3B;
+}
+
 .summary-card__label {
   font-size: 0.8125rem;
   color: var(--text-muted);
@@ -109,7 +125,7 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* ===== Middle Row: Donut + Accounts ===== */
+/* ===== Middle Row: Donut + Highlight + Accounts ===== */
 .dash-middle {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -117,7 +133,89 @@
   margin-bottom: 1.5rem;
 }
 
-/* Donut Card */
+.dash-middle-right {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.dash-middle-right .dash-accounts-card {
+  flex: 1;
+}
+
+/* ===== Highlight Card — accent gradient ===== */
+.dash-highlight {
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  position: relative;
+  overflow: hidden;
+  background: var(--accent-gradient);
+}
+
+[data-theme="dark"] .dash-highlight {
+  background: linear-gradient(135deg, rgba(148, 163, 184, 0.12), rgba(148, 163, 184, 0.04));
+  color: var(--text-primary);
+  border: 1px solid var(--glass-border);
+}
+
+.dash-highlight__title {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  opacity: 0.85;
+}
+
+.dash-highlight__value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.dash-highlight__hint {
+  font-size: 0.8125rem;
+  opacity: 0.8;
+  margin-top: 0.25rem;
+}
+
+[data-theme="dark"] .dash-highlight__title,
+[data-theme="dark"] .dash-highlight__hint {
+  color: var(--text-muted);
+  opacity: 1;
+}
+
+/* Decorative circles */
+.dash-highlight::before,
+.dash-highlight::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  opacity: 0.2;
+  background: #fff;
+}
+
+.dash-highlight::before {
+  width: 100px;
+  height: 100px;
+  bottom: -30px;
+  right: -10px;
+}
+
+.dash-highlight::after {
+  width: 70px;
+  height: 70px;
+  bottom: -10px;
+  right: 50px;
+}
+
+[data-theme="dark"] .dash-highlight::before,
+[data-theme="dark"] .dash-highlight::after {
+  display: none;
+}
+
+/* ===== Donut Card ===== */
 .dash-donut-card {
   display: flex;
   flex-direction: column;
@@ -185,7 +283,7 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* Accounts Card */
+/* ===== Accounts Card ===== */
 .dash-accounts-card {
   display: flex;
   flex-direction: column;
@@ -223,6 +321,10 @@
   flex-shrink: 0;
 }
 
+[data-theme="light"] .dash-account-row__icon {
+  background: rgba(255, 255, 255, 0.6);
+}
+
 .dash-account-row__info {
   flex: 1;
   min-width: 0;
@@ -258,10 +360,6 @@
   grid-template-columns: repeat(2, 1fr);
   gap: 1rem;
   margin-bottom: 1.5rem;
-}
-
-.chart-card {
-  /* glass-card provides base styles */
 }
 
 .chart-card--wide {
@@ -369,24 +467,6 @@
   font-weight: 400;
   font-size: 0.875rem;
   color: var(--text-muted);
-}
-
-/* ===== Account Widgets (kept for compatibility) ===== */
-.account-cards-scroll {
-  display: flex;
-  gap: 0.75rem;
-  overflow-x: auto;
-  padding-bottom: 0.5rem;
-  -webkit-overflow-scrolling: touch;
-}
-
-.account-widget {
-  min-width: 200px;
-  padding: 1rem;
-  border-radius: var(--radius-lg);
-  background: var(--bg-surface);
-  border: 1px solid var(--glass-border);
-  flex-shrink: 0;
 }
 
 /* ===== Responsive ===== */

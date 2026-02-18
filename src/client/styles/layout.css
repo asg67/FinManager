@@ -657,3 +657,58 @@
     padding-bottom: calc(60px + 0.75rem);
   }
 }
+
+/* ===== Light theme — glassmorphism on panels ===== */
+[data-theme="light"] .sidebar,
+[data-theme="light"] .app-layout__main {
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+}
+
+[data-theme="light"] .sidebar__link--active {
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .sidebar__link--active svg {
+  color: #F5A623;
+}
+
+[data-theme="light"] .sidebar__balance {
+  background: rgba(255, 255, 255, 0.6);
+  border-color: rgba(255, 255, 255, 0.6);
+  position: relative;
+  overflow: hidden;
+}
+
+[data-theme="light"] .sidebar__balance::before {
+  content: '';
+  position: absolute;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: rgba(244, 215, 142, 0.35);
+  bottom: -20px;
+  right: -10px;
+}
+
+[data-theme="light"] .sidebar__balance::after {
+  content: '';
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(245, 166, 35, 0.25);
+  bottom: -5px;
+  right: 25px;
+}
+
+/* Light theme: subtle border on dropdowns/panels over glass */
+[data-theme="light"] .notif-panel,
+[data-theme="light"] .modal {
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .header {
+  border-bottom-color: rgba(0, 0, 0, 0.06);
+}
