@@ -6,13 +6,23 @@ import { Prisma } from "@prisma/client";
 const router = Router();
 router.use(authMiddleware);
 
-function entityFilter(companyId: string | null, userId: string, mine: boolean) {
+async function entityFilter(companyId: string | null, userId: string, mine: boolean) {
   if (!companyId) return { ownerId: userId };
   if (!mine) return { companyId };
-  return {
-    companyId,
-    OR: [{ ownerId: userId }, { entityAccess: { some: { userId } } }],
-  };
+
+  // Check if user has any explicit entity access
+  const accessCount = await prisma.entityAccess.count({ where: { userId } });
+
+  if (accessCount > 0) {
+    // User has explicit assignments — show only those + owned
+    return {
+      companyId,
+      OR: [{ ownerId: userId }, { entityAccess: { some: { userId } } }],
+    };
+  }
+
+  // No explicit restrictions — show all company entities
+  return { companyId };
 }
 
 // GET /api/analytics/summary — total income, expense, count for a period
@@ -23,7 +33,7 @@ router.get("/summary", async (req: Request, res: Response) => {
 
     const user = await prisma.user.findUnique({ where: { id: userId } });
     const where: Prisma.DdsOperationWhereInput = {};
-    where.entity = entityFilter(user?.companyId ?? null, userId, mine === "true");
+    where.entity = await entityFilter(user?.companyId ?? null, userId, mine === "true");
     if (entityId) where.entityId = entityId;
     if (from || to) {
       where.createdAt = {};
@@ -69,7 +79,7 @@ router.get("/by-category", async (req: Request, res: Response) => {
       operationType: "expense",
       expenseTypeId: { not: null },
     };
-    where.entity = entityFilter(user?.companyId ?? null, userId, mine === "true");
+    where.entity = await entityFilter(user?.companyId ?? null, userId, mine === "true");
     if (entityId) where.entityId = entityId;
     if (from || to) {
       where.createdAt = {};
@@ -122,7 +132,7 @@ router.get("/timeline", async (req: Request, res: Response) => {
     const where: Prisma.DdsOperationWhereInput = {
       createdAt: { gte: startDate },
     };
-    where.entity = entityFilter(user?.companyId ?? null, userId, mine === "true");
+    where.entity = await entityFilter(user?.companyId ?? null, userId, mine === "true");
     if (entityId) where.entityId = entityId;
 
     const operations = await prisma.ddsOperation.findMany({
@@ -178,7 +188,7 @@ router.get("/account-balances", async (req: Request, res: Response) => {
 
     const user = await prisma.user.findUnique({ where: { id: userId } });
     const accountWhere: Prisma.AccountWhereInput = {};
-    accountWhere.entity = entityFilter(user?.companyId ?? null, userId, mine === "true");
+    accountWhere.entity = await entityFilter(user?.companyId ?? null, userId, mine === "true");
     if (entityId) accountWhere.entityId = entityId;
 
     const accounts = await prisma.account.findMany({
@@ -235,7 +245,7 @@ router.get("/recent", async (req: Request, res: Response) => {
     const mine = (req.query.mine as string) === "true";
 
     const user = await prisma.user.findUnique({ where: { id: userId } });
-    const entFilter = entityFilter(user?.companyId ?? null, userId, mine);
+    const entFilter = await entityFilter(user?.companyId ?? null, userId, mine);
 
     const [ddsOps, bankTxs] = await Promise.all([
       prisma.ddsOperation.findMany({

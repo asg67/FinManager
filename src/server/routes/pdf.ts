@@ -234,12 +234,15 @@ router.get("/transactions", async (req: Request, res: Response) => {
     const skip = (pageNum - 1) * limitNum;
 
     const user = await prisma.user.findUnique({ where: { id: userId } });
-    const entFilter = user?.companyId
-      ? {
-          companyId: user.companyId,
-          OR: [{ ownerId: userId }, { entityAccess: { some: { userId } } }],
-        }
-      : { ownerId: userId };
+    let entFilter: any;
+    if (!user?.companyId) {
+      entFilter = { ownerId: userId };
+    } else {
+      const accessCount = await prisma.entityAccess.count({ where: { userId } });
+      entFilter = accessCount > 0
+        ? { companyId: user.companyId, OR: [{ ownerId: userId }, { entityAccess: { some: { userId } } }] }
+        : { companyId: user.companyId };
+    }
 
     const where: Prisma.BankTransactionWhereInput = {
       account: { entity: entFilter },
