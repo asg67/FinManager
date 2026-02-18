@@ -141,6 +141,13 @@ router.post("/", validate(createCompanySchema), async (req: Request, res: Respon
       return;
     }
 
+    // Check for duplicate name
+    const existing = await prisma.company.findUnique({ where: { name: req.body.name } });
+    if (existing) {
+      res.status(409).json({ message: "Company with this name already exists" });
+      return;
+    }
+
     const company = await prisma.company.create({
       data: {
         name: req.body.name,

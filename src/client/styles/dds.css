@@ -236,6 +236,122 @@
   color: var(--text-primary);
 }
 
+/* ===== Company Setup ===== */
+
+.company-setup {
+  max-width: 560px;
+  margin: 2rem auto;
+}
+
+.company-setup__subtitle {
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  margin-bottom: 2rem;
+}
+
+.company-setup__options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.company-setup__option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 2rem 1.5rem;
+  background: var(--bg-card);
+  border: 2px solid var(--border);
+  border-radius: 16px;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+  color: var(--text-primary);
+  text-align: center;
+}
+
+.company-setup__option:hover {
+  border-color: var(--accent);
+  background: var(--bg-hover);
+}
+
+.company-setup__option svg {
+  color: var(--accent);
+}
+
+.company-setup__option-title {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.company-setup__option-desc {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.company-setup__form-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 2rem;
+}
+
+.company-setup__form-title {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 1rem;
+}
+
+.company-setup__hint {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  margin-bottom: 1rem;
+}
+
+.company-setup__error {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: var(--radius);
+  color: var(--danger);
+  font-size: 0.875rem;
+}
+
+.company-setup__invite-found {
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  background: rgba(245, 166, 35, 0.08);
+  border: 1px solid rgba(245, 166, 35, 0.25);
+  border-radius: var(--radius);
+  color: var(--accent);
+  font-size: 0.9rem;
+}
+
+.company-setup__invite-found .company-setup__hint {
+  margin-top: 0.5rem;
+  margin-bottom: 0;
+  color: var(--text-secondary);
+}
+
+.company-setup__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+}
+
+@media (max-width: 480px) {
+  .company-setup__options {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ===== Responsive ===== */
 @media (max-width: 768px) {
   .dds-filters {

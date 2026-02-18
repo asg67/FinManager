@@ -10,6 +10,8 @@ import { exportApi } from "../api/export.js";
 import { Button, Select, Input, Table } from "../components/ui/index.js";
 import OperationWizard from "../components/dds/OperationWizard.js";
 import DeleteConfirm from "../components/dds/DeleteConfirm.js";
+import CompanySetup from "../components/dds/CompanySetup.js";
+import OnboardingWizard from "../components/onboarding/OnboardingWizard.js";
 import type { DdsOperation, Entity, Account, ExpenseType, PaginatedResponse } from "@shared/types.js";
 import { Pencil, Trash2 } from "lucide-react";
 
@@ -22,7 +24,36 @@ const OP_TYPES = [
 
 export default function DdsOperations() {
   const { t } = useTranslation();
-  const companyName = useAuthStore((s) => s.user?.company?.name);
+  const user = useAuthStore((s) => s.user);
+  const companyName = user?.company?.name;
+  const hasCompany = !!user?.companyId;
+  const onboardingDone = user?.company?.onboardingDone ?? false;
+
+  // If no company → show CompanySetup
+  if (!hasCompany) {
+    return (
+      <div className="dds-page page-enter">
+        <div className="page-header">
+          <h1 className="page-title">{t("nav.dds")}</h1>
+        </div>
+        <CompanySetup />
+      </div>
+    );
+  }
+
+  // If company exists but onboarding not done → show OnboardingWizard (steps 1-3)
+  if (!onboardingDone) {
+    return <OnboardingWizard />;
+  }
+
+  // Normal DDS view
+  return <DdsTable companyName={companyName} />;
+}
+
+/* ─── DDS Table (extracted to avoid hooks-after-return) ─── */
+
+function DdsTable({ companyName }: { companyName?: string }) {
+  const { t } = useTranslation();
   const [data, setData] = useState<PaginatedResponse<DdsOperation>>({
     data: [],
     total: 0,

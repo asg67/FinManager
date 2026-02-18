@@ -1,7 +1,6 @@
 import { useState, useEffect, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  Building2,
   Landmark,
   Wallet,
   Tags,
@@ -10,8 +9,6 @@ import {
   Trash2,
   Check,
   ChevronRight,
-  Copy,
-  Link as LinkIcon,
 } from "lucide-react";
 import clsx from "clsx";
 import { useAuthStore } from "../../stores/auth.js";
@@ -20,7 +17,7 @@ import { entitiesApi } from "../../api/entities.js";
 import { accountsApi, type CreateAccountPayload } from "../../api/accounts.js";
 import { expensesApi } from "../../api/expenses.js";
 import { authApi } from "../../api/auth.js";
-import { Button, Input, Select, Modal } from "../ui/index.js";
+import { Button, Input, Select } from "../ui/index.js";
 import type { Entity, Account, ExpenseType } from "@shared/types.js";
 
 const ACCOUNT_TYPES = [
@@ -37,7 +34,7 @@ const BANKS = [
   { value: "other", label: "Другой" },
 ];
 
-type Step = 0 | 1 | 2 | 3;
+type Step = 0 | 1 | 2;
 
 export default function OnboardingWizard() {
   const { t } = useTranslation();
@@ -45,15 +42,7 @@ export default function OnboardingWizard() {
   const [step, setStep] = useState<Step>(0);
   const [completing, setCompleting] = useState(false);
 
-  // Check if company already created → skip step 0
-  useEffect(() => {
-    if (user?.companyId && user.company) {
-      setStep(1);
-    }
-  }, []);
-
   const steps = [
-    { icon: Building2, label: t("onboarding.stepCompany") },
     { icon: Landmark, label: t("onboarding.stepEntities") },
     { icon: Wallet, label: t("onboarding.stepAccounts") },
     { icon: Tags, label: t("onboarding.stepExpenses") },
@@ -73,7 +62,7 @@ export default function OnboardingWizard() {
   return (
     <div className="onboarding">
       <div className="onboarding__container">
-        <h1 className="onboarding__title">FinManager</h1>
+        <h1 className="onboarding__title">{user?.company?.name ?? "FinManager"}</h1>
         <p className="onboarding__subtitle">{t("onboarding.subtitle")}</p>
 
         {/* Stepper */}
@@ -97,13 +86,12 @@ export default function OnboardingWizard() {
 
         {/* Step content */}
         <div className="onboarding__card">
-          {step === 0 && <StepCompany onNext={() => setStep(1)} />}
-          {step === 1 && <StepEntities onNext={() => setStep(2)} onBack={() => setStep(0)} />}
-          {step === 2 && <StepAccounts onNext={() => setStep(3)} onBack={() => setStep(1)} />}
-          {step === 3 && (
+          {step === 0 && <StepEntities onNext={() => setStep(1)} />}
+          {step === 1 && <StepAccounts onNext={() => setStep(2)} onBack={() => setStep(0)} />}
+          {step === 2 && (
             <StepExpenses
               onComplete={handleComplete}
-              onBack={() => setStep(2)}
+              onBack={() => setStep(1)}
               completing={completing}
             />
           )}
@@ -113,107 +101,9 @@ export default function OnboardingWizard() {
   );
 }
 
-/* ─── Step 0: Company ─── */
+/* ─── Step 0: Entities ─── */
 
-function StepCompany({ onNext }: { onNext: () => void }) {
-  const { t } = useTranslation();
-  const [companyName, setCompanyName] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [inviteLink, setInviteLink] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
-
-  async function handleCreate(e: FormEvent) {
-    e.preventDefault();
-    setSaving(true);
-    try {
-      const company = await companyApi.create({ name: companyName });
-      const me = await authApi.getMe();
-      useAuthStore.setState({ user: me });
-    } catch {
-      // handled
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  const user = useAuthStore((s) => s.user);
-  const hasCompany = !!user?.companyId;
-
-  async function handleCreateInvite() {
-    try {
-      const inv = await companyApi.createInvite();
-      const link = `${window.location.origin}/register?invite=${inv.token}`;
-      setInviteLink(link);
-    } catch {
-      // handled
-    }
-  }
-
-  function handleCopy() {
-    if (inviteLink) {
-      navigator.clipboard.writeText(inviteLink);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
-  }
-
-  return (
-    <div>
-      <h2 className="onboarding__step-title">{t("onboarding.companyTitle")}</h2>
-
-      {!hasCompany ? (
-        <form onSubmit={handleCreate}>
-          <Input
-            label={t("onboarding.companyName")}
-            value={companyName}
-            onChange={(e) => setCompanyName(e.target.value)}
-            placeholder={t("onboarding.companyPlaceholder")}
-            required
-            autoFocus
-          />
-          <div className="onboarding__actions">
-            <Button type="submit" loading={saving}>
-              {t("onboarding.createCompany")}
-            </Button>
-          </div>
-        </form>
-      ) : (
-        <div>
-          <p className="onboarding__success">
-            <Check size={18} /> {t("onboarding.companyCreated", { name: user?.company?.name })}
-          </p>
-
-          <div className="onboarding__invite-section">
-            <p className="onboarding__invite-hint">{t("onboarding.inviteHint")}</p>
-            {!inviteLink ? (
-              <Button variant="secondary" size="sm" onClick={handleCreateInvite}>
-                <LinkIcon size={16} />
-                {t("onboarding.createInvite")}
-              </Button>
-            ) : (
-              <div className="onboarding__invite-link">
-                <code>{inviteLink}</code>
-                <button type="button" className="icon-btn" onClick={handleCopy} title={t("onboarding.copy")}>
-                  {copied ? <Check size={16} /> : <Copy size={16} />}
-                </button>
-              </div>
-            )}
-          </div>
-
-          <div className="onboarding__actions">
-            <Button onClick={onNext}>
-              {t("onboarding.next")} <ChevronRight size={16} />
-            </Button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* ─── Step 1: Entities ─── */
-
-function StepEntities({ onNext, onBack }: { onNext: () => void; onBack: () => void }) {
+function StepEntities({ onNext }: { onNext: () => void }) {
   const { t } = useTranslation();
   const [entities, setEntities] = useState<Entity[]>([]);
   const [loading, setLoading] = useState(true);
@@ -324,9 +214,6 @@ function StepEntities({ onNext, onBack }: { onNext: () => void; onBack: () => vo
       )}
 
       <div className="onboarding__actions">
-        <Button variant="secondary" onClick={onBack}>
-          {t("onboarding.back")}
-        </Button>
         <Button onClick={onNext} disabled={entities.length === 0}>
           {t("onboarding.next")} <ChevronRight size={16} />
         </Button>
@@ -335,7 +222,7 @@ function StepEntities({ onNext, onBack }: { onNext: () => void; onBack: () => vo
   );
 }
 
-/* ─── Step 2: Accounts ─── */
+/* ─── Step 1: Accounts ─── */
 
 function StepAccounts({ onNext, onBack }: { onNext: () => void; onBack: () => void }) {
   const { t } = useTranslation();
@@ -480,7 +367,7 @@ function StepAccounts({ onNext, onBack }: { onNext: () => void; onBack: () => vo
   );
 }
 
-/* ─── Step 3: Expense Categories ─── */
+/* ─── Step 2: Expense Categories ─── */
 
 function StepExpenses({
   onComplete,
