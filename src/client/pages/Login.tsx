@@ -1,8 +1,10 @@
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useAuthStore } from "../stores/auth.js";
 
 export default function Login() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { login, isLoading, error, clearError } = useAuthStore();
 
@@ -23,12 +25,12 @@ export default function Login() {
     <div className="auth-page">
       <div className="auth-card">
         <h1>FinManager</h1>
-        <h2>Вход</h2>
+        <h2>{t("auth.login")}</h2>
 
         {error && (
           <div className="auth-error" role="alert">
             {error}
-            <button type="button" onClick={clearError} aria-label="Close">
+            <button type="button" onClick={clearError} aria-label={t("common.close")}>
               ×
             </button>
           </div>
@@ -36,7 +38,7 @@ export default function Login() {
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label htmlFor="email">Email</label>
+            <label htmlFor="email">{t("common.email")}</label>
             <input
               id="email"
               type="email"
@@ -49,7 +51,7 @@ export default function Login() {
           </div>
 
           <div className="form-group">
-            <label htmlFor="password">Пароль</label>
+            <label htmlFor="password">{t("auth.password")}</label>
             <input
               id="password"
               type="password"
@@ -63,12 +65,12 @@ export default function Login() {
           </div>
 
           <button type="submit" className="btn-primary" disabled={isLoading}>
-            {isLoading ? "Вход..." : "Войти"}
+            {isLoading ? t("auth.loginLoading") : t("auth.loginAction")}
           </button>
         </form>
 
         <p className="auth-link">
-          Нет аккаунта? <Link to="/register">Зарегистрироваться</Link>
+          {t("auth.noAccount")} <Link to="/register">{t("auth.registerAction")}</Link>
         </p>
       </div>
     </div>

@@ -1,4 +1,5 @@
 import { NavLink } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
   LayoutDashboard,
   ArrowLeftRight,
@@ -8,15 +9,17 @@ import {
 } from "lucide-react";
 import clsx from "clsx";
 
-const mobileItems = [
-  { to: "/", icon: LayoutDashboard, label: "Главная" },
-  { to: "/dds", icon: ArrowLeftRight, label: "ДДС" },
-  { to: "/pdf", icon: FileText, label: "Выписки" },
-  { to: "/analytics", icon: BarChart3, label: "Аналитика" },
-  { to: "/settings", icon: Settings, label: "Ещё" },
-];
-
 export default function MobileNav() {
+  const { t } = useTranslation();
+
+  const mobileItems = [
+    { to: "/", icon: LayoutDashboard, label: t("nav.dashboard") },
+    { to: "/dds", icon: ArrowLeftRight, label: t("nav.dds") },
+    { to: "/pdf", icon: FileText, label: t("nav.statements") },
+    { to: "/analytics", icon: BarChart3, label: t("nav.analytics") },
+    { to: "/settings", icon: Settings, label: t("nav.more") },
+  ];
+
   return (
     <nav className="mobile-nav">
       {mobileItems.map((item) => (

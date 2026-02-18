@@ -1,8 +1,10 @@
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useAuthStore } from "../stores/auth.js";
 
 export default function Register() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { register, isLoading, error, clearError } = useAuthStore();
 
@@ -17,7 +19,7 @@ export default function Register() {
     setLocalError("");
 
     if (password !== confirmPassword) {
-      setLocalError("Пароли не совпадают");
+      setLocalError(t("auth.passwordsMismatch"));
       return;
     }
 
@@ -35,7 +37,7 @@ export default function Register() {
     <div className="auth-page">
       <div className="auth-card">
         <h1>FinManager</h1>
-        <h2>Регистрация</h2>
+        <h2>{t("auth.register")}</h2>
 
         {displayError && (
           <div className="auth-error" role="alert">
@@ -46,7 +48,7 @@ export default function Register() {
                 setLocalError("");
                 clearError();
               }}
-              aria-label="Close"
+              aria-label={t("common.close")}
             >
               ×
             </button>
@@ -55,7 +57,7 @@ export default function Register() {
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label htmlFor="name">Имя</label>
+            <label htmlFor="name">{t("auth.name")}</label>
             <input
               id="name"
               type="text"
@@ -63,12 +65,12 @@ export default function Register() {
               onChange={(e) => setName(e.target.value)}
               required
               autoComplete="name"
-              placeholder="Ваше имя"
+              placeholder={t("auth.namePlaceholder")}
             />
           </div>
 
           <div className="form-group">
-            <label htmlFor="email">Email</label>
+            <label htmlFor="email">{t("common.email")}</label>
             <input
               id="email"
               type="email"
@@ -81,7 +83,7 @@ export default function Register() {
           </div>
 
           <div className="form-group">
-            <label htmlFor="password">Пароль</label>
+            <label htmlFor="password">{t("auth.password")}</label>
             <input
               id="password"
               type="password"
@@ -90,12 +92,12 @@ export default function Register() {
               required
               autoComplete="new-password"
               minLength={6}
-              placeholder="Минимум 6 символов"
+              placeholder={t("auth.passwordPlaceholder")}
             />
           </div>
 
           <div className="form-group">
-            <label htmlFor="confirmPassword">Подтверждение пароля</label>
+            <label htmlFor="confirmPassword">{t("auth.confirmPassword")}</label>
             <input
               id="confirmPassword"
               type="password"
@@ -104,17 +106,17 @@ export default function Register() {
               required
               autoComplete="new-password"
               minLength={6}
-              placeholder="Повторите пароль"
+              placeholder={t("auth.confirmPlaceholder")}
             />
           </div>
 
           <button type="submit" className="btn-primary" disabled={isLoading}>
-            {isLoading ? "Регистрация..." : "Зарегистрироваться"}
+            {isLoading ? t("auth.registerLoading") : t("auth.registerAction")}
           </button>
         </form>
 
         <p className="auth-link">
-          Уже есть аккаунт? <Link to="/login">Войти</Link>
+          {t("auth.hasAccount")} <Link to="/login">{t("auth.loginAction")}</Link>
         </p>
       </div>
     </div>

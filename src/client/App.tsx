@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useAuthStore } from "./stores/auth.js";
 import { useThemeStore } from "./stores/theme.js";
 import ProtectedRoute from "./components/ProtectedRoute.js";
@@ -8,11 +9,13 @@ import AppLayout from "./components/layout/AppLayout.js";
 import Login from "./pages/Login.js";
 import Register from "./pages/Register.js";
 import Dashboard from "./pages/Dashboard.js";
+import "./i18n/index.js";
 import "./styles/theme.css";
 import "./styles/auth.css";
 import "./styles/layout.css";
 
 export default function App() {
+  const { i18n } = useTranslation();
   const init = useAuthStore((s) => s.init);
   const isInitialized = useAuthStore((s) => s.isInitialized);
   const user = useAuthStore((s) => s.user);
@@ -28,6 +31,14 @@ export default function App() {
       setTheme(user.theme);
     }
   }, [user?.theme, setTheme]);
+
+  // Sync language from user profile after login/init
+  useEffect(() => {
+    if (user?.language && (user.language === "ru" || user.language === "en")) {
+      i18n.changeLanguage(user.language);
+      localStorage.setItem("language", user.language);
+    }
+  }, [user?.language, i18n]);
 
   if (!isInitialized) {
     return (

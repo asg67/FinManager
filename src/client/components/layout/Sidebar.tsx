@@ -1,4 +1,5 @@
 import { NavLink } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
   LayoutDashboard,
   ArrowLeftRight,
@@ -16,16 +17,18 @@ interface SidebarProps {
   onToggle: () => void;
 }
 
-const navItems = [
-  { to: "/", icon: LayoutDashboard, label: "Дашборд" },
-  { to: "/dds", icon: ArrowLeftRight, label: "ДДС" },
-  { to: "/pdf", icon: FileText, label: "Выписки" },
-  { to: "/analytics", icon: BarChart3, label: "Аналитика" },
-  { to: "/employees", icon: Users, label: "Сотрудники" },
-  { to: "/settings", icon: Settings, label: "Настройки" },
-];
-
 export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
+  const { t } = useTranslation();
+
+  const navItems = [
+    { to: "/", icon: LayoutDashboard, label: t("nav.dashboard") },
+    { to: "/dds", icon: ArrowLeftRight, label: t("nav.dds") },
+    { to: "/pdf", icon: FileText, label: t("nav.statements") },
+    { to: "/analytics", icon: BarChart3, label: t("nav.analytics") },
+    { to: "/employees", icon: Users, label: t("nav.employees") },
+    { to: "/settings", icon: Settings, label: t("nav.settings") },
+  ];
+
   return (
     <aside className={clsx("sidebar", collapsed && "sidebar--collapsed")}>
       <div className="sidebar__logo">
@@ -34,7 +37,7 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
           type="button"
           className="sidebar__toggle"
           onClick={onToggle}
-          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          aria-label={collapsed ? t("header.expandSidebar") : t("header.collapseSidebar")}
         >
           {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
         </button>

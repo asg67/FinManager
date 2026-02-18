@@ -1,4 +1,5 @@
-import { Bell, LogOut, Menu, Moon, Sun } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { Bell, LogOut, Menu, Moon, Sun, Globe } from "lucide-react";
 import { useAuthStore } from "../../stores/auth.js";
 import { useThemeStore } from "../../stores/theme.js";
 
@@ -7,8 +8,15 @@ interface HeaderProps {
 }
 
 export default function Header({ onMenuClick }: HeaderProps) {
+  const { t, i18n } = useTranslation();
   const { user, logout } = useAuthStore();
   const { theme, toggleTheme } = useThemeStore();
+
+  function toggleLanguage() {
+    const next = i18n.language === "ru" ? "en" : "ru";
+    i18n.changeLanguage(next);
+    localStorage.setItem("language", next);
+  }
 
   return (
     <header className="header">
@@ -16,7 +24,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
         type="button"
         className="header__menu-btn"
         onClick={onMenuClick}
-        aria-label="Toggle menu"
+        aria-label={t("header.toggleMenu")}
       >
         <Menu size={20} />
       </button>
@@ -26,14 +34,24 @@ export default function Header({ onMenuClick }: HeaderProps) {
       <div className="header__actions">
         <button
           type="button"
+          className="header__icon-btn"
+          onClick={toggleLanguage}
+          aria-label={i18n.language === "ru" ? "English" : "Русский"}
+          title={i18n.language === "ru" ? "EN" : "RU"}
+        >
+          <Globe size={20} />
+        </button>
+
+        <button
+          type="button"
           className="theme-toggle"
           onClick={toggleTheme}
-          aria-label={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
+          aria-label={theme === "dark" ? t("header.lightTheme") : t("header.darkTheme")}
         >
           {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
         </button>
 
-        <button type="button" className="header__icon-btn" aria-label="Notifications">
+        <button type="button" className="header__icon-btn" aria-label={t("header.notifications")}>
           <Bell size={20} />
         </button>
 
@@ -48,7 +66,7 @@ export default function Header({ onMenuClick }: HeaderProps) {
           type="button"
           className="header__icon-btn"
           onClick={logout}
-          aria-label="Logout"
+          aria-label={t("header.logout")}
         >
           <LogOut size={20} />
         </button>
