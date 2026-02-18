@@ -114,7 +114,7 @@
   border: 1px solid var(--border-input);
   border-radius: var(--radius-md);
   color: var(--text-secondary);
-  font-size: 0.875rem;
+  font-size: 1rem;
   outline: none;
   transition: border-color var(--transition);
   box-sizing: border-box;
