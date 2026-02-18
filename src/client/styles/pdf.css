@@ -1,0 +1,182 @@
+/* ===== PDF Upload Page ===== */
+
+.statements-page {
+  max-width: 1200px;
+}
+
+/* Upload step */
+.pdf-upload__fields {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.pdf-upload__fields .input-field {
+  min-width: 180px;
+  flex: 1;
+}
+
+/* Dropzone */
+.pdf-dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 3rem 2rem;
+  border: 2px dashed var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-card);
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.pdf-dropzone:hover {
+  border-color: var(--accent);
+  background: var(--bg-hover);
+}
+
+.pdf-dropzone__icon {
+  color: var(--text-secondary);
+}
+
+.pdf-dropzone__text {
+  font-size: 1rem;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.pdf-dropzone__hint {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+}
+
+/* Loading state */
+.pdf-upload__loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 4rem 2rem;
+  color: var(--text-secondary);
+}
+
+.pdf-loading-icon {
+  animation: pulse 1.5s ease-in-out infinite;
+  color: var(--accent);
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* Preview */
+.pdf-preview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.pdf-preview-count {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin-left: 0.75rem;
+}
+
+.pdf-dup-count {
+  color: #f59e0b;
+}
+
+.pdf-preview-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* Duplicate row highlight */
+.table-row--dup {
+  background: rgba(245, 158, 11, 0.08) !important;
+}
+
+.table-check {
+  width: 36px;
+  text-align: center;
+}
+
+.table-check input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+/* Badges */
+.pdf-dup-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  color: #f59e0b;
+  font-weight: 500;
+}
+
+.pdf-new-badge {
+  font-size: 0.75rem;
+  color: #22c55e;
+  font-weight: 500;
+}
+
+/* Done state */
+.pdf-upload__done {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 4rem 2rem;
+  text-align: center;
+}
+
+.pdf-done-icon {
+  color: #22c55e;
+}
+
+.pdf-upload__done h3 {
+  font-size: 1.25rem;
+  color: var(--text-primary);
+}
+
+.pdf-upload__done p {
+  color: var(--text-secondary);
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 768px) {
+  .pdf-upload__fields {
+    flex-direction: column;
+  }
+
+  .pdf-upload__fields .input-field {
+    min-width: 0;
+  }
+
+  .pdf-preview-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .pdf-dropzone {
+    padding: 2rem 1rem;
+  }
+
+  /* Hide less important columns on mobile */
+  .pdf-upload__preview .table th:nth-child(5),
+  .pdf-upload__preview .table td:nth-child(5),
+  .pdf-upload__preview .table th:nth-child(6),
+  .pdf-upload__preview .table td:nth-child(6) {
+    display: none;
+  }
+}
