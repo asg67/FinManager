@@ -1,0 +1,21 @@
+# Structure Lock - FinManager
+# Запрещённые паттерны папок/файлов
+
+[blocked_patterns]
+*/old/*
+*/backup/*
+*/temp/*
+*/tmp/*
+*/copy/*
+*_old.*
+*_backup.*
+*_copy.*
+
+[allowed_structure]
+src/client/       # React frontend
+src/server/       # Express backend
+src/shared/       # Shared types and utilities
+tests/unit/       # Unit tests
+tests/integration/ # Integration tests
+docs/             # Documentation
+.project-meta/    # Project metadata

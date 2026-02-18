@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+
+# Build
+dist/
+build/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Logs
+*.log
+npm-debug.log*
+
+# Testing
+coverage/
+
+# Prisma
+prisma/*.db
+prisma/*.db-journal
+
+# Docker
+docker-data/
+
+# Misc
+*.tsbuildinfo

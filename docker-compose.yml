@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: finmanager-db
+    environment:
+      POSTGRES_USER: finmanager
+      POSTGRES_PASSWORD: finmanager
+      POSTGRES_DB: finmanager
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
