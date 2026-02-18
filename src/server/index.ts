@@ -7,6 +7,7 @@ import authRouter from "./routes/auth.js";
 import entitiesRouter from "./routes/entities.js";
 import accountsRouter from "./routes/accounts.js";
 import expensesRouter from "./routes/expenses.js";
+import ddsRouter from "./routes/dds.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 
 const app = express();
@@ -25,6 +26,7 @@ app.use("/api/auth", authRouter);
 app.use("/api/entities", entitiesRouter);
 app.use("/api/entities/:entityId/accounts", accountsRouter);
 app.use("/api/entities/:entityId/expense-types", expensesRouter);
+app.use("/api/dds", ddsRouter);
 
 // Error handler (must be last)
 app.use(errorHandler);
