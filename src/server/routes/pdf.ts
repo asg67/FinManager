@@ -55,9 +55,16 @@ router.post("/upload", upload.single("file"), async (req: Request, res: Response
       return;
     }
 
+    // Fix UTF-8 filenames that multer decoded as latin1
+    let fileName = req.file.originalname;
+    try {
+      const decoded = Buffer.from(fileName, 'latin1').toString('utf8');
+      if (decoded !== fileName && !decoded.includes('\ufffd')) fileName = decoded;
+    } catch {}
+
     // Send to Python PDF service
     const formData = new FormData();
-    formData.append("file", new Blob([req.file.buffer], { type: "application/pdf" }), req.file.originalname);
+    formData.append("file", new Blob([req.file.buffer], { type: "application/pdf" }), fileName);
     formData.append("bank_code", bankCode);
 
     const pdfResponse = await fetch(`${config.PDF_SERVICE_URL}/parse`, {
@@ -93,7 +100,7 @@ router.post("/upload", upload.single("file"), async (req: Request, res: Response
     // Create PdfUpload record
     const pdfUpload = await prisma.pdfUpload.create({
       data: {
-        fileName: req.file.originalname,
+        fileName,
         bankCode,
         accountId,
         status: "pending",

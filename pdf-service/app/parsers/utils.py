@@ -43,11 +43,21 @@ def normalize_amount(raw: Optional[str]) -> Optional[Decimal]:
 
 
 def parse_date(raw: Optional[str], formats: list[str] | None = None) -> Optional[date]:
-    """Parse a date string trying multiple formats."""
+    """Parse a date string trying multiple formats.
+
+    Handles cases where the date is followed by extra text, e.g.
+    '17.01.2026 07:43 281543'.
+    """
     if not raw or not raw.strip():
         return None
 
     s = raw.strip()
+
+    # Extract just the date-like token from the beginning (e.g. "17.01.2026" from "17.01.2026 07:43 281543")
+    date_match = re.match(r'(\d{1,4}[\.\-/]\d{1,2}[\.\-/]\d{2,4})', s)
+    if date_match:
+        s = date_match.group(1)
+
     if formats is None:
         formats = [
             "%d.%m.%Y",

@@ -73,6 +73,12 @@ def _extract_account_number(text: str) -> str | None:
     match = re.search(r'\b(40\d{18})\b', text)
     if match:
         return match.group(1)
+    # Handle spaced format from personal statements: "40817 810 6 3812 1486773"
+    match = re.search(r'(40\d{3}[\s\xa0]+\d{3}[\s\xa0]+\d[\s\xa0]+\d{4}[\s\xa0]+\d{7})', text)
+    if match:
+        digits = re.sub(r'[\s\xa0]', '', match.group(1))
+        if len(digits) == 20:
+            return digits
     # Also try "Номер счёта" / "р/с" / "Счёт" patterns
     match = re.search(r'(?:(?:номер\s*)?сч[её]т[а]?\s*[:\s№]*|р/?с\s*[:\s№]*)(\d{20})', text, re.IGNORECASE)
     if match:
@@ -91,7 +97,7 @@ def _normalize_header(row: list[str | None]) -> dict[str, int] | None:
             continue
         cell_lower = cell.strip().lower().replace('\n', ' ')
 
-        if any(k in cell_lower for k in ['дата операц', 'дата опер', 'дата']):
+        if any(k in cell_lower for k in ['дата операц', 'дата опер']):
             if 'date' not in mapping:
                 mapping['date'] = i
         elif 'списан' in cell_lower or 'дата списан' in cell_lower:
@@ -108,11 +114,17 @@ def _normalize_header(row: list[str | None]) -> dict[str, int] | None:
             mapping['balance'] = i
         elif 'сумма' in cell_lower:
             mapping['amount'] = i
+        elif 'категория' in cell_lower:
+            if 'purpose' not in mapping:
+                mapping['purpose'] = i
         elif 'операция' in cell_lower or 'описание' in cell_lower:
             if 'purpose' not in mapping:
                 mapping['purpose'] = i
         elif 'инн' in cell_lower:
             mapping['inn'] = i
+        elif 'дата' in cell_lower:
+            if 'date' not in mapping:
+                mapping['date'] = i
 
     # Must have at least date and some amount column
     if 'date' not in mapping:
@@ -146,15 +158,20 @@ def _parse_row(header: dict[str, int], row: list[str | None]) -> dict[str, Any] 
         else:
             return None
     elif 'amount' in header:
-        raw_amount = normalize_amount(row[header['amount']])
+        raw_str = (row[header['amount']] or '').strip()
+        raw_amount = normalize_amount(raw_str)
         if not raw_amount:
             return None
         if raw_amount < 0:
             amount = abs(raw_amount)
             direction = "expense"
-        else:
+        elif raw_str.startswith('+'):
             amount = raw_amount
             direction = "income"
+        else:
+            # Unsigned positive = expense (Sber personal statement convention)
+            amount = raw_amount
+            direction = "expense"
     else:
         return None
 
