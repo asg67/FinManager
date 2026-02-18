@@ -3,6 +3,8 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import { config } from "./config.js";
+import authRouter from "./routes/auth.js";
+import { errorHandler } from "./middleware/errorHandler.js";
 
 const app = express();
 
@@ -14,6 +16,12 @@ app.use(express.json());
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
+
+// Routes
+app.use("/api/auth", authRouter);
+
+// Error handler (must be last)
+app.use(errorHandler);
 
 app.listen(config.PORT, () => {
   console.log(`Server running on http://localhost:${config.PORT}`);
