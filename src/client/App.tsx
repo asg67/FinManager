@@ -13,6 +13,7 @@ import "./i18n/index.js";
 import "./styles/theme.css";
 import "./styles/auth.css";
 import "./styles/layout.css";
+import "./styles/ui.css";
 
 export default function App() {
   const { i18n } = useTranslation();
