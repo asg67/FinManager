@@ -10,6 +10,7 @@ import {
   loginSchema,
   refreshSchema,
   updateProfileSchema,
+  changePasswordSchema,
 } from "../schemas/auth.js";
 
 const router = Router();
@@ -39,6 +40,10 @@ function sanitizeUser(user: {
   role: string;
   companyId: string | null;
   company?: { id: string; name: string; onboardingDone: boolean; createdAt: Date } | null;
+  avatar?: string | null;
+  sberAccountNumber?: string | null;
+  tbankCardCode?: string | null;
+  tbankDepositContract?: string | null;
   createdAt: Date;
 }) {
   return {
@@ -55,6 +60,10 @@ function sanitizeUser(user: {
       onboardingDone: user.company.onboardingDone,
       createdAt: user.company.createdAt.toISOString(),
     } : null,
+    avatar: user.avatar ?? null,
+    sberAccountNumber: user.sberAccountNumber ?? null,
+    tbankCardCode: user.tbankCardCode ?? null,
+    tbankDepositContract: user.tbankDepositContract ?? null,
     createdAt: user.createdAt.toISOString(),
   };
 }
@@ -191,10 +200,13 @@ router.put(
   validate(updateProfileSchema),
   async (req: Request, res: Response) => {
     try {
-      const updates: Record<string, string> = {};
+      const updates: Record<string, string | null> = {};
       if (req.body.name !== undefined) updates.name = req.body.name;
       if (req.body.language !== undefined) updates.language = req.body.language;
       if (req.body.theme !== undefined) updates.theme = req.body.theme;
+      if (req.body.sberAccountNumber !== undefined) updates.sberAccountNumber = req.body.sberAccountNumber;
+      if (req.body.tbankCardCode !== undefined) updates.tbankCardCode = req.body.tbankCardCode;
+      if (req.body.tbankDepositContract !== undefined) updates.tbankDepositContract = req.body.tbankDepositContract;
 
       const user = await prisma.user.update({
         where: { id: req.user!.userId },
@@ -205,6 +217,39 @@ router.put(
       res.json(sanitizeUser(user));
     } catch (error) {
       console.error("Update profile error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  },
+);
+
+// PUT /api/auth/password
+router.put(
+  "/password",
+  authMiddleware,
+  validate(changePasswordSchema),
+  async (req: Request, res: Response) => {
+    try {
+      const user = await prisma.user.findUnique({ where: { id: req.user!.userId } });
+      if (!user) {
+        res.status(404).json({ message: "User not found" });
+        return;
+      }
+
+      const valid = await bcrypt.compare(req.body.currentPassword, user.passwordHash);
+      if (!valid) {
+        res.status(400).json({ message: "Wrong current password" });
+        return;
+      }
+
+      const passwordHash = await bcrypt.hash(req.body.newPassword, 10);
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { passwordHash },
+      });
+
+      res.json({ message: "Password changed" });
+    } catch (error) {
+      console.error("Change password error:", error);
       res.status(500).json({ message: "Internal server error" });
     }
   },

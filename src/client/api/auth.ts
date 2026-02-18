@@ -21,4 +21,7 @@ export const authApi = {
   getMe: () => api.get<User>("/auth/me"),
 
   updateProfile: (data: UpdateProfilePayload) => api.put<User>("/auth/me", data),
+
+  changePassword: (data: { currentPassword: string; newPassword: string }) =>
+    api.put<{ message: string }>("/auth/password", data),
 };

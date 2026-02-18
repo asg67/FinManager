@@ -51,6 +51,10 @@ model User {
   invitedById  String?
   invitedBy    User?    @relation("Invitations", fields: [invitedById], references: [id])
   invitees     User[]   @relation("Invitations")
+  avatar               String?
+  sberAccountNumber    String?
+  tbankCardCode        String?
+  tbankDepositContract String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
