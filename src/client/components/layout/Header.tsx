@@ -1,5 +1,6 @@
-import { Bell, LogOut, Menu } from "lucide-react";
+import { Bell, LogOut, Menu, Moon, Sun } from "lucide-react";
 import { useAuthStore } from "../../stores/auth.js";
+import { useThemeStore } from "../../stores/theme.js";
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -7,6 +8,7 @@ interface HeaderProps {
 
 export default function Header({ onMenuClick }: HeaderProps) {
   const { user, logout } = useAuthStore();
+  const { theme, toggleTheme } = useThemeStore();
 
   return (
     <header className="header">
@@ -22,6 +24,15 @@ export default function Header({ onMenuClick }: HeaderProps) {
       <div className="header__spacer" />
 
       <div className="header__actions">
+        <button
+          type="button"
+          className="theme-toggle"
+          onClick={toggleTheme}
+          aria-label={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
+        >
+          {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
+        </button>
+
         <button type="button" className="header__icon-btn" aria-label="Notifications">
           <Bell size={20} />
         </button>
