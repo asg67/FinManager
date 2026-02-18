@@ -9,11 +9,15 @@ import AppLayout from "./components/layout/AppLayout.js";
 import Login from "./pages/Login.js";
 import Register from "./pages/Register.js";
 import Dashboard from "./pages/Dashboard.js";
+import Settings from "./pages/Settings.js";
+import DdsOperations from "./pages/DdsOperations.js";
 import "./i18n/index.js";
 import "./styles/theme.css";
 import "./styles/auth.css";
 import "./styles/layout.css";
 import "./styles/ui.css";
+import "./styles/settings.css";
+import "./styles/dds.css";
 
 export default function App() {
   const { i18n } = useTranslation();
@@ -61,6 +65,8 @@ export default function App() {
       <Route element={<ProtectedRoute />}>
         <Route element={<AppLayout />}>
           <Route path="/" element={<Dashboard />} />
+          <Route path="/dds" element={<DdsOperations />} />
+          <Route path="/settings" element={<Settings />} />
         </Route>
       </Route>
 
