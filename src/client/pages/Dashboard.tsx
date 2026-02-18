@@ -68,6 +68,23 @@ function formatMoney(n: number) {
   return n.toLocaleString("ru-RU", { maximumFractionDigits: 0 });
 }
 
+const SHORT_WEEKDAYS = ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
+const SHORT_MONTHS = ["Янв", "Фев", "Мар", "Апр", "Май", "Июн", "Июл", "Авг", "Сен", "Окт", "Ноя", "Дек"];
+
+function formatXTick(dateStr: string, days: number): string {
+  const d = new Date(dateStr);
+  if (days <= 7) return `${SHORT_WEEKDAYS[d.getDay()]} ${d.getDate()}`;
+  if (days <= 30) return String(d.getDate());
+  if (days <= 90) return `${d.getDate()}.${String(d.getMonth() + 1).padStart(2, "0")}`;
+  if (days <= 180) return `${d.getDate()} ${SHORT_MONTHS[d.getMonth()]}`;
+  return SHORT_MONTHS[d.getMonth()];
+}
+
+function formatTooltipDate(dateStr: string): string {
+  const d = new Date(dateStr);
+  return `${d.getDate()} ${SHORT_MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+}
+
 export default function Dashboard() {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -150,7 +167,17 @@ export default function Dashboard() {
   const hasDonutData = donutData.length > 0;
   const donutDisplay = hasDonutData ? donutData : [{ name: "—", value: 1, color: theme === "light" ? "#E0E0E0" : "#374151" }];
 
-  const chartData = useMemo(() => timeline.map((t) => ({ date: fmtShortDate(t.date), value: t.balance })), [timeline]);
+  const chartData = useMemo(() => timeline.map((t) => ({ date: t.date, value: t.balance })), [timeline]);
+
+  const xTickInterval = useMemo(() => {
+    const len = chartData.length;
+    if (len === 0) return 0;
+    if (timelineDays <= 7) return 0;
+    if (timelineDays <= 30) return Math.max(0, Math.ceil(len / 15) - 1);
+    if (timelineDays <= 90) return Math.max(0, Math.ceil(len / 12) - 1);
+    if (timelineDays <= 180) return Math.max(0, Math.ceil(len / 10) - 1);
+    return Math.max(0, Math.ceil(len / 12) - 1);
+  }, [chartData.length, timelineDays]);
 
   const calcBalance = summary?.balance ?? balances.reduce((s, a) => s + a.balance, 0);
   const calcIncome = summary?.totalIncome ?? 0;
@@ -330,18 +357,18 @@ export default function Dashboard() {
                       {chartType === "bar" ? (
                         <BarChart data={chartData}>
                           <CartesianGrid strokeDasharray="3 3" stroke="var(--glass-border)" />
-                          <XAxis dataKey="date" tick={{ fontSize: 11, fill: "#999" }} stroke="#999" />
+                          <XAxis dataKey="date" tick={{ fontSize: 11, fill: "#999" }} stroke="#999" interval={xTickInterval} tickFormatter={(v) => formatXTick(v, timelineDays)} />
                           <YAxis tick={{ fontSize: 11, fill: "#999" }} stroke="#999" tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
-                          <Tooltip contentStyle={ttStyle} formatter={(value: number) => [`${formatMoney(value)} ₽`]} />
+                          <Tooltip contentStyle={ttStyle} formatter={(value: number) => [`${formatMoney(value)} ₽`]} labelFormatter={formatTooltipDate} />
                           <Bar dataKey="value" fill={accentColor} radius={[10, 10, 0, 0]} maxBarSize={30} />
                         </BarChart>
                       ) : chartType === "line" ? (
                         <AreaChart data={chartData}>
                           <defs><linearGradient id="balanceGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor={accentColor} stopOpacity={0.15} /><stop offset="95%" stopColor={accentColor} stopOpacity={0} /></linearGradient></defs>
                           <CartesianGrid strokeDasharray="3 3" stroke="var(--glass-border)" />
-                          <XAxis dataKey="date" tick={{ fontSize: 11, fill: "#999" }} stroke="#999" />
+                          <XAxis dataKey="date" tick={{ fontSize: 11, fill: "#999" }} stroke="#999" interval={xTickInterval} tickFormatter={(v) => formatXTick(v, timelineDays)} />
                           <YAxis tick={{ fontSize: 11, fill: "#999" }} stroke="#999" tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
-                          <Tooltip contentStyle={ttStyle} formatter={(value: number) => [`${formatMoney(value)} ₽`]} />
+                          <Tooltip contentStyle={ttStyle} formatter={(value: number) => [`${formatMoney(value)} ₽`]} labelFormatter={formatTooltipDate} />
                           <Area type="monotone" dataKey="value" stroke={accentColor} strokeWidth={2.5} fill="url(#balanceGrad)" fillOpacity={0.6} />
                         </AreaChart>
                       ) : (
