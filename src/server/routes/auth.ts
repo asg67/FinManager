@@ -1,6 +1,10 @@
 import { Router, Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import multer from "multer";
+import path from "path";
+import fs from "fs";
+import { fileURLToPath } from "url";
 import { prisma } from "../prisma.js";
 import { config } from "../config.js";
 import { validate } from "../middleware/validate.js";
@@ -12,6 +16,26 @@ import {
   updateProfileSchema,
   changePasswordSchema,
 } from "../schemas/auth.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const uploadsDir = path.resolve(__dirname, "../../../uploads/avatars");
+fs.mkdirSync(uploadsDir, { recursive: true });
+
+const avatarUpload = multer({
+  storage: multer.diskStorage({
+    destination: uploadsDir,
+    filename: (_req, file, cb) => {
+      const ext = path.extname(file.originalname).toLowerCase() || ".jpg";
+      cb(null, `${(_req as any).user?.userId || "unknown"}_${Date.now()}${ext}`);
+    },
+  }),
+  limits: { fileSize: 2 * 1024 * 1024 }, // 2MB
+  fileFilter: (_req, file, cb) => {
+    const allowed = ["image/jpeg", "image/png", "image/webp"];
+    cb(null, allowed.includes(file.mimetype));
+  },
+});
 
 const router = Router();
 
@@ -250,6 +274,41 @@ router.put(
       res.json({ message: "Password changed" });
     } catch (error) {
       console.error("Change password error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  },
+);
+
+// POST /api/auth/avatar
+router.post(
+  "/avatar",
+  authMiddleware,
+  avatarUpload.single("avatar"),
+  async (req: Request, res: Response) => {
+    try {
+      if (!req.file) {
+        res.status(400).json({ message: "Image file is required" });
+        return;
+      }
+
+      const avatarUrl = `/uploads/avatars/${req.file.filename}`;
+
+      // Delete old avatar file if exists
+      const oldUser = await prisma.user.findUnique({ where: { id: req.user!.userId } });
+      if (oldUser?.avatar) {
+        const oldPath = path.resolve(__dirname, "../../..", oldUser.avatar);
+        fs.unlink(oldPath, () => {});
+      }
+
+      const user = await prisma.user.update({
+        where: { id: req.user!.userId },
+        data: { avatar: avatarUrl },
+        include: { company: true },
+      });
+
+      res.json(sanitizeUser(user));
+    } catch (error) {
+      console.error("Avatar upload error:", error);
       res.status(500).json({ message: "Internal server error" });
     }
   },

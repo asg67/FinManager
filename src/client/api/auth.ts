@@ -1,4 +1,4 @@
-import { api } from "./client.js";
+import { api, getAccessToken } from "./client.js";
 import type {
   AuthResponse,
   AuthTokens,
@@ -24,4 +24,20 @@ export const authApi = {
 
   changePassword: (data: { currentPassword: string; newPassword: string }) =>
     api.put<{ message: string }>("/auth/password", data),
+
+  uploadAvatar: async (file: File): Promise<User> => {
+    const formData = new FormData();
+    formData.append("avatar", file);
+    const token = getAccessToken();
+    const res = await fetch("/api/auth/avatar", {
+      method: "POST",
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: formData,
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ message: "Upload failed" }));
+      throw new Error(err.message);
+    }
+    return res.json();
+  },
 };

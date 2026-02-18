@@ -73,6 +73,23 @@ router.post("/upload", upload.single("file"), async (req: Request, res: Response
 
     const parseResult = await pdfResponse.json();
 
+    // Check account identifier against user's stored bank IDs
+    const currentUser = await prisma.user.findUnique({ where: { id: userId } });
+    let identifierWarning: string | null = null;
+    const extractedId: string | null = parseResult.account_identifier ?? null;
+
+    if (extractedId && currentUser) {
+      const userIdentifier =
+        bankCode === "sber" ? currentUser.sberAccountNumber :
+        bankCode === "tbank" ? currentUser.tbankCardCode :
+        bankCode === "tbank_deposit" ? currentUser.tbankDepositContract :
+        null;
+
+      if (userIdentifier && !extractedId.includes(userIdentifier) && !userIdentifier.includes(extractedId)) {
+        identifierWarning = `Identifier mismatch: PDF contains "${extractedId}", your profile has "${userIdentifier}"`;
+      }
+    }
+
     // Create PdfUpload record
     const pdfUpload = await prisma.pdfUpload.create({
       data: {
@@ -116,6 +133,8 @@ router.post("/upload", upload.single("file"), async (req: Request, res: Response
       transactions: enriched,
       totalCount: enriched.length,
       duplicateCount: enriched.filter((t) => t.isDuplicate).length,
+      accountIdentifier: extractedId,
+      identifierWarning,
     });
   } catch (error) {
     console.error("PDF upload error:", error);

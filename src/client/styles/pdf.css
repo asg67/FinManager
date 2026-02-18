@@ -115,6 +115,19 @@
 }
 
 /* Badges */
+.pdf-id-warning {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 0.875rem;
+  margin-bottom: 0.75rem;
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: 8px;
+  color: #f59e0b;
+  font-size: 0.8125rem;
+}
+
 .pdf-dup-badge {
   display: inline-flex;
   align-items: center;

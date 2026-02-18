@@ -12,12 +12,18 @@ from typing import Any
 from .utils import normalize_amount, parse_date, parse_time, clean_text
 
 
-def parse_sber(pdf_bytes: bytes) -> list[dict[str, Any]]:
-    """Parse a Sber PDF statement and return a list of transactions."""
+def parse_sber(pdf_bytes: bytes) -> dict[str, Any]:
+    """Parse a Sber PDF statement and return transactions + account identifier."""
     transactions: list[dict[str, Any]] = []
+    account_id = None
 
     with pdfplumber.open(BytesIO(pdf_bytes)) as pdf:
-        for page in pdf.pages:
+        # Extract account number from text on first pages
+        for page in pdf.pages[:3]:
+            text = page.extract_text() or ""
+            if not account_id:
+                account_id = _extract_account_number(text)
+
             tables = page.extract_tables()
             for table in tables:
                 if not table or len(table) < 2:
@@ -35,7 +41,43 @@ def parse_sber(pdf_bytes: bytes) -> list[dict[str, Any]]:
                     if tx:
                         transactions.append(tx)
 
-    return transactions
+        # Process remaining pages (tables only)
+        for page in pdf.pages[3:]:
+            tables = page.extract_tables()
+            for table in tables:
+                if not table or len(table) < 2:
+                    continue
+
+                header = _normalize_header(table[0])
+                if not header:
+                    continue
+
+                for row in table[1:]:
+                    if not row or len(row) < len(header):
+                        continue
+
+                    tx = _parse_row(header, row)
+                    if tx:
+                        transactions.append(tx)
+
+    return {
+        "transactions": transactions,
+        "account_identifier": account_id,
+    }
+
+
+def _extract_account_number(text: str) -> str | None:
+    """Extract Sber account number (20 digits starting with 408...) from page text."""
+    import re
+    # Look for 20-digit account number (standard Russian bank account format)
+    match = re.search(r'\b(40\d{18})\b', text)
+    if match:
+        return match.group(1)
+    # Also try "Номер счёта" / "р/с" / "Счёт" patterns
+    match = re.search(r'(?:(?:номер\s*)?сч[её]т[а]?\s*[:\s№]*|р/?с\s*[:\s№]*)(\d{20})', text, re.IGNORECASE)
+    if match:
+        return match.group(1)
+    return None
 
 
 def _normalize_header(row: list[str | None]) -> dict[str, int] | None:

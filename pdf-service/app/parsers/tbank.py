@@ -13,12 +13,18 @@ from typing import Any
 from .utils import normalize_amount, parse_date, parse_time, clean_text
 
 
-def parse_tbank(pdf_bytes: bytes) -> list[dict[str, Any]]:
+def parse_tbank(pdf_bytes: bytes) -> dict[str, Any]:
     """Parse a T-Bank card/checking PDF statement."""
     transactions: list[dict[str, Any]] = []
+    card_code = None
 
     with pdfplumber.open(BytesIO(pdf_bytes)) as pdf:
         for page in pdf.pages:
+            # Extract card code from text
+            if not card_code:
+                text = page.extract_text() or ""
+                card_code = _extract_card_code(text)
+
             tables = page.extract_tables()
             for table in tables:
                 if not table or len(table) < 2:
@@ -32,11 +38,34 @@ def parse_tbank(pdf_bytes: bytes) -> list[dict[str, Any]]:
                     if not row or len(row) < len(header):
                         continue
 
+                    # Try to extract card code from "Номер карты" column
+                    if not card_code and 'card_number' in header:
+                        raw_card = (row[header['card_number']] or '').strip()
+                        if raw_card:
+                            card_code = raw_card
+
                     tx = _parse_row(header, row)
                     if tx:
                         transactions.append(tx)
 
-    return transactions
+    return {
+        "transactions": transactions,
+        "account_identifier": card_code,
+    }
+
+
+def _extract_card_code(text: str) -> str | None:
+    """Extract T-Bank card code/number from page text."""
+    import re
+    # Look for card number patterns: *1234, ** 1234, карта *1234
+    match = re.search(r'[*]{1,2}\s*(\d{4})', text)
+    if match:
+        return '*' + match.group(1)
+    # Look for full card number masked: 5213 68** **** 1234
+    match = re.search(r'\d{4}\s*\d{2}\*{2}\s*\*{4}\s*(\d{4})', text)
+    if match:
+        return '*' + match.group(1)
+    return None
 
 
 def _normalize_header(row: list[str | None]) -> dict[str, int] | None:
@@ -66,6 +95,8 @@ def _normalize_header(row: list[str | None]) -> dict[str, int] | None:
             mapping['balance'] = i
         elif 'статус' in cell_lower:
             mapping['status'] = i
+        elif 'номер карты' in cell_lower or 'карта' in cell_lower:
+            mapping['card_number'] = i
         elif 'mcc' in cell_lower:
             mapping['mcc'] = i
         elif 'кэшбэк' in cell_lower or 'cashback' in cell_lower:

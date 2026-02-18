@@ -11,12 +11,18 @@ from typing import Any
 from .utils import normalize_amount, parse_date, parse_time, clean_text
 
 
-def parse_tbank_deposit(pdf_bytes: bytes) -> list[dict[str, Any]]:
+def parse_tbank_deposit(pdf_bytes: bytes) -> dict[str, Any]:
     """Parse a T-Bank deposit statement PDF."""
     transactions: list[dict[str, Any]] = []
+    contract_number = None
 
     with pdfplumber.open(BytesIO(pdf_bytes)) as pdf:
         for page in pdf.pages:
+            # Extract contract number from text
+            if not contract_number:
+                text = page.extract_text() or ""
+                contract_number = _extract_contract_number(text)
+
             tables = page.extract_tables()
             for table in tables:
                 if not table or len(table) < 2:
@@ -34,7 +40,26 @@ def parse_tbank_deposit(pdf_bytes: bytes) -> list[dict[str, Any]]:
                     if tx:
                         transactions.append(tx)
 
-    return transactions
+    return {
+        "transactions": transactions,
+        "account_identifier": contract_number,
+    }
+
+
+def _extract_contract_number(text: str) -> str | None:
+    """Extract T-Bank deposit contract number from page text."""
+    import re
+    # "Номер договора" / "Договор №" / "договор" patterns
+    match = re.search(r'(?:номер\s*договора|договор\s*[№#]?)\s*[:\s]*(\S+)', text, re.IGNORECASE)
+    if match:
+        val = match.group(1).strip().rstrip('.')
+        if val:
+            return val
+    # Account number pattern (20 digits)
+    match = re.search(r'\b(42\d{18})\b', text)
+    if match:
+        return match.group(1)
+    return None
 
 
 def _normalize_header(row: list[str | None]) -> dict[str, int] | None:

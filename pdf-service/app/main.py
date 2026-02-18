@@ -42,12 +42,21 @@ async def parse_pdf(
     parser = PARSERS[bank_code]
 
     try:
-        transactions = parser(pdf_bytes)
+        result = parser(pdf_bytes)
     except Exception as e:
         raise HTTPException(
             status_code=422,
             detail=f"Failed to parse PDF: {str(e)}",
         )
+
+    # Parsers return dict with "transactions" and "account_identifier"
+    if isinstance(result, dict):
+        transactions = result.get("transactions", [])
+        account_identifier = result.get("account_identifier")
+    else:
+        # Backward compatibility
+        transactions = result
+        account_identifier = None
 
     return JSONResponse(
         content={
@@ -55,5 +64,6 @@ async def parse_pdf(
             "file_name": file.filename,
             "transactions": transactions,
             "count": len(transactions),
+            "account_identifier": account_identifier,
         }
     )

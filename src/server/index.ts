@@ -45,7 +45,9 @@ app.use("/api/company", companyRouter);
 app.use("/api/notifications", notificationsRouter);
 app.use("/api/export", exportRouter);
 
-// Error handler (must be last — placed after static/SPA below)
+// Serve uploaded files (avatars)
+const uploadsPath = path.resolve(__dirname, "../../uploads");
+app.use("/uploads", express.static(uploadsPath));
 
 // In production, serve the built client
 if (config.NODE_ENV === "production") {
