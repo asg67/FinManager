@@ -7,10 +7,200 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Placeholder — full schema will be added in Task 1.2
+// ============ AUTH & USERS ============
+
 model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  language     String   @default("ru")
+  theme        String   @default("dark")
+  role         String   @default("owner")
+  invitedById  String?
+  invitedBy    User?    @relation("Invitations", fields: [invitedById], references: [id])
+  invitees     User[]   @relation("Invitations")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  permission   Permission?
+  entities     Entity[]
+  entityAccess EntityAccess[]
+  ddsOperations DdsOperation[]
+  pdfUploads   PdfUpload[]
+  notifications Notification[]
+  ddsTemplates DdsTemplate[]
+}
+
+model Permission {
+  id        String  @id @default(uuid())
+  userId    String  @unique
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dds       Boolean @default(false)
+  pdfUpload Boolean @default(false)
+  analytics Boolean @default(false)
+  export    Boolean @default(false)
+}
+
+// ============ BUSINESS ENTITIES ============
+
+model Entity {
   id        String   @id @default(uuid())
-  email     String   @unique
   name      String
+  ownerId   String
+  owner     User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  accounts      Account[]
+  expenseTypes  ExpenseType[]
+  ddsOperations DdsOperation[]
+  ddsTemplates  DdsTemplate[]
+  entityAccess  EntityAccess[]
+}
+
+model EntityAccess {
+  id       String @id @default(uuid())
+  userId   String
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  entityId String
+  entity   Entity @relation(fields: [entityId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, entityId])
+}
+
+model Account {
+  id             String   @id @default(uuid())
+  name           String
+  type           String
+  bank           String?
+  accountNumber  String?
+  contractNumber String?
+  entityId       String
+  entity         Entity   @relation(fields: [entityId], references: [id], onDelete: Cascade)
+  createdAt      DateTime @default(now())
+
+  transactionsFrom DdsOperation[]    @relation("FromAccount")
+  transactionsTo   DdsOperation[]    @relation("ToAccount")
+  bankStatements   BankTransaction[]
+}
+
+// ============ EXPENSE CATEGORIES ============
+
+model ExpenseType {
+  id        String   @id @default(uuid())
+  name      String
+  entityId  String
+  entity    Entity   @relation(fields: [entityId], references: [id], onDelete: Cascade)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  articles      ExpenseArticle[]
+  ddsOperations DdsOperation[]
+  ddsTemplates  DdsTemplate[]
+}
+
+model ExpenseArticle {
+  id            String      @id @default(uuid())
+  name          String
+  expenseTypeId String
+  expenseType   ExpenseType @relation(fields: [expenseTypeId], references: [id], onDelete: Cascade)
+  sortOrder     Int         @default(0)
+
+  ddsOperations DdsOperation[]
+  ddsTemplates  DdsTemplate[]
+}
+
+// ============ DDS OPERATIONS ============
+
+model DdsOperation {
+  id               String          @id @default(uuid())
+  operationType    String
+  amount           Decimal         @db.Decimal(15, 2)
+  fromAccountId    String?
+  fromAccount      Account?        @relation("FromAccount", fields: [fromAccountId], references: [id])
+  toAccountId      String?
+  toAccount        Account?        @relation("ToAccount", fields: [toAccountId], references: [id])
+  expenseTypeId    String?
+  expenseType      ExpenseType?    @relation(fields: [expenseTypeId], references: [id])
+  expenseArticleId String?
+  expenseArticle   ExpenseArticle? @relation(fields: [expenseArticleId], references: [id])
+  orderNumber      String?
+  comment          String?
+  entityId         String
+  entity           Entity          @relation(fields: [entityId], references: [id])
+  userId           String
+  user             User            @relation(fields: [userId], references: [id])
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+}
+
+// ============ DDS TEMPLATES ============
+
+model DdsTemplate {
+  id               String          @id @default(uuid())
+  name             String
+  operationType    String
+  entityId         String
+  entity           Entity          @relation(fields: [entityId], references: [id], onDelete: Cascade)
+  fromAccountId    String?
+  toAccountId      String?
+  expenseTypeId    String?
+  expenseType      ExpenseType?    @relation(fields: [expenseTypeId], references: [id])
+  expenseArticleId String?
+  expenseArticle   ExpenseArticle? @relation(fields: [expenseArticleId], references: [id])
+  userId           String
+  user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt        DateTime        @default(now())
+}
+
+// ============ PDF / BANK TRANSACTIONS ============
+
+model PdfUpload {
+  id        String   @id @default(uuid())
+  fileName  String
+  bankCode  String
+  accountId String
+  status    String   @default("pending")
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+
+  transactions BankTransaction[]
+}
+
+model BankTransaction {
+  id           String    @id @default(uuid())
+  date         DateTime  @db.Date
+  time         String?
+  amount       Decimal   @db.Decimal(15, 2)
+  direction    String
+  counterparty String?
+  purpose      String?
+  balance      Decimal?  @db.Decimal(15, 2)
+  ddsArticle   String?
+  accountId    String
+  account      Account   @relation(fields: [accountId], references: [id])
+  pdfUploadId  String?
+  pdfUpload    PdfUpload? @relation(fields: [pdfUploadId], references: [id])
+  dedupeKey    String?
+  createdAt    DateTime  @default(now())
+
+  @@index([accountId, date])
+  @@index([dedupeKey])
+}
+
+// ============ NOTIFICATIONS ============
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String
+  title     String
+  body      String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId, read])
 }
