@@ -166,6 +166,7 @@ export default {
     fillDetails: "Детали операции",
     reviewTitle: "Проверьте данные",
     exportCsv: "Экспорт CSV",
+    filter: "Фильтр",
     copyInviteLink: "Скопировать ссылку",
     inviteLinkCopied: "Ссылка скопирована!",
     setupRequired: "Для работы с ДДС необходимо создать или присоединиться к компании",

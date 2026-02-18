@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { Search, ChevronLeft, ChevronRight, Download, Info, Users, Building2, Link2, Copy, Check, ChevronDown, Plus } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight, Download, Info, Users, Building2, Link2, Copy, Check, ChevronDown, Plus, Filter, LayoutList, LayoutGrid } from "lucide-react";
 import { Navigate } from "react-router-dom";
 import { useAuthStore } from "../stores/auth.js";
 import { ddsApi, type OperationFilters } from "../api/dds.js";
@@ -29,12 +29,10 @@ export default function DdsOperations() {
   const hasCompany = !!user?.companyId;
   const isOwner = user?.role === "owner";
 
-  // Owner without company → redirect to /admin for setup
   if (!hasCompany && isOwner) {
     return <Navigate to="/admin" replace />;
   }
 
-  // Member without company → show invite join form
   if (!hasCompany) {
     return (
       <div className="dds-page page-enter">
@@ -46,11 +44,10 @@ export default function DdsOperations() {
     );
   }
 
-  // Normal DDS view
   return <DdsTable companyName={companyName} />;
 }
 
-/* ─── Company Info Panel ─── */
+/* --- Company Info Panel --- */
 
 function CompanyInfoPanel({ entities }: { entities: Entity[] }) {
   const { t } = useTranslation();
@@ -153,7 +150,50 @@ function CompanyInfoPanel({ entities }: { entities: Entity[] }) {
   );
 }
 
-/* ─── DDS Table (extracted to avoid hooks-after-return) ─── */
+/* --- Operation Card (mobile view) --- */
+
+function OperationCard({ op, onEdit, onDelete, t, formatAmount, formatDate }: {
+  op: DdsOperation;
+  onEdit: () => void;
+  onDelete: () => void;
+  t: (key: string) => string;
+  formatAmount: (amount: string, opType: string) => string;
+  formatDate: (dateStr: string) => string;
+}) {
+  return (
+    <div className="op-card">
+      <div className="op-card__top">
+        <span className={`op-badge op-badge--${op.operationType}`}>
+          {t(`dds.${op.operationType}`)}
+        </span>
+        <span className="op-card__date">{formatDate(op.createdAt)}</span>
+      </div>
+      <div className="op-card__amount-row">
+        <span className={`amount amount--${op.operationType}`}>
+          {formatAmount(op.amount, op.operationType)}
+        </span>
+      </div>
+      <div className="op-card__details">
+        <span className="op-card__entity">{op.entity.name}</span>
+        {op.fromAccount && <span className="op-card__meta">{t("dds.from")}: {op.fromAccount.name}</span>}
+        {op.toAccount && <span className="op-card__meta">{t("dds.to")}: {op.toAccount.name}</span>}
+        {op.expenseType && <span className="op-card__meta">{op.expenseType.name}{op.expenseArticle ? ` / ${op.expenseArticle.name}` : ""}</span>}
+        {op.orderNumber && <span className="op-card__meta">#{op.orderNumber}</span>}
+        {op.comment && <span className="op-card__comment">{op.comment}</span>}
+      </div>
+      <div className="op-card__actions">
+        <button type="button" className="icon-btn" onClick={onEdit} title={t("common.edit")}>
+          <Pencil size={16} />
+        </button>
+        <button type="button" className="icon-btn icon-btn--danger" onClick={onDelete} title={t("common.delete")}>
+          <Trash2 size={16} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* --- DDS Table --- */
 
 function DdsTable({ companyName }: { companyName?: string }) {
   const { t } = useTranslation();
@@ -172,8 +212,14 @@ function DdsTable({ companyName }: { companyName?: string }) {
   // Filters
   const [filters, setFilters] = useState<OperationFilters>({ page: 1, limit: 20 });
   const [searchInput, setSearchInput] = useState("");
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
-  // Wizard (edit only)
+  // View mode
+  const [viewMode, setViewMode] = useState<"table" | "cards">(() =>
+    window.innerWidth <= 768 ? "cards" : "table"
+  );
+
+  // Wizard
   const [wizardOpen, setWizardOpen] = useState(false);
   const [editOp, setEditOp] = useState<DdsOperation | null>(null);
 
@@ -212,7 +258,6 @@ function DdsTable({ companyName }: { companyName?: string }) {
     entitiesApi.list().then(setEntities);
   }, []);
 
-  // Load accounts for the selected entity filter
   useEffect(() => {
     if (filters.entityId) {
       accountsApi.list(filters.entityId).then(setAccounts);
@@ -297,12 +342,12 @@ function DdsTable({ companyName }: { companyName?: string }) {
     {
       key: "fromAccount",
       header: t("dds.from"),
-      render: (r: DdsOperation) => r.fromAccount?.name ?? "—",
+      render: (r: DdsOperation) => r.fromAccount?.name ?? "\u2014",
     },
     {
       key: "toAccount",
       header: t("dds.to"),
-      render: (r: DdsOperation) => r.toAccount?.name ?? "—",
+      render: (r: DdsOperation) => r.toAccount?.name ?? "\u2014",
     },
     {
       key: "amount",
@@ -317,17 +362,17 @@ function DdsTable({ companyName }: { companyName?: string }) {
     {
       key: "expenseType",
       header: t("dds.expenseType"),
-      render: (r: DdsOperation) => r.expenseType?.name ?? "—",
+      render: (r: DdsOperation) => r.expenseType?.name ?? "\u2014",
     },
     {
       key: "expenseArticle",
       header: t("dds.expenseArticle"),
-      render: (r: DdsOperation) => r.expenseArticle?.name ?? "—",
+      render: (r: DdsOperation) => r.expenseArticle?.name ?? "\u2014",
     },
     {
       key: "orderNumber",
       header: t("dds.orderNumber"),
-      render: (r: DdsOperation) => r.orderNumber ?? "—",
+      render: (r: DdsOperation) => r.orderNumber ?? "\u2014",
     },
     {
       key: "comment",
@@ -355,9 +400,9 @@ function DdsTable({ companyName }: { companyName?: string }) {
     <div className="dds-page page-enter">
       <div className="page-header">
         <h1 className="page-title">
-          {t("nav.dds")}{companyName ? ` · ${companyName}` : ""}
+          {t("nav.dds")}{companyName ? ` \u00B7 ${companyName}` : ""}
         </h1>
-        <div className="page-header__actions">
+        <div className="page-header__actions page-header__actions--desktop">
           {isOwner && (
             <Button
               variant="secondary"
@@ -382,54 +427,112 @@ function DdsTable({ companyName }: { companyName?: string }) {
         </div>
       </div>
 
+      {/* Mobile: prominent add button */}
+      <div className="dds-mobile-add">
+        <Button className="dds-mobile-add__btn" onClick={() => { setEditOp(null); setWizardOpen(true); }}>
+          <Plus size={20} />
+          {t("dds.addOperation")}
+        </Button>
+      </div>
+
       {/* Company Info */}
       <CompanyInfoPanel entities={entities} />
 
-      {/* Filters */}
-      <div className="dds-filters">
-        <Select
-          options={[{ value: "", label: t("dds.allEntities") }, ...entities.map((e) => ({ value: e.id, label: e.name }))]}
-          value={filters.entityId ?? ""}
-          onChange={(e) => handleFilterChange("entityId", e.target.value)}
-        />
-        <Select
-          options={OP_TYPES.map((o) => ({ value: o.value, label: t(o.labelKey) }))}
-          value={filters.operationType ?? ""}
-          onChange={(e) => handleFilterChange("operationType", e.target.value)}
-        />
-        {accounts.length > 0 && (
-          <Select
-            options={[{ value: "", label: t("dds.allAccounts") }, ...accounts.map((a) => ({ value: a.id, label: a.name }))]}
-            value={filters.accountId ?? ""}
-            onChange={(e) => handleFilterChange("accountId", e.target.value)}
-          />
-        )}
-        <div className="dds-search">
-          <Input
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            placeholder={t("dds.searchPlaceholder")}
-            onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-          />
-          <button type="button" className="icon-btn" onClick={handleSearch}>
-            <Search size={18} />
+      {/* Filter toggle + view toggle */}
+      <div className="dds-toolbar">
+        <button
+          type="button"
+          className={`dds-toolbar__btn ${filtersOpen ? "dds-toolbar__btn--active" : ""}`}
+          onClick={() => setFiltersOpen(!filtersOpen)}
+        >
+          <Filter size={16} />
+          <span>{t("dds.filter")}</span>
+          <ChevronDown size={14} className={`dds-toolbar__chevron ${filtersOpen ? "dds-toolbar__chevron--open" : ""}`} />
+        </button>
+        <div className="dds-toolbar__view">
+          <button
+            type="button"
+            className={`dds-toolbar__view-btn ${viewMode === "cards" ? "dds-toolbar__view-btn--active" : ""}`}
+            onClick={() => setViewMode("cards")}
+          >
+            <LayoutGrid size={16} />
+          </button>
+          <button
+            type="button"
+            className={`dds-toolbar__view-btn ${viewMode === "table" ? "dds-toolbar__view-btn--active" : ""}`}
+            onClick={() => setViewMode("table")}
+          >
+            <LayoutList size={16} />
           </button>
         </div>
       </div>
 
-      {/* Table */}
+      {/* Filters (collapsible) */}
+      {filtersOpen && (
+        <div className="dds-filters">
+          <Select
+            options={[{ value: "", label: t("dds.allEntities") }, ...entities.map((e) => ({ value: e.id, label: e.name }))]}
+            value={filters.entityId ?? ""}
+            onChange={(e) => handleFilterChange("entityId", e.target.value)}
+          />
+          <Select
+            options={OP_TYPES.map((o) => ({ value: o.value, label: t(o.labelKey) }))}
+            value={filters.operationType ?? ""}
+            onChange={(e) => handleFilterChange("operationType", e.target.value)}
+          />
+          {accounts.length > 0 && (
+            <Select
+              options={[{ value: "", label: t("dds.allAccounts") }, ...accounts.map((a) => ({ value: a.id, label: a.name }))]}
+              value={filters.accountId ?? ""}
+              onChange={(e) => handleFilterChange("accountId", e.target.value)}
+            />
+          )}
+          <div className="dds-search">
+            <Input
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              placeholder={t("dds.searchPlaceholder")}
+              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+            />
+            <button type="button" className="icon-btn" onClick={handleSearch}>
+              <Search size={18} />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Content */}
       {loading ? (
         <div className="tab-loading">{t("common.loading")}</div>
       ) : (
         <>
-          <Table
-            columns={columns}
-            data={data.data}
-            rowKey={(r) => r.id}
-            emptyMessage={t("dds.noOperations")}
-          />
+          {viewMode === "table" ? (
+            <Table
+              columns={columns}
+              data={data.data}
+              rowKey={(r) => r.id}
+              emptyMessage={t("dds.noOperations")}
+            />
+          ) : (
+            <div className="op-cards">
+              {data.data.length === 0 ? (
+                <div className="tab-empty">{t("dds.noOperations")}</div>
+              ) : (
+                data.data.map((op) => (
+                  <OperationCard
+                    key={op.id}
+                    op={op}
+                    onEdit={() => openEdit(op)}
+                    onDelete={() => setDeleteOp(op)}
+                    t={t}
+                    formatAmount={formatAmount}
+                    formatDate={formatDate}
+                  />
+                ))
+              )}
+            </div>
+          )}
 
-          {/* Pagination */}
           {data.totalPages > 1 && (
             <div className="pagination">
               <button
@@ -456,7 +559,6 @@ function DdsTable({ companyName }: { companyName?: string }) {
         </>
       )}
 
-      {/* Step Wizard (create + edit) */}
       <StepWizard
         open={wizardOpen}
         onClose={() => { setWizardOpen(false); setEditOp(null); }}
@@ -465,7 +567,6 @@ function DdsTable({ companyName }: { companyName?: string }) {
         entities={entities}
       />
 
-      {/* Delete Confirm */}
       <DeleteConfirm
         operation={deleteOp}
         onClose={() => setDeleteOp(null)}

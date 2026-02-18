@@ -7,7 +7,7 @@ import { companyApi } from "../../api/company.js";
 import { Button, Input, Modal } from "../ui/index.js";
 import type { Entity, Account, ExpenseType, DdsOperation, DdsTemplate } from "@shared/types.js";
 
-type Step = "entity" | "opType" | "category" | "article" | "details" | "review";
+type Step = "entity" | "opType" | "fromAccount" | "category" | "article" | "details" | "review";
 
 interface Props {
   open: boolean;
@@ -87,10 +87,15 @@ export default function StepWizard({ open, onClose, onDone, editOperation, entit
   function selectOpType(opType: string) {
     setForm((prev) => ({ ...prev, operationType: opType, expenseTypeId: undefined, expenseArticleId: undefined }));
     if (opType === "expense") {
-      setStep("category");
+      setStep("fromAccount");
     } else {
       setStep("details");
     }
+  }
+
+  function selectFromAccount(accountId: string) {
+    setForm((prev) => ({ ...prev, fromAccountId: accountId }));
+    setStep("category");
   }
 
   function selectCategory(categoryId: string) {
@@ -126,8 +131,11 @@ export default function StepWizard({ open, onClose, onDone, editOperation, entit
       case "opType":
         if (entities.length > 1) setStep("entity");
         break;
-      case "category":
+      case "fromAccount":
         setStep("opType");
+        break;
+      case "category":
+        setStep("fromAccount");
         break;
       case "article":
         setStep("category");
@@ -191,6 +199,7 @@ export default function StepWizard({ open, onClose, onDone, editOperation, entit
   const stepLabels: Record<Step, string> = {
     entity: t("dds.selectEntity"),
     opType: t("dds.selectType"),
+    fromAccount: t("dds.fromAccount"),
     category: t("dds.selectCategory"),
     article: t("dds.selectArticle"),
     details: t("dds.fillDetails"),
@@ -274,6 +283,22 @@ export default function StepWizard({ open, onClose, onDone, editOperation, entit
           </div>
         )}
 
+        {/* Step: From Account (expense only, right after opType) */}
+        {step === "fromAccount" && (
+          <div className="step-wizard__grid">
+            {accounts.map((a) => (
+              <button
+                key={a.id}
+                type="button"
+                className={`step-wizard__option ${form.fromAccountId === a.id ? "step-wizard__option--selected" : ""}`}
+                onClick={() => selectFromAccount(a.id)}
+              >
+                {a.name}
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* Step: Category */}
         {step === "category" && (
           <div className="step-wizard__grid">
@@ -309,8 +334,8 @@ export default function StepWizard({ open, onClose, onDone, editOperation, entit
         {/* Step: Details */}
         {step === "details" && (
           <div className="step-wizard__details">
-            {/* From Account (expense, transfer) */}
-            {(isExpense || isTransfer) && (
+            {/* From Account (transfer only — expense already selected in fromAccount step) */}
+            {isTransfer && (
               <div className="step-wizard__field">
                 <label className="step-wizard__field-label">{t("dds.fromAccount")}</label>
                 <div className="step-wizard__grid step-wizard__grid--compact">

@@ -166,6 +166,7 @@ export default {
     fillDetails: "Operation Details",
     reviewTitle: "Review",
     exportCsv: "Export CSV",
+    filter: "Filter",
     copyInviteLink: "Copy Invite Link",
     inviteLinkCopied: "Link copied!",
     setupRequired: "To use Cash Flow, you need to create or join a company",
