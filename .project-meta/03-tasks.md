@@ -312,7 +312,18 @@
 - Image optimization (если будут)
 - Bundle size analysis (vite-plugin-visualizer)
 
-### Task 6.4: Final Testing & Bug Fixes
+### Task 6.4: PWA Setup
+- vite-plugin-pwa (автогенерация service worker)
+- manifest.json: name, short_name, icons, theme_color, background_color, display: standalone
+- Иконки приложения (192x192, 512x512)
+- Offline shell: кэширование статики (HTML, CSS, JS)
+- Стратегия: NetworkFirst для API, CacheFirst для статики
+- Install prompt (кнопка "Установить приложение")
+- Splash screen на мобилке
+- Meta tags: apple-mobile-web-app-capable, viewport, theme-color
+- Тестирование: Lighthouse PWA audit > 90
+
+### Task 6.5: Final Testing & Bug Fixes
 - Прогон всех тестов (unit + integration)
 - Ручное тестирование по тест-плану (каждый модуль)
 - Cross-browser: Chrome, Firefox, Safari, Edge
@@ -331,5 +342,5 @@
 | Phase 3 | 5 | PDF: Python-парсеры, upload, preview, банковские транзакции |
 | Phase 4 | 4 | Dashboard: analytics API, cards, charts, виджеты |
 | Phase 5 | 6 | Сотрудники, права, уведомления, экспорт |
-| Phase 6 | 4 | Polish: адаптив, анимации, перформанс, тестирование |
-| **Всего** | **34** | |
+| Phase 6 | 5 | Polish: адаптив, анимации, перформанс, PWA, тестирование |
+| **Всего** | **35** | |
