@@ -4,10 +4,10 @@ import { X, ArrowLeft, Upload, FileText, Check, AlertTriangle, CreditCard, Landm
 import { entitiesApi } from "../../api/entities.js";
 import { accountsApi } from "../../api/accounts.js";
 import { pdfApi, type UploadResult } from "../../api/pdf.js";
-import { Button, Select } from "../ui/index.js";
+import { Button } from "../ui/index.js";
 import type { Entity, Account } from "@shared/types.js";
 
-type Step = "bank" | "account" | "upload" | "uploading" | "preview" | "done";
+type Step = "bank" | "upload" | "uploading" | "preview" | "done";
 
 const BANKS = [
   { code: "sber", label: "Карта Сбер", icon: CreditCard },
@@ -27,10 +27,7 @@ export default function StatementWizard({ open, onClose, onDone }: Props) {
 
   const [step, setStep] = useState<Step>("bank");
   const [bankCode, setBankCode] = useState("");
-  const [entities, setEntities] = useState<Entity[]>([]);
-  const [accounts, setAccounts] = useState<Account[]>([]);
-  const [selectedEntity, setSelectedEntity] = useState("");
-  const [selectedAccount, setSelectedAccount] = useState("");
+  const [accountId, setAccountId] = useState("");
   const [error, setError] = useState("");
 
   const [uploadResult, setUploadResult] = useState<UploadResult | null>(null);
@@ -38,30 +35,22 @@ export default function StatementWizard({ open, onClose, onDone }: Props) {
   const [confirming, setConfirming] = useState(false);
   const [confirmResult, setConfirmResult] = useState<{ saved: number; skipped: number } | null>(null);
 
+  // Load first entity → first account on open
   useEffect(() => {
     if (open) {
-      entitiesApi.list().then((data) => {
-        setEntities(data);
-        if (data.length === 1) setSelectedEntity(data[0].id);
+      entitiesApi.list({ mine: true }).then((entities) => {
+        if (entities.length > 0) {
+          accountsApi.list(entities[0].id).then((accounts) => {
+            if (accounts.length > 0) setAccountId(accounts[0].id);
+          });
+        }
       });
     }
   }, [open]);
 
-  useEffect(() => {
-    if (selectedEntity) {
-      accountsApi.list(selectedEntity).then((data) => {
-        setAccounts(data);
-        if (data.length > 0) setSelectedAccount(data[0].id);
-      });
-    }
-  }, [selectedEntity]);
-
   function reset() {
     setStep("bank");
     setBankCode("");
-    setSelectedEntity("");
-    setSelectedAccount("");
-    setAccounts([]);
     setError("");
     setUploadResult(null);
     setSelected(new Set());
@@ -75,21 +64,11 @@ export default function StatementWizard({ open, onClose, onDone }: Props) {
 
   function selectBank(code: string) {
     setBankCode(code);
-    if (entities.length === 1 && accounts.length > 0) {
-      setStep("upload");
-    } else {
-      setStep("account");
-    }
+    setStep("upload");
   }
 
   function goBack() {
-    switch (step) {
-      case "account": setStep("bank"); break;
-      case "upload":
-        if (entities.length === 1) setStep("bank");
-        else setStep("account");
-        break;
-    }
+    if (step === "upload") setStep("bank");
   }
 
   async function handleFileSelect(e: ChangeEvent<HTMLInputElement>) {
@@ -98,7 +77,7 @@ export default function StatementWizard({ open, onClose, onDone }: Props) {
     setError("");
     setStep("uploading");
     try {
-      const result = await pdfApi.upload(file, selectedAccount, bankCode);
+      const result = await pdfApi.upload(file, accountId, bankCode);
       setUploadResult(result);
       const nonDup = new Set<number>();
       result.transactions.forEach((tx, i) => { if (!tx.isDuplicate) nonDup.add(i); });
@@ -158,10 +137,9 @@ export default function StatementWizard({ open, onClose, onDone }: Props) {
 
   if (!open) return null;
 
-  const showBack = step === "account" || step === "upload";
+  const showBack = step === "upload";
   const stepTitle =
     step === "bank" ? t("pdf.selectBank") :
-    step === "account" ? t("pdf.selectAccount") :
     step === "upload" ? t("pdf.uploadFile") :
     step === "uploading" ? t("pdf.parsing") :
     step === "preview" ? t("pdf.transactionsTab") :
@@ -201,32 +179,6 @@ export default function StatementWizard({ open, onClose, onDone }: Props) {
                   </button>
                 );
               })}
-            </div>
-          )}
-
-          {step === "account" && (
-            <div className="stmt-wizard__account">
-              <Select
-                label={t("pdf.entity")}
-                options={entities.map((e) => ({ value: e.id, label: e.name }))}
-                value={selectedEntity}
-                onChange={(e) => setSelectedEntity(e.target.value)}
-              />
-              {accounts.length > 0 && (
-                <Select
-                  label={t("pdf.account")}
-                  options={accounts.map((a) => ({ value: a.id, label: a.name }))}
-                  value={selectedAccount}
-                  onChange={(e) => setSelectedAccount(e.target.value)}
-                />
-              )}
-              <Button
-                onClick={() => setStep("upload")}
-                disabled={!selectedEntity || !selectedAccount}
-                style={{ marginTop: "0.5rem" }}
-              >
-                {t("common.next")}
-              </Button>
             </div>
           )}
 
