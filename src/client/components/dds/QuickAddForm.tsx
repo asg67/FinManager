@@ -53,7 +53,7 @@ export default function QuickAddForm({ entities, onSaved }: Props) {
   // Load accounts when entity changes
   useEffect(() => {
     if (form.entityId) {
-      accountsApi.list(form.entityId).then(setAccounts);
+      accountsApi.list(form.entityId, "manual").then(setAccounts);
     } else {
       setAccounts([]);
     }

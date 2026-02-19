@@ -62,6 +62,7 @@ export async function syncConnection(
             type: "checking",
             bank: BANK_NAMES[conn.bankCode] || conn.bankCode,
             accountNumber: remoteAcc.accountNumber,
+            source: "bank_sync",
             entityId: conn.entityId,
           },
         });

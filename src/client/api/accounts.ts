@@ -10,8 +10,8 @@ export interface CreateAccountPayload {
 }
 
 export const accountsApi = {
-  list: (entityId: string) =>
-    api.get<Account[]>(`/entities/${entityId}/accounts`),
+  list: (entityId: string, source?: string) =>
+    api.get<Account[]>(`/entities/${entityId}/accounts${source ? `?source=${source}` : ""}`),
 
   create: (entityId: string, data: CreateAccountPayload) =>
     api.post<Account>(`/entities/${entityId}/accounts`, data),

@@ -69,7 +69,7 @@ export default function StepWizard({ open, onClose, onDone, editOperation, entit
   // Load accounts when entity changes
   useEffect(() => {
     if (form.entityId) {
-      accountsApi.list(form.entityId).then(setAccounts);
+      accountsApi.list(form.entityId, "manual").then(setAccounts);
     } else {
       setAccounts([]);
     }

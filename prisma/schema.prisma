@@ -135,6 +135,7 @@ model Account {
   bank           String?
   accountNumber  String?
   contractNumber String?
+  source         String   @default("manual") // "manual" | "bank_sync"
   entityId       String
   entity         Entity   @relation(fields: [entityId], references: [id], onDelete: Cascade)
   createdAt      DateTime @default(now())

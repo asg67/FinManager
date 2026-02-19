@@ -30,8 +30,11 @@ router.get("/", async (req: Request, res: Response) => {
       return;
     }
 
+    const where: Record<string, unknown> = { entityId: req.params.entityId };
+    if (req.query.source) where.source = req.query.source;
+
     const accounts = await prisma.account.findMany({
-      where: { entityId: req.params.entityId },
+      where,
       orderBy: { createdAt: "asc" },
     });
 
