@@ -234,7 +234,7 @@ router.get("/uploads", async (req: Request, res: Response) => {
 router.get("/transactions", async (req: Request, res: Response) => {
   try {
     const userId = req.user!.userId;
-    const { accountId, direction, from, to, page, limit } = req.query as Record<string, string>;
+    const { accountId, direction, from, to, page, limit, bankCode } = req.query as Record<string, string>;
 
     const pageNum = Math.max(1, parseInt(page) || 1);
     const limitNum = Math.min(100, Math.max(1, parseInt(limit) || 20));
@@ -263,6 +263,7 @@ router.get("/transactions", async (req: Request, res: Response) => {
       pdfUploadId: { not: null },
     };
 
+    if (bankCode) where.pdfUpload = { bankCode };
     if (accountId) where.accountId = accountId;
     if (direction) where.direction = direction;
     if (from || to) {

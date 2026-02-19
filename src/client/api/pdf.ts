@@ -55,6 +55,7 @@ export interface BankTransaction {
 }
 
 export interface TransactionFilters {
+  bankCode?: string;
   accountId?: string;
   direction?: string;
   from?: string;

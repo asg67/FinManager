@@ -26,6 +26,7 @@ const Dashboard = lazy(() => import("./pages/Dashboard.js"));
 const DdsOperations = lazy(() => import("./pages/DdsOperations.js"));
 const Settings = lazy(() => import("./pages/Settings.js"));
 const Statements = lazy(() => import("./pages/Statements.js"));
+const StatementDetail = lazy(() => import("./pages/StatementDetail.js"));
 const BankAccounts = lazy(() => import("./pages/BankAccounts.js"));
 const BankConnectionDetail = lazy(() => import("./pages/BankConnectionDetail.js"));
 const Admin = lazy(() => import("./pages/Admin.js"));
@@ -86,6 +87,7 @@ export default function App() {
             <Route path="/" element={<Suspense fallback={pageFallback}><Dashboard /></Suspense>} />
             <Route path="/dds" element={<Suspense fallback={pageFallback}><DdsOperations /></Suspense>} />
             <Route path="/pdf" element={<Suspense fallback={pageFallback}><Statements /></Suspense>} />
+            <Route path="/pdf/:bankCode" element={<Suspense fallback={pageFallback}><StatementDetail /></Suspense>} />
             <Route path="/bank-accounts" element={<Suspense fallback={pageFallback}><BankAccounts /></Suspense>} />
             <Route path="/bank-accounts/:id" element={<Suspense fallback={pageFallback}><BankConnectionDetail /></Suspense>} />
             <Route path="/settings" element={<Suspense fallback={pageFallback}><Settings /></Suspense>} />
