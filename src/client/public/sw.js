@@ -1,4 +1,4 @@
-const CACHE_NAME = "finmanager-v14";
+const CACHE_NAME = "finmanager-v15";
 const STATIC_ASSETS = ["/", "/manifest.json"];
 
 // --- IndexedDB helpers for share target ---
