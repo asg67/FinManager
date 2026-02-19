@@ -260,21 +260,21 @@
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  padding: 0.625rem 1.5rem;
-  border-radius: 50px;
-  background: transparent;
-  border: 1px solid var(--border-input);
-  color: var(--text-muted);
+  padding: 0.75rem 1.5rem;
+  border-radius: 14px;
+  background: rgba(220, 80, 60, 0.08);
+  border: 1px solid rgba(220, 80, 60, 0.15);
+  color: #DC503C;
   font-size: 0.8125rem;
+  font-weight: 500;
   cursor: pointer;
-  transition: background var(--transition), color var(--transition);
-  width: fit-content;
-  margin: 0 auto;
+  transition: background var(--transition), border-color var(--transition);
+  width: 100%;
 }
 
 .sidebar__signout:hover {
-  background: var(--bg-surface-hover);
-  color: var(--text-secondary);
+  background: rgba(220, 80, 60, 0.15);
+  border-color: rgba(220, 80, 60, 0.3);
 }
 
 /* ===== Header ===== */
@@ -794,8 +794,8 @@
 }
 
 [data-theme="light"] .sidebar__signout {
-  background: rgba(255, 255, 255, 0.4);
-  border-color: rgba(0, 0, 0, 0.06);
+  background: rgba(220, 80, 60, 0.06);
+  border-color: rgba(220, 80, 60, 0.12);
 }
 
 /* Light theme: subtle border on dropdowns/panels over glass */
