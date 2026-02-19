@@ -374,8 +374,8 @@
 
 .dash-donut-chart-wrap {
   position: relative;
-  width: 210px;
-  height: 210px;
+  width: 260px;
+  height: 260px;
 }
 
 .dash-donut-center-label {
@@ -387,7 +387,7 @@
   pointer-events: none;
 }
 
-.dash-donut-center-label__value { font-size: 24px; font-weight: 800; color: #1A1A1A; line-height: 1.1; }
+.dash-donut-center-label__value { font-size: 18px; font-weight: 800; color: #1A1A1A; line-height: 1.1; }
 .dash-donut-center-label__sub { font-size: 11px; color: #AAA; margin-top: 2px; }
 [data-theme="dark"] .dash-donut-center-label__value { color: var(--text-primary); }
 [data-theme="dark"] .dash-donut-center-label__sub { color: var(--text-muted); }
@@ -402,15 +402,15 @@
 .dash-metrics-column {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
   flex: 1;
 }
 
 .dash-metric-card {
   background: rgba(255, 255, 255, 0.45);
   border: 1px solid rgba(255, 255, 255, 0.5);
-  border-radius: 16px;
-  padding: 14px 16px;
+  border-radius: 14px;
+  padding: 10px 14px;
   transition: all 0.2s ease;
 }
 .dash-metric-card:hover {
@@ -430,8 +430,8 @@
 .dash-metric-card__top { display: flex; align-items: center; gap: 10px; }
 
 .dash-metric-card__icon {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -449,10 +449,10 @@
 [data-theme="dark"] .dash-metric-card__icon--expense { background: rgba(239, 68, 68, 0.15); color: var(--color-expense); }
 [data-theme="dark"] .dash-metric-card__icon--count { background: rgba(148, 163, 184, 0.12); color: var(--text-muted); }
 
-.dash-metric-card__label { font-size: 13px; color: #888; font-weight: 400; }
+.dash-metric-card__label { font-size: 12px; color: #888; font-weight: 400; }
 [data-theme="dark"] .dash-metric-card__label { color: var(--text-muted); }
 
-.dash-metric-card__value { font-size: 20px; font-weight: 700; color: #1A1A1A; margin-top: 6px; padding-left: 42px; }
+.dash-metric-card__value { font-size: 16px; font-weight: 700; color: #1A1A1A; margin-top: 4px; padding-left: 38px; }
 .dash-metric-card__value--income { color: #F5A623; }
 .dash-metric-card__value--expense { color: #DC503C; }
 [data-theme="dark"] .dash-metric-card__value { color: var(--text-primary); }
@@ -700,6 +700,6 @@
   .chart-card { padding: 16px; }
   .dash-recent { padding: 16px; }
   .glass-card { border-radius: 16px; }
-  .dash-donut-chart-wrap { width: 170px; height: 170px; }
-  .dash-donut-center-label__value { font-size: 18px; }
+  .dash-donut-chart-wrap { width: 200px; height: 200px; }
+  .dash-donut-center-label__value { font-size: 15px; }
 }

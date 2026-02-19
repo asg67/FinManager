@@ -411,7 +411,7 @@ export default function Dashboard() {
                     <div className="dash-donut-chart-wrap">
                       <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
-                          <Pie data={donutDisplay} dataKey="value" cx="50%" cy="50%" innerRadius={65} outerRadius={95} paddingAngle={hasDonutData ? 3 : 0} stroke="none">
+                          <Pie data={donutDisplay} dataKey="value" cx="50%" cy="50%" innerRadius={80} outerRadius={118} paddingAngle={hasDonutData ? 3 : 0} stroke="none">
                             {donutDisplay.map((entry, i) => <Cell key={i} fill={entry.color} />)}
                           </Pie>
                         </PieChart>
