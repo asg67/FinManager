@@ -677,8 +677,8 @@
 
   /* Header: safe area for notch / Dynamic Island */
   .header {
-    height: calc(56px + max(env(safe-area-inset-top, 0px), 44px));
-    padding-top: max(env(safe-area-inset-top, 0px), 44px);
+    height: calc(56px + max(env(safe-area-inset-top, 0px), 59px));
+    padding-top: max(env(safe-area-inset-top, 0px), 59px);
   }
 
   /* Show mobile controls */
