@@ -175,9 +175,10 @@ export default function Dashboard() {
   useEffect(() => {
     setLoading(true);
     const filters = { from: dateFrom, to: dateTo, mine: "true" };
+    const accountType = categoryFilter === "all" ? undefined : categoryFilter;
     Promise.all([
       analyticsApi.summary(filters),
-      analyticsApi.timeline({ from: periodFrom(timelinePeriod), mine: "true" }),
+      analyticsApi.timeline({ from: periodFrom(timelinePeriod), mine: "true", accountType }),
       analyticsApi.accountBalances(undefined, "true"),
       analyticsApi.recent(10, "true"),
     ]).then(([sum, tl, bal, rec]) => {
@@ -192,8 +193,9 @@ export default function Dashboard() {
   const isInitialMount = useRef(true);
   useEffect(() => {
     if (isInitialMount.current) { isInitialMount.current = false; return; }
-    analyticsApi.timeline({ from: periodFrom(timelinePeriod), mine: "true" }).then(setTimeline);
-  }, [timelinePeriod]);
+    const accountType = categoryFilter === "all" ? undefined : categoryFilter;
+    analyticsApi.timeline({ from: periodFrom(timelinePeriod), mine: "true", accountType }).then(setTimeline);
+  }, [timelinePeriod, categoryFilter]);
 
   /* Computed */
   const grouped = useMemo(() => {
@@ -411,7 +413,7 @@ export default function Dashboard() {
                     <div className="dash-donut-chart-wrap">
                       <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
-                          <Pie data={donutDisplay} dataKey="value" cx="50%" cy="50%" innerRadius={80} outerRadius={118} paddingAngle={hasDonutData ? 3 : 0} stroke="none">
+                          <Pie data={donutDisplay} dataKey="value" cx="50%" cy="50%" innerRadius="60%" outerRadius="90%" paddingAngle={hasDonutData ? 3 : 0} stroke="none">
                             {donutDisplay.map((entry, i) => <Cell key={i} fill={entry.color} />)}
                           </Pie>
                         </PieChart>
@@ -470,7 +472,7 @@ export default function Dashboard() {
                       ))}
                     </div>
                   </div>
-                  <div style={{ width: "100%", height: 260 }}>
+                  <div className="chart-card__chart-area">
                     <ResponsiveContainer width="100%" height="100%">
                       {chartType === "bar" ? (
                         <BarChart data={barChartData} barGap={2}>

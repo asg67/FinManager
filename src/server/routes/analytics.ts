@@ -152,7 +152,7 @@ router.get("/by-category", async (req: Request, res: Response) => {
 router.get("/timeline", async (req: Request, res: Response) => {
   try {
     const userId = req.user!.userId;
-    const { entityId, days, mine, from } = req.query as Record<string, string>;
+    const { entityId, days, mine, from, accountType } = req.query as Record<string, string>;
 
     let startDate: Date;
     if (from) {
@@ -171,6 +171,22 @@ router.get("/timeline", async (req: Request, res: Response) => {
     where.entity = await entityFilter(user?.companyId ?? null, userId, mine === "true");
     if (entityId) where.entityId = entityId;
 
+    // Account type filter for operations
+    if (accountType) {
+      where.OR = [
+        { fromAccount: { type: accountType } },
+        { toAccount: { type: accountType } },
+      ];
+    }
+
+    const bankTxWhere: Prisma.BankTransactionWhereInput = {
+      account: {
+        entity: where.entity as Prisma.EntityRelationFilter,
+        ...(accountType ? { type: accountType } : {}),
+      },
+      date: { gte: startDate },
+    };
+
     const [operations, bankTxs] = await Promise.all([
       prisma.ddsOperation.findMany({
         where,
@@ -182,10 +198,7 @@ router.get("/timeline", async (req: Request, res: Response) => {
         orderBy: { createdAt: "asc" },
       }),
       prisma.bankTransaction.findMany({
-        where: {
-          account: { entity: where.entity },
-          date: { gte: startDate },
-        },
+        where: bankTxWhere,
         select: {
           direction: true,
           amount: true,
