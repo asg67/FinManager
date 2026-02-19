@@ -9,7 +9,7 @@ export interface SyncResultData {
   errors: string[];
 }
 
-const BANK_NAMES: Record<string, string> = {
+export const BANK_NAMES: Record<string, string> = {
   tbank: "Т-Банк",
   modulbank: "Модульбанк",
   tochka: "Точка",

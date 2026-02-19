@@ -1,5 +1,6 @@
 import { api } from "./client.js";
-import type { BankConnection, BankCode, BankRemoteAccount, SyncResult } from "@shared/types.js";
+import type { BankConnection, BankCode, BankRemoteAccount, SyncResult, Account, PaginatedResponse } from "@shared/types.js";
+import type { BankTransaction, TransactionFilters } from "./pdf.js";
 
 export interface CreateBankConnectionPayload {
   entityId: string;
@@ -21,6 +22,21 @@ export interface SyncPayload {
 export const bankConnectionsApi = {
   list: (entityId: string) =>
     api.get<BankConnection[]>(`/bank-connections?entityId=${entityId}`),
+
+  get: (id: string) =>
+    api.get<BankConnection>(`/bank-connections/${id}`),
+
+  listLocalAccounts: (id: string) =>
+    api.get<Account[]>(`/bank-connections/${id}/local-accounts`),
+
+  listTransactions: (id: string, filters: TransactionFilters = {}) => {
+    const params = new URLSearchParams();
+    Object.entries(filters).forEach(([k, v]) => {
+      if (v !== undefined && v !== "") params.set(k, String(v));
+    });
+    const qs = params.toString();
+    return api.get<PaginatedResponse<BankTransaction>>(`/bank-connections/${id}/transactions${qs ? `?${qs}` : ""}`);
+  },
 
   create: (data: CreateBankConnectionPayload) =>
     api.post<BankConnection>("/bank-connections", data),

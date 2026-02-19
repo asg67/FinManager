@@ -251,6 +251,13 @@ export default {
     tbank: "T-Bank",
     modulbank: "Modulbank",
     tochka: "Tochka",
+    viewDetails: "Details",
+    statusLabel: "Status",
+    localAccounts: "Discovered Accounts",
+    noLocalAccounts: "No accounts discovered yet. Run a sync first.",
+    transactions: "Transactions",
+    noTransactionsYet: "No transactions. Run a sync first.",
+    allAccounts: "All accounts",
   },
   employees: {
     name: "Name",

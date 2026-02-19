@@ -9,7 +9,7 @@ import {
   syncBankConnectionSchema,
 } from "../schemas/bankConnection.js";
 import { bankAdapters } from "../bank-api/index.js";
-import { syncConnection } from "../bank-api/sync.js";
+import { syncConnection, BANK_NAMES } from "../bank-api/sync.js";
 
 const router = Router();
 router.use(authMiddleware);
@@ -95,6 +95,21 @@ router.get("/", async (req: Request, res: Response) => {
     res.json(connections.map(toClientConnection));
   } catch (error) {
     console.error("List bank connections error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// GET /api/bank-connections/:id
+router.get("/:id", async (req: Request, res: Response) => {
+  try {
+    const result = await loadConnection(req.params.id, req.user!.userId);
+    if ("error" in result) {
+      res.status(result.error).json({ message: result.message });
+      return;
+    }
+    res.json(toClientConnection(result.conn));
+  } catch (error) {
+    console.error("Get bank connection error:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 });
@@ -235,6 +250,97 @@ router.get("/:id/accounts", async (req: Request, res: Response) => {
   } catch (error) {
     console.error("Fetch bank accounts error:", error);
     res.status(500).json({ message: "Failed to fetch bank accounts" });
+  }
+});
+
+// ---------- Local Accounts ----------
+
+// GET /api/bank-connections/:id/local-accounts
+router.get("/:id/local-accounts", async (req: Request, res: Response) => {
+  try {
+    const result = await loadConnection(req.params.id, req.user!.userId);
+    if ("error" in result) {
+      res.status(result.error).json({ message: result.message });
+      return;
+    }
+
+    const { conn } = result;
+    const bankName = BANK_NAMES[conn.bankCode] || conn.bankCode;
+
+    const accounts = await prisma.account.findMany({
+      where: { entityId: conn.entityId, bank: bankName },
+      orderBy: { name: "asc" },
+    });
+
+    res.json(accounts);
+  } catch (error) {
+    console.error("List local accounts error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// ---------- Transactions ----------
+
+// GET /api/bank-connections/:id/transactions
+router.get("/:id/transactions", async (req: Request, res: Response) => {
+  try {
+    const result = await loadConnection(req.params.id, req.user!.userId);
+    if ("error" in result) {
+      res.status(result.error).json({ message: result.message });
+      return;
+    }
+
+    const { conn } = result;
+    const bankName = BANK_NAMES[conn.bankCode] || conn.bankCode;
+
+    const { direction, from, to, accountId, page, limit } = req.query as Record<string, string>;
+    const pageNum = Math.max(1, parseInt(page) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit) || 20));
+    const skip = (pageNum - 1) * limitNum;
+
+    // Find all local accounts for this connection
+    const connAccounts = await prisma.account.findMany({
+      where: { entityId: conn.entityId, bank: bankName },
+      select: { id: true },
+    });
+    const accountIds = connAccounts.map((a) => a.id);
+
+    if (accountIds.length === 0) {
+      res.json({ data: [], total: 0, page: pageNum, limit: limitNum, totalPages: 0 });
+      return;
+    }
+
+    const where: Prisma.BankTransactionWhereInput = {
+      accountId: accountId ? accountId : { in: accountIds },
+    };
+    if (direction) where.direction = direction;
+    if (from || to) {
+      where.date = {};
+      if (from) (where.date as Record<string, Date>).gte = new Date(from);
+      if (to) (where.date as Record<string, Date>).lte = new Date(to);
+    }
+
+    const [transactions, total] = await Promise.all([
+      prisma.bankTransaction.findMany({
+        where,
+        include: { account: { select: { name: true, type: true, bank: true } } },
+        orderBy: { date: "desc" },
+        skip,
+        take: limitNum,
+      }),
+      prisma.bankTransaction.count({ where }),
+    ]);
+
+    res.json({
+      data: transactions,
+      total,
+      page: pageNum,
+      limit: limitNum,
+      totalPages: Math.ceil(total / limitNum),
+    });
+  } catch (error) {
+    console.error("List connection transactions error:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 

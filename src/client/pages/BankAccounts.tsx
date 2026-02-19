@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Landmark, Plus, RefreshCw, Trash2, CheckCircle, XCircle, Plug } from "lucide-react";
 import { entitiesApi } from "../api/entities.js";
@@ -14,6 +15,7 @@ const BANKS: { code: BankCode; labelKey: string }[] = [
 
 export default function BankAccounts() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
 
   const [entities, setEntities] = useState<Entity[]>([]);
   const [selectedEntity, setSelectedEntity] = useState("");
@@ -349,6 +351,13 @@ export default function BankAccounts() {
                     >
                       <RefreshCw size={14} />
                       {t("bankAccounts.sync")}
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => navigate(`/bank-accounts/${conn.id}`)}
+                    >
+                      {t("bankAccounts.viewDetails")}
                     </Button>
                     <Button
                       variant="ghost"

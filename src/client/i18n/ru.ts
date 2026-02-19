@@ -251,6 +251,13 @@ export default {
     tbank: "Т-Банк",
     modulbank: "Модульбанк",
     tochka: "Точка",
+    viewDetails: "Подробнее",
+    statusLabel: "Статус",
+    localAccounts: "Обнаруженные счета",
+    noLocalAccounts: "Счета ещё не обнаружены. Выполните загрузку операций.",
+    transactions: "Операции",
+    noTransactionsYet: "Нет операций. Выполните загрузку.",
+    allAccounts: "Все счета",
   },
   employees: {
     name: "Имя",
