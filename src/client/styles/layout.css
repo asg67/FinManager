@@ -281,8 +281,8 @@
 .header {
   display: flex;
   align-items: center;
-  height: calc(56px + env(safe-area-inset-top, 0px));
-  padding: env(safe-area-inset-top, 0px) 1.5rem 0;
+  height: 56px;
+  padding: 0 1.5rem;
   background: transparent;
   border-bottom: 1px solid var(--glass-border);
   position: sticky;
@@ -673,6 +673,12 @@
 
   .app-layout__main {
     border-radius: 0;
+  }
+
+  /* Header: safe area for notch / Dynamic Island */
+  .header {
+    height: calc(56px + env(safe-area-inset-top, 0px));
+    padding-top: env(safe-area-inset-top, 0px);
   }
 
   /* Show mobile controls */
