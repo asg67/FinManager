@@ -394,10 +394,9 @@
     padding: 0.5rem 0.625rem;
   }
 
-  /* Modal: top-aligned, scrollable overlay on mobile */
+  /* Modal: centered, scrollable overlay on mobile */
   .modal-overlay {
-    align-items: flex-start;
-    padding: 0.5rem 0.5rem 5rem;
+    align-items: center;
   }
 
   .modal {
