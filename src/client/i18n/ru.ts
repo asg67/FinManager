@@ -237,6 +237,8 @@ export default {
     syncTo: "По",
     syncResult: "Загружено: {{saved}}, пропущено: {{skipped}}",
     syncError: "Ошибка: {{error}}",
+    autoSyncing: "Загрузка операций за последние 2 месяца...",
+    autoSyncDone: "Автозагрузка завершена: загружено {{saved}}, пропущено {{skipped}}",
     lastSync: "Последняя загрузка",
     lastSyncNever: "Не выполнялась",
     statusSuccess: "Успешно",

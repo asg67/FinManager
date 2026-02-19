@@ -237,6 +237,8 @@ export default {
     syncTo: "To",
     syncResult: "Saved: {{saved}}, skipped: {{skipped}}",
     syncError: "Error: {{error}}",
+    autoSyncing: "Syncing transactions for the last 2 months...",
+    autoSyncDone: "Auto-sync complete: saved {{saved}}, skipped {{skipped}}",
     lastSync: "Last sync",
     lastSyncNever: "Never",
     statusSuccess: "Success",

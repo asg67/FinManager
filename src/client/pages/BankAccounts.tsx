@@ -90,10 +90,16 @@ export default function BankAccounts() {
     setAddModalOpen(true);
   }
 
+  // Auto-sync state
+  const [autoSyncing, setAutoSyncing] = useState(false);
+  const [autoSyncResult, setAutoSyncResult] = useState<SyncResult | null>(null);
+
   async function handleSave() {
     if (!addToken.trim() && !editingId) return;
     setAddSaving(true);
     try {
+      let createdConn: BankConnection | null = null;
+
       if (editingId) {
         await bankConnectionsApi.update(editingId, {
           ...(addToken.trim() ? { token: addToken.trim() } : {}),
@@ -106,12 +112,35 @@ export default function BankAccounts() {
           token: addToken.trim(),
           label: addLabel.trim() || undefined,
         };
-        await bankConnectionsApi.create(payload);
+        createdConn = await bankConnectionsApi.create(payload);
       }
       // Reload
       const updated = await bankConnectionsApi.list(selectedEntity);
       setConnections(updated);
       setAddModalOpen(false);
+
+      // Auto-sync last 2 months for newly created connections
+      if (createdConn) {
+        const now = new Date();
+        const twoMonthsAgo = new Date(now);
+        twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
+        const fromStr = twoMonthsAgo.toISOString().slice(0, 10);
+        const toStr = now.toISOString().slice(0, 10);
+
+        setAutoSyncing(true);
+        setAutoSyncResult(null);
+        try {
+          const result = await bankConnectionsApi.sync(createdConn.id, { from: fromStr, to: toStr });
+          setAutoSyncResult(result);
+          // Reload connections to update lastSync status
+          const refreshed = await bankConnectionsApi.list(selectedEntity);
+          setConnections(refreshed);
+        } catch (err) {
+          console.error("Auto-sync error:", err);
+        } finally {
+          setAutoSyncing(false);
+        }
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -218,6 +247,29 @@ export default function BankAccounts() {
           ))}
         </select>
       </div>
+
+      {/* Auto-sync banner */}
+      {autoSyncing && (
+        <div className="bank-sync-result bank-sync-result--success" style={{ marginBottom: "1rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+          <RefreshCw size={14} className="spinning" />
+          {t("bankAccounts.autoSyncing")}
+        </div>
+      )}
+      {!autoSyncing && autoSyncResult && (
+        <div className="bank-sync-result bank-sync-result--success" style={{ marginBottom: "1rem" }}>
+          {t("bankAccounts.autoSyncDone", {
+            saved: autoSyncResult.transactionsSaved,
+            skipped: autoSyncResult.transactionsSkipped,
+          })}
+          <button
+            type="button"
+            onClick={() => setAutoSyncResult(null)}
+            style={{ marginLeft: "0.5rem", background: "none", border: "none", color: "inherit", cursor: "pointer", textDecoration: "underline", fontSize: "inherit" }}
+          >
+            {t("common.close")}
+          </button>
+        </div>
+      )}
 
       {/* Bank cards */}
       <div className="bank-cards">

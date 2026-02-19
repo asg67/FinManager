@@ -9,6 +9,7 @@ import {
   syncBankConnectionSchema,
 } from "../schemas/bankConnection.js";
 import { bankAdapters } from "../bank-api/index.js";
+import { syncConnection } from "../bank-api/sync.js";
 
 const router = Router();
 router.use(authMiddleware);
@@ -251,135 +252,9 @@ router.post(
         return;
       }
 
-      const { conn } = result;
-      const adapter = bankAdapters[conn.bankCode];
-      if (!adapter) {
-        res.status(400).json({ message: `Unknown bank: ${conn.bankCode}` });
-        return;
-      }
-
       const { from, to } = req.body;
-      const fromDate = new Date(from);
-      const toDate = new Date(to);
-
-      // Bank display names for auto-created accounts
-      const bankNames: Record<string, string> = {
-        tbank: "Т-Банк",
-        modulbank: "Модульбанк",
-        tochka: "Точка",
-      };
-
-      // 1. Fetch remote accounts
-      let remoteAccounts;
-      try {
-        remoteAccounts = await adapter.fetchAccounts(conn.token);
-      } catch (err) {
-        await prisma.bankConnection.update({
-          where: { id: conn.id },
-          data: {
-            lastSyncAt: new Date(),
-            lastSyncStatus: "error",
-            lastSyncError: `Failed to fetch accounts: ${err instanceof Error ? err.message : String(err)}`,
-          },
-        });
-        res.status(502).json({ message: "Failed to fetch bank accounts" });
-        return;
-      }
-
-      let totalSaved = 0;
-      let totalSkipped = 0;
-      const errors: string[] = [];
-
-      // 2. For each remote account
-      for (const remoteAcc of remoteAccounts) {
-        try {
-          // Find or create local Account
-          let localAccount = await prisma.account.findFirst({
-            where: {
-              entityId: conn.entityId,
-              accountNumber: remoteAcc.accountNumber,
-            },
-          });
-
-          if (!localAccount) {
-            localAccount = await prisma.account.create({
-              data: {
-                name: `${bankNames[conn.bankCode] || conn.bankCode} ${remoteAcc.name || remoteAcc.accountNumber}`,
-                type: "checking",
-                bank: bankNames[conn.bankCode] || conn.bankCode,
-                accountNumber: remoteAcc.accountNumber,
-                entityId: conn.entityId,
-              },
-            });
-          }
-
-          // Fetch transactions
-          const transactions = await adapter.fetchTransactions(
-            conn.token,
-            remoteAcc,
-            fromDate,
-            toDate,
-          );
-
-          // Save with deduplication (same pattern as pdf.ts:170-198)
-          for (const tx of transactions) {
-            const dedupeKey = `${localAccount.id}|${tx.date}|${tx.amount}|${tx.direction}`;
-
-            const existing = await prisma.bankTransaction.findFirst({
-              where: { dedupeKey },
-            });
-
-            if (existing) {
-              totalSkipped++;
-              continue;
-            }
-
-            await prisma.bankTransaction.create({
-              data: {
-                date: new Date(tx.date),
-                time: tx.time ?? null,
-                amount: new Prisma.Decimal(tx.amount),
-                direction: tx.direction,
-                counterparty: tx.counterparty ?? null,
-                purpose: tx.purpose ?? null,
-                balance: tx.balance ? new Prisma.Decimal(tx.balance) : null,
-                accountId: localAccount.id,
-                pdfUploadId: null,
-                dedupeKey,
-              },
-            });
-            totalSaved++;
-          }
-        } catch (err) {
-          const msg = `Account ${remoteAcc.accountNumber}: ${err instanceof Error ? err.message : String(err)}`;
-          errors.push(msg);
-          console.error("Sync account error:", msg);
-        }
-      }
-
-      // 3. Update connection status
-      const status =
-        errors.length === 0
-          ? "success"
-          : errors.length < remoteAccounts.length
-            ? "partial"
-            : "error";
-
-      await prisma.bankConnection.update({
-        where: { id: conn.id },
-        data: {
-          lastSyncAt: new Date(),
-          lastSyncStatus: status,
-          lastSyncError: errors.length > 0 ? errors.join("; ") : null,
-        },
-      });
-
-      res.json({
-        accountsSynced: remoteAccounts.length - errors.length,
-        transactionsSaved: totalSaved,
-        transactionsSkipped: totalSkipped,
-        errors,
-      });
+      const syncResult = await syncConnection(req.params.id, new Date(from), new Date(to));
+      res.json(syncResult);
     } catch (error) {
       console.error("Sync bank connection error:", error);
       res.status(500).json({ message: "Internal server error" });
