@@ -737,12 +737,11 @@
     min-width: 0;
   }
 
-  /* Modal centered on mobile */
+  /* Modal centered on mobile via margin:auto (base style) */
   .modal-overlay {
     padding: 1rem;
     padding-top: calc(max(env(safe-area-inset-top, 0px), 20px) + 1rem);
     padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 60px + 1rem);
-    align-items: center;
   }
 
   .modal {

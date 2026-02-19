@@ -394,13 +394,7 @@
     padding: 0.5rem 0.625rem;
   }
 
-  /* Modal: centered, scrollable overlay on mobile */
-  .modal-overlay {
-    align-items: center;
-  }
-
   .modal {
-    margin: 0;
     max-height: none;
     border-radius: var(--radius-lg);
   }
