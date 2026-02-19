@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   ArrowLeft,
+  Download,
   ChevronLeft,
   ChevronRight,
   Filter,
@@ -12,7 +13,9 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { bankConnectionsApi, type SyncPayload } from "../api/bankConnections.js";
+import { exportApi } from "../api/export.js";
 import { Button, Select, Modal } from "../components/ui/index.js";
+import ExportModal from "../components/ExportModal.js";
 import type { BankConnection, Account, PaginatedResponse } from "@shared/types.js";
 import type { BankTransaction, TransactionFilters } from "../api/pdf.js";
 
@@ -43,6 +46,9 @@ export default function BankConnectionDetail() {
   const [viewMode, setViewMode] = useState<"table" | "cards">(() =>
     window.innerWidth <= 768 ? "cards" : "table",
   );
+
+  // Export modal
+  const [exportOpen, setExportOpen] = useState(false);
 
   // Sync modal
   const [syncModalOpen, setSyncModalOpen] = useState(false);
@@ -176,10 +182,16 @@ export default function BankConnectionDetail() {
           </button>
           <h1>{bankLabel}</h1>
         </div>
-        <Button variant="primary" size="sm" onClick={() => { setSyncResultText(""); setSyncModalOpen(true); }}>
-          <RefreshCw size={14} />
-          {t("bankAccounts.sync")}
-        </Button>
+        <div style={{ display: "flex", gap: "0.5rem" }}>
+          <Button variant="secondary" size="sm" className="desktop-only" onClick={() => setExportOpen(true)}>
+            <Download size={14} />
+            {t("export.downloadExcel")}
+          </Button>
+          <Button variant="primary" size="sm" onClick={() => { setSyncResultText(""); setSyncModalOpen(true); }}>
+            <RefreshCw size={14} />
+            {t("bankAccounts.sync")}
+          </Button>
+        </div>
       </div>
 
       {/* Connection info */}
@@ -392,6 +404,12 @@ export default function BankConnectionDetail() {
           )}
         </>
       )}
+
+      <ExportModal
+        open={exportOpen}
+        onClose={() => setExportOpen(false)}
+        onExport={(from, to) => exportApi.downloadBankTxExcel({ from, to, connectionId: id! })}
+      />
 
       {/* Sync Modal */}
       <Modal

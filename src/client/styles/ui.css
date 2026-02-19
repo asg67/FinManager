@@ -377,6 +377,8 @@
 
 /* ===== Responsive ===== */
 @media (max-width: 768px) {
+  .desktop-only { display: none !important; }
+
   /* Make table scrollable */
   .table-wrap {
     border-radius: var(--radius-md);

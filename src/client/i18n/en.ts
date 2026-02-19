@@ -348,6 +348,12 @@ export default {
     passwordChanged: "Password changed successfully",
     passwordError: "Password change error",
   },
+  export: {
+    downloadExcel: "Download Excel",
+    dateFrom: "Date from",
+    dateTo: "Date to",
+    download: "Download",
+  },
   admin: {
     title: "Admin",
     currentCompany: "Current Company",

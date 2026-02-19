@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import {
   ArrowLeft,
   Upload,
+  Download,
   ChevronLeft,
   ChevronRight,
   Filter,
@@ -12,8 +13,10 @@ import {
   LayoutList,
 } from "lucide-react";
 import { pdfApi, type BankTransaction, type TransactionFilters } from "../api/pdf.js";
+import { exportApi } from "../api/export.js";
 import { Button, Select } from "../components/ui/index.js";
 import StatementWizard from "../components/pdf/StatementWizard.js";
+import ExportModal from "../components/ExportModal.js";
 import type { PaginatedResponse } from "@shared/types.js";
 
 const BANK_LABELS: Record<string, string> = {
@@ -46,6 +49,7 @@ export default function StatementDetail() {
     window.innerWidth <= 768 ? "cards" : "table",
   );
   const [wizardOpen, setWizardOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
 
   const loadData = useCallback(
     async (f: TransactionFilters) => {
@@ -104,6 +108,10 @@ export default function StatementDetail() {
           <h1 className="page-title">{label}</h1>
         </div>
         <div className="page-header__actions page-header__actions--desktop">
+          <Button variant="secondary" className="desktop-only" onClick={() => setExportOpen(true)}>
+            <Download size={18} />
+            {t("export.downloadExcel")}
+          </Button>
           <Button onClick={() => setWizardOpen(true)}>
             <Upload size={18} />
             {t("pdf.uploadStatement")}
@@ -265,6 +273,12 @@ export default function StatementDetail() {
         onClose={() => setWizardOpen(false)}
         onDone={handleWizardDone}
         initialBankCode={bankCode}
+      />
+
+      <ExportModal
+        open={exportOpen}
+        onClose={() => setExportOpen(false)}
+        onExport={(from, to) => exportApi.downloadStatementsExcel({ from, to, bankCode })}
       />
     </div>
   );

@@ -348,6 +348,12 @@ export default {
     passwordChanged: "Пароль успешно изменён",
     passwordError: "Ошибка смены пароля",
   },
+  export: {
+    downloadExcel: "Скачать Excel",
+    dateFrom: "Дата от",
+    dateTo: "Дата до",
+    download: "Скачать",
+  },
   admin: {
     title: "Админка",
     currentCompany: "Текущая компания",

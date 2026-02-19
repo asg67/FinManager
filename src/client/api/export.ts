@@ -1,31 +1,49 @@
 import { getAccessToken } from "./client.js";
 
+async function downloadBlob(url: string, filename: string) {
+  const res = await fetch(url, {
+    headers: { Authorization: `Bearer ${getAccessToken()}` },
+  });
+  if (!res.ok) throw new Error("Export failed");
+  const blob = await res.blob();
+  const downloadUrl = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = downloadUrl;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(downloadUrl);
+}
+
+function buildQuery(params: Record<string, string | undefined>): string {
+  const sp = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) {
+    if (v) sp.set(k, v);
+  }
+  const q = sp.toString();
+  return q ? `?${q}` : "";
+}
+
 export const exportApi = {
   downloadDdsCsv: async (params?: { entityId?: string; from?: string; to?: string }) => {
-    const searchParams = new URLSearchParams();
-    if (params?.entityId) searchParams.set("entityId", params.entityId);
-    if (params?.from) searchParams.set("from", params.from);
-    if (params?.to) searchParams.set("to", params.to);
+    const q = buildQuery({ entityId: params?.entityId, from: params?.from, to: params?.to });
+    await downloadBlob(`/api/export/dds${q}`, `dds-export-${new Date().toISOString().slice(0, 10)}.csv`);
+  },
 
-    const query = searchParams.toString();
-    const url = `/api/export/dds${query ? `?${query}` : ""}`;
+  downloadDdsExcel: async (params: { from: string; to: string; entityId?: string }) => {
+    const q = buildQuery(params);
+    await downloadBlob(`/api/export/dds-excel${q}`, `dds-${new Date().toISOString().slice(0, 10)}.xlsx`);
+  },
 
-    const res = await fetch(url, {
-      headers: {
-        Authorization: `Bearer ${getAccessToken()}`,
-      },
-    });
+  downloadStatementsExcel: async (params: { from: string; to: string; bankCode?: string }) => {
+    const q = buildQuery(params);
+    const label = params.bankCode ?? "all";
+    await downloadBlob(`/api/export/statements-excel${q}`, `statements-${label}-${new Date().toISOString().slice(0, 10)}.xlsx`);
+  },
 
-    if (!res.ok) throw new Error("Export failed");
-
-    const blob = await res.blob();
-    const downloadUrl = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = downloadUrl;
-    a.download = `dds-export-${new Date().toISOString().slice(0, 10)}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(downloadUrl);
+  downloadBankTxExcel: async (params: { from: string; to: string; connectionId: string; accountId?: string }) => {
+    const q = buildQuery(params);
+    await downloadBlob(`/api/export/bank-tx-excel${q}`, `bank-tx-${new Date().toISOString().slice(0, 10)}.xlsx`);
   },
 };

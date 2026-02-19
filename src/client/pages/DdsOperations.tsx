@@ -12,6 +12,7 @@ import { Button, Select, Input, Table } from "../components/ui/index.js";
 import StepWizard from "../components/dds/StepWizard.js";
 import DeleteConfirm from "../components/dds/DeleteConfirm.js";
 import CompanySetup from "../components/dds/CompanySetup.js";
+import ExportModal from "../components/ExportModal.js";
 import type { DdsOperation, Entity, Account, PaginatedResponse, InviteInfo } from "@shared/types.js";
 import { Pencil, Trash2 } from "lucide-react";
 
@@ -226,6 +227,9 @@ function DdsTable({ companyName }: { companyName?: string }) {
   // Delete
   const [deleteOp, setDeleteOp] = useState<DdsOperation | null>(null);
 
+  // Export
+  const [exportOpen, setExportOpen] = useState(false);
+
   // Invite link
   const [inviteCopied, setInviteCopied] = useState(false);
   const [inviteLoading, setInviteLoading] = useState(false);
@@ -415,10 +419,11 @@ function DdsTable({ companyName }: { companyName?: string }) {
           )}
           <Button
             variant="secondary"
-            onClick={() => exportApi.downloadDdsCsv({ entityId: filters.entityId })}
+            className="desktop-only"
+            onClick={() => setExportOpen(true)}
           >
             <Download size={18} />
-            {t("dds.exportCsv")}
+            {t("export.downloadExcel")}
           </Button>
           <Button onClick={() => { setEditOp(null); setWizardOpen(true); }}>
             <Plus size={18} />
@@ -571,6 +576,12 @@ function DdsTable({ companyName }: { companyName?: string }) {
         operation={deleteOp}
         onClose={() => setDeleteOp(null)}
         onDeleted={handleDeleted}
+      />
+
+      <ExportModal
+        open={exportOpen}
+        onClose={() => setExportOpen(false)}
+        onExport={(from, to) => exportApi.downloadDdsExcel({ from, to, entityId: filters.entityId })}
       />
     </div>
   );
