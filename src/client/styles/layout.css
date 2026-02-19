@@ -737,8 +737,10 @@
     min-width: 0;
   }
 
-  /* Modal centered on mobile via margin:auto (base style) */
+  /* Modal centered on mobile — overlay non-scrollable, modal scrolls internally */
   .modal-overlay {
+    align-items: center;
+    overflow-y: hidden;
     padding: 1rem;
     padding-top: calc(max(env(safe-area-inset-top, 0px), 20px) + 1rem);
     padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 60px + 1rem);
@@ -746,7 +748,8 @@
 
   .modal {
     max-width: 100%;
-    max-height: none;
+    max-height: 100%;
+    margin: 0;
     border-radius: var(--radius-lg);
   }
 
