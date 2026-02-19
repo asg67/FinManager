@@ -281,8 +281,8 @@
 .header {
   display: flex;
   align-items: center;
-  height: 56px;
-  padding: 0 1.5rem;
+  height: calc(56px + env(safe-area-inset-top, 0px));
+  padding: env(safe-area-inset-top, 0px) 1.5rem 0;
   background: transparent;
   border-bottom: 1px solid var(--glass-border);
   position: sticky;
@@ -408,7 +408,8 @@
   bottom: 0;
   left: 0;
   right: 0;
-  height: 60px;
+  height: calc(60px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: env(safe-area-inset-bottom, 0px);
   background: var(--glass-bg-strong);
   backdrop-filter: var(--glass-blur);
   border-top: 1px solid var(--glass-border);
@@ -699,7 +700,7 @@
 
   .app-layout__content {
     padding: 1rem;
-    padding-bottom: calc(60px + 1rem);
+    padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px) + 1rem);
   }
 
   /* Touch-friendly: min 44px tap targets */
@@ -745,11 +746,11 @@
   /* Notifications panel fullscreen-ish on mobile */
   .notif-panel {
     position: fixed;
-    top: 56px;
+    top: calc(56px + env(safe-area-inset-top, 0px));
     right: 0;
     left: 0;
     width: 100%;
-    max-height: calc(100vh - 56px - 60px);
+    max-height: calc(100vh - 56px - 60px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
     border-radius: 0;
     margin-top: 0;
   }
@@ -771,7 +772,7 @@
 
   .app-layout__content {
     padding: 0.75rem;
-    padding-bottom: calc(60px + 0.75rem);
+    padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px) + 0.75rem);
   }
 }
 
