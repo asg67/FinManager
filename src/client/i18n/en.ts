@@ -193,7 +193,7 @@ export default {
     account: "Account",
     bankFormat: "Statement Format",
     dropzone: "Click or drag & drop a PDF file",
-    dropzoneHint: "Supports Sber, T-Bank statements (up to 10 MB)",
+    dropzoneHint: "Supports Sber, T-Bank, Ozon Bank statements (up to 10 MB)",
     parsing: "Parsing PDF...",
     found: "Found: {{count}} transactions",
     duplicates: "({{count}} duplicates)",

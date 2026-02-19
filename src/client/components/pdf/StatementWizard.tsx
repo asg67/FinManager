@@ -13,6 +13,7 @@ const BANKS = [
   { code: "sber", label: "Карта Сбер", icon: CreditCard },
   { code: "tbank", label: "Карта Т-Банк", icon: CreditCard },
   { code: "tbank_deposit", label: "Депозит Т-Банк", icon: Landmark },
+  { code: "ozon", label: "ОЗОН Банк", icon: CreditCard },
 ];
 
 interface Props {
