@@ -1,4 +1,4 @@
-const CACHE_NAME = "finmanager-v3";
+const CACHE_NAME = "finmanager-v4";
 const STATIC_ASSETS = ["/", "/manifest.json"];
 
 // --- IndexedDB helpers for share target ---
@@ -67,15 +67,15 @@ self.addEventListener("fetch", (event) => {
   // Skip other non-GET requests
   if (request.method !== "GET") return;
 
-  // API calls: network first
-  if (url.pathname.startsWith("/api/")) {
+  // API calls and HTML pages: network first
+  if (url.pathname.startsWith("/api/") || request.destination === "document") {
     event.respondWith(
       fetch(request).catch(() => caches.match(request))
     );
     return;
   }
 
-  // Static assets: cache first, then network
+  // Static assets (JS, CSS, images): cache first, then network
   event.respondWith(
     caches.match(request).then((cached) => {
       if (cached) return cached;
