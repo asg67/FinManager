@@ -13,6 +13,7 @@ export default function Statements() {
 
   const [entities, setEntities] = useState<Entity[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
+  const [allAccounts, setAllAccounts] = useState<Account[]>([]);
   const [selectedEntity, setSelectedEntity] = useState("");
   const [data, setData] = useState<PaginatedResponse<BankTransaction>>({
     data: [], total: 0, page: 1, limit: 20, totalPages: 0,
@@ -26,7 +27,13 @@ export default function Statements() {
   const [wizardOpen, setWizardOpen] = useState(false);
 
   useEffect(() => {
-    entitiesApi.list({ mine: true }).then(setEntities);
+    entitiesApi.list({ mine: true }).then((ents) => {
+      setEntities(ents);
+      // Load all accounts from all entities for the chip filters
+      Promise.all(ents.map((e) => accountsApi.list(e.id))).then((results) => {
+        setAllAccounts(results.flat());
+      });
+    });
   }, []);
 
   useEffect(() => {
@@ -62,6 +69,12 @@ export default function Statements() {
   function handleWizardDone() {
     setWizardOpen(false);
     loadData(filters);
+    // Refresh account chips (new accounts may have been created)
+    entitiesApi.list({ mine: true }).then((ents) => {
+      Promise.all(ents.map((e) => accountsApi.list(e.id))).then((results) => {
+        setAllAccounts(results.flat());
+      });
+    });
   }
 
   function formatAmount(amount: string, direction: string) {
@@ -95,6 +108,29 @@ export default function Statements() {
           {t("pdf.uploadStatement")}
         </Button>
       </div>
+
+      {/* Account chips */}
+      {allAccounts.length > 0 && (
+        <div className="stmt-account-chips">
+          <button
+            type="button"
+            className={`stmt-account-chip ${!filters.accountId ? "stmt-account-chip--active" : ""}`}
+            onClick={() => handleFilterChange("accountId", "")}
+          >
+            {t("pdf.allAccounts")}
+          </button>
+          {allAccounts.map((acc) => (
+            <button
+              key={acc.id}
+              type="button"
+              className={`stmt-account-chip ${filters.accountId === acc.id ? "stmt-account-chip--active" : ""}`}
+              onClick={() => handleFilterChange("accountId", acc.id)}
+            >
+              {acc.name}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Toolbar */}
       <div className="dds-toolbar">

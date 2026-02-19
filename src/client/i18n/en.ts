@@ -209,6 +209,7 @@ export default {
     balance: "Balance",
     status: "Status",
     allDirections: "All directions",
+    allAccounts: "All accounts",
     noTransactions: "No bank transactions",
     bankAccountsTab: "Bank Accounts",
     bankAccountsPlaceholder: "This section is under development. Bank API integration for automatic data export will be available here.",

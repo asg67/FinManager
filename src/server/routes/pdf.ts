@@ -260,6 +260,7 @@ router.get("/transactions", async (req: Request, res: Response) => {
 
     const where: Prisma.BankTransactionWhereInput = {
       account: { entity: entFilter },
+      pdfUploadId: { not: null },
     };
 
     if (accountId) where.accountId = accountId;

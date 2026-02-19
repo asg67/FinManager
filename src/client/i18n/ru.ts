@@ -209,6 +209,7 @@ export default {
     balance: "Остаток",
     status: "Статус",
     allDirections: "Все направления",
+    allAccounts: "Все счета",
     noTransactions: "Нет банковских операций",
     bankAccountsTab: "Расчётные счета",
     bankAccountsPlaceholder: "Раздел в разработке. Здесь будет интеграция с банковскими API для автоматической выгрузки данных.",
