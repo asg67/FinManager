@@ -16,20 +16,30 @@ const BANKS = [
   { code: "ozon", label: "ОЗОН Банк", icon: CreditCard },
 ];
 
+// Map wizard bank code → account filter criteria
+const BANK_ACCOUNT_MATCH: Record<string, { bank: string; type: string }> = {
+  sber: { bank: "sber", type: "card" },
+  tbank: { bank: "tbank", type: "card" },
+  tbank_deposit: { bank: "tbank", type: "deposit" },
+  ozon: { bank: "ozon", type: "card" },
+};
+
 interface Props {
   open: boolean;
   onClose: () => void;
   onDone: () => void;
   initialFile?: File;
+  initialBankCode?: string;
 }
 
-export default function StatementWizard({ open, onClose, onDone, initialFile }: Props) {
+export default function StatementWizard({ open, onClose, onDone, initialFile, initialBankCode }: Props) {
   const { t } = useTranslation();
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [step, setStep] = useState<Step>("bank");
   const [bankCode, setBankCode] = useState("");
   const [accountId, setAccountId] = useState("");
+  const [allAccounts, setAllAccounts] = useState<Account[]>([]);
   const [error, setError] = useState("");
 
   const [uploadResult, setUploadResult] = useState<UploadResult | null>(null);
@@ -37,18 +47,39 @@ export default function StatementWizard({ open, onClose, onDone, initialFile }: 
   const [confirming, setConfirming] = useState(false);
   const [confirmResult, setConfirmResult] = useState<{ saved: number; skipped: number } | null>(null);
 
-  // Load first entity → first account on open
+  // Load all accounts for user's entities on open
   useEffect(() => {
     if (open) {
-      entitiesApi.list({ mine: true }).then((entities) => {
-        if (entities.length > 0) {
-          accountsApi.list(entities[0].id).then((accounts) => {
-            if (accounts.length > 0) setAccountId(accounts[0].id);
-          });
+      entitiesApi.list({ mine: true }).then(async (entities) => {
+        const accs: Account[] = [];
+        for (const ent of entities) {
+          const entAccounts = await accountsApi.list(ent.id);
+          accs.push(...entAccounts);
+        }
+        setAllAccounts(accs);
+
+        // If opened with initialBankCode, pre-select matching account and skip bank step
+        if (initialBankCode) {
+          const match = findMatchingAccount(accs, initialBankCode);
+          if (match) setAccountId(match.id);
+          setBankCode(initialBankCode);
+          if (initialFile) {
+            uploadFile(initialFile, initialBankCode);
+          } else {
+            setStep("upload");
+          }
+        } else if (accs.length > 0) {
+          setAccountId(accs[0].id);
         }
       });
     }
   }, [open]);
+
+  function findMatchingAccount(accounts: Account[], code: string): Account | undefined {
+    const filter = BANK_ACCOUNT_MATCH[code];
+    if (!filter) return accounts[0];
+    return accounts.find((a) => a.bank === filter.bank && a.type === filter.type) ?? accounts[0];
+  }
 
   function reset() {
     setStep("bank");
@@ -66,6 +97,8 @@ export default function StatementWizard({ open, onClose, onDone, initialFile }: 
 
   function selectBank(code: string) {
     setBankCode(code);
+    const match = findMatchingAccount(allAccounts, code);
+    if (match) setAccountId(match.id);
     if (initialFile) {
       uploadFile(initialFile, code);
     } else {

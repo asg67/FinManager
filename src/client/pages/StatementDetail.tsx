@@ -264,6 +264,7 @@ export default function StatementDetail() {
         open={wizardOpen}
         onClose={() => setWizardOpen(false)}
         onDone={handleWizardDone}
+        initialBankCode={bankCode}
       />
     </div>
   );
