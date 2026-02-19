@@ -6,6 +6,7 @@ import {
   CreditCard, Banknote, PiggyBank, Calendar,
   BarChart3, LineChart as LineChartIcon, CircleDot,
   ArrowUpRight, ArrowDownLeft, ArrowRightLeft,
+  ChevronDown, ChevronRight,
 } from "lucide-react";
 import {
   PieChart, Pie, Cell, ResponsiveContainer,
@@ -148,6 +149,7 @@ export default function Dashboard() {
   const [balances, setBalances] = useState<AccountBalance[]>([]);
   const [recent, setRecent] = useState<RecentOperation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -198,6 +200,34 @@ export default function Dashboard() {
     for (const [type, list] of Object.entries(grouped)) sums[type] = list.reduce((s, a) => s + a.balance, 0);
     return sums;
   }, [grouped]);
+
+  // Sub-group accounts by entityName within each type
+  const entityGroups = useMemo(() => {
+    const result: Record<string, { entity: string; accounts: AccountBalance[]; total: number }[]> = {};
+    for (const [type, list] of Object.entries(grouped)) {
+      const byEntity = new Map<string, AccountBalance[]>();
+      for (const acc of list) {
+        const key = acc.entityName || "—";
+        if (!byEntity.has(key)) byEntity.set(key, []);
+        byEntity.get(key)!.push(acc);
+      }
+      result[type] = Array.from(byEntity.entries()).map(([entity, accounts]) => ({
+        entity,
+        accounts,
+        total: accounts.reduce((s, a) => s + a.balance, 0),
+      }));
+    }
+    return result;
+  }, [grouped]);
+
+  function toggleGroup(key: string) {
+    setExpandedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
 
   const donutData = useMemo(
     () => Object.entries(sumByType).filter(([, v]) => v > 0).map(([type, value]) => ({ name: typeLabel(type), value, color: catColors[type] || "#ccc" })),
@@ -294,8 +324,11 @@ export default function Dashboard() {
               {/* LEFT: Accounts grouped by type */}
               <div className="glass-card dash-accounts-card">
                 {sections.map((sec) => {
-                  const list = grouped[sec.type] || [];
-                  if (list.length === 0) return null;
+                  const groups = entityGroups[sec.type] || [];
+                  if (groups.length === 0) return null;
+                  const totalAccounts = groups.reduce((s, g) => s + g.accounts.length, 0);
+                  // If only one entity group or few accounts total, show flat
+                  const useCollapsible = groups.length > 1 || totalAccounts > 3;
                   return (
                     <div className="dash-account-section" key={sec.type}>
                       <div className="dash-account-section__header">
@@ -305,20 +338,56 @@ export default function Dashboard() {
                         </div>
                         <span className="dash-account-section__total">{formatMoney(sumByType[sec.type] || 0)} ₽</span>
                       </div>
-                      <div className="dash-accounts-list">
-                        {list.map((acc) => (
-                          <div className="dash-account-row" key={acc.id}>
-                            <div className="dash-account-row__icon">{sec.type === "card" ? <CreditCard size={18} /> : <Wallet size={18} />}</div>
-                            <div className="dash-account-row__info">
-                              <span className="dash-account-row__name">{acc.name}</span>
-                              <span className="dash-account-row__entity">{acc.entityName}</span>
+                      {useCollapsible ? (
+                        <div className="dash-accounts-list">
+                          {groups.map((g) => {
+                            const groupKey = `${sec.type}-${g.entity}`;
+                            const isOpen = expandedGroups.has(groupKey);
+                            return (
+                              <div className="dash-entity-group" key={g.entity}>
+                                <button type="button" className="dash-entity-group__header" onClick={() => toggleGroup(groupKey)}>
+                                  <div className="dash-entity-group__left">
+                                    {isOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                                    <span className="dash-entity-group__name">{g.entity}</span>
+                                    <span className="dash-entity-group__count">{g.accounts.length}</span>
+                                  </div>
+                                  <span className={`dash-entity-group__total${g.total > 0 ? " has-money" : ""}`}>{formatMoney(g.total)} ₽</span>
+                                </button>
+                                {isOpen && (
+                                  <div className="dash-entity-group__items">
+                                    {g.accounts.map((acc) => (
+                                      <div className="dash-account-row" key={acc.id}>
+                                        <div className="dash-account-row__icon">{sec.type === "card" ? <CreditCard size={18} /> : <Wallet size={18} />}</div>
+                                        <div className="dash-account-row__info">
+                                          <span className="dash-account-row__name">{acc.name}</span>
+                                        </div>
+                                        <div className={`dash-account-row__balance${acc.balance > 0 ? " has-money" : ""}`}>
+                                          {formatMoney(acc.balance)} <span className="currency">₽</span>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="dash-accounts-list">
+                          {groups.flatMap((g) => g.accounts).map((acc) => (
+                            <div className="dash-account-row" key={acc.id}>
+                              <div className="dash-account-row__icon">{sec.type === "card" ? <CreditCard size={18} /> : <Wallet size={18} />}</div>
+                              <div className="dash-account-row__info">
+                                <span className="dash-account-row__name">{acc.name}</span>
+                                <span className="dash-account-row__entity">{acc.entityName}</span>
+                              </div>
+                              <div className={`dash-account-row__balance${acc.balance > 0 ? " has-money" : ""}`}>
+                                {formatMoney(acc.balance)} <span className="currency">₽</span>
+                              </div>
                             </div>
-                            <div className={`dash-account-row__balance${acc.balance > 0 ? " has-money" : ""}`}>
-                              {formatMoney(acc.balance)} <span className="currency">₽</span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   );
                 })}

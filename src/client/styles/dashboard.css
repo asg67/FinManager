@@ -276,6 +276,86 @@
 [data-theme="dark"] .dash-account-row__balance.has-money { color: var(--accent); }
 [data-theme="dark"] .dash-account-row__balance .currency { color: var(--text-muted); }
 
+/* --- Collapsible Entity Groups --- */
+.dash-entity-group {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+}
+.dash-entity-group:last-child { border-bottom: none; }
+
+[data-theme="dark"] .dash-entity-group { border-bottom-color: var(--glass-border); }
+
+.dash-entity-group__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 12px;
+  border: none;
+  background: none;
+  border-radius: 12px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.2s ease;
+}
+.dash-entity-group__header:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+[data-theme="dark"] .dash-entity-group__header:hover {
+  background: var(--bg-surface-hover);
+}
+
+.dash-entity-group__left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.dash-entity-group__left svg {
+  color: #888;
+  flex-shrink: 0;
+}
+[data-theme="dark"] .dash-entity-group__left svg { color: var(--text-muted); }
+
+.dash-entity-group__name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #1A1A1A;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+[data-theme="dark"] .dash-entity-group__name { color: var(--text-primary); }
+
+.dash-entity-group__count {
+  font-size: 11px;
+  font-weight: 500;
+  color: #888;
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 10px;
+  padding: 2px 8px;
+  flex-shrink: 0;
+}
+[data-theme="dark"] .dash-entity-group__count {
+  color: var(--text-muted);
+  background: var(--bg-surface-hover);
+}
+
+.dash-entity-group__total {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1A1A1A;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.dash-entity-group__total.has-money { color: #F5A623; }
+[data-theme="dark"] .dash-entity-group__total { color: var(--text-primary); }
+[data-theme="dark"] .dash-entity-group__total.has-money { color: var(--accent); }
+
+.dash-entity-group__items {
+  padding-left: 12px;
+  animation: fadeIn 0.2s ease;
+}
+
 /* ===== DONUT + METRICS BLOCK ===== */
 .dash-donut-metrics {
   padding: 24px;
