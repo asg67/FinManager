@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { bankConnectionsApi, type SyncPayload } from "../api/bankConnections.js";
 import { exportApi } from "../api/export.js";
-import { Button, Select, Modal } from "../components/ui/index.js";
+import { Button, Select, Modal, DatePicker } from "../components/ui/index.js";
 import ExportModal from "../components/ExportModal.js";
 import type { BankConnection, Account, PaginatedResponse } from "@shared/types.js";
 import type { BankTransaction, TransactionFilters } from "../api/pdf.js";
@@ -417,14 +417,9 @@ export default function BankConnectionDetail() {
         onClose={() => setSyncModalOpen(false)}
         title={t("bankAccounts.sync")}
       >
-        <div className="bank-modal__field">
-          <label>{t("bankAccounts.syncFrom")}</label>
-          <input type="date" value={syncFrom} onChange={(e) => setSyncFrom(e.target.value)} />
-        </div>
-        <div className="bank-modal__field">
-          <label>{t("bankAccounts.syncTo")}</label>
-          <input type="date" value={syncTo} onChange={(e) => setSyncTo(e.target.value)} />
-        </div>
+        <DatePicker value={syncFrom} onChange={setSyncFrom} label={t("bankAccounts.syncFrom")} />
+        <div style={{ height: "0.75rem" }} />
+        <DatePicker value={syncTo} onChange={setSyncTo} label={t("bankAccounts.syncTo")} />
         {syncResultText && (
           <div className="bank-sync-result bank-sync-result--success" style={{ marginTop: "0.75rem" }}>
             {syncResultText}

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Download } from "lucide-react";
-import { Button, Modal } from "./ui/index.js";
+import { Button, Modal, DatePicker } from "./ui/index.js";
 
 interface ExportModalProps {
   open: boolean;
@@ -31,14 +31,9 @@ export default function ExportModal({ open, onClose, onExport }: ExportModalProp
 
   return (
     <Modal open={open} onClose={onClose} title={t("export.downloadExcel")} size="sm">
-      <div className="bank-modal__field">
-        <label>{t("export.dateFrom")}</label>
-        <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
-      </div>
-      <div className="bank-modal__field">
-        <label>{t("export.dateTo")}</label>
-        <input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
-      </div>
+      <DatePicker value={from} onChange={setFrom} label={t("export.dateFrom")} />
+      <div style={{ height: "0.75rem" }} />
+      <DatePicker value={to} onChange={setTo} label={t("export.dateTo")} />
       <Modal.Footer>
         <Button variant="secondary" onClick={onClose}>
           {t("common.cancel")}

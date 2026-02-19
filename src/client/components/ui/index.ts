@@ -4,3 +4,4 @@ export { default as Select } from "./Select.js";
 export { default as Card } from "./Card.js";
 export { default as Modal } from "./Modal.js";
 export { default as Table } from "./Table.js";
+export { default as DatePicker } from "./DatePicker.js";
