@@ -298,4 +298,71 @@ router.get("/transactions", async (req: Request, res: Response) => {
   }
 });
 
+// Helper: verify transaction access
+async function verifyTransactionAccess(txId: string, userId: string) {
+  const tx = await prisma.bankTransaction.findUnique({
+    where: { id: txId },
+    include: { account: { include: { entity: true } } },
+  });
+  if (!tx) return null;
+
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) return null;
+
+  const entity = tx.account.entity;
+  if (user.role === "owner" && user.companyId === entity.companyId) return tx;
+  if (entity.ownerId === userId) return tx;
+
+  return null;
+}
+
+// PUT /api/pdf/transactions/:id — update a bank transaction
+router.put("/transactions/:id", async (req: Request, res: Response) => {
+  try {
+    const tx = await verifyTransactionAccess(req.params.id, req.user!.userId);
+    if (!tx) {
+      res.status(404).json({ message: "Transaction not found" });
+      return;
+    }
+
+    const { date, time, amount, direction, counterparty, purpose } = req.body;
+    const updateData: any = {};
+
+    if (date !== undefined) updateData.date = new Date(date);
+    if (time !== undefined) updateData.time = time;
+    if (amount !== undefined) updateData.amount = new Prisma.Decimal(amount);
+    if (direction !== undefined) updateData.direction = direction;
+    if (counterparty !== undefined) updateData.counterparty = counterparty;
+    if (purpose !== undefined) updateData.purpose = purpose;
+
+    const updated = await prisma.bankTransaction.update({
+      where: { id: req.params.id },
+      data: updateData,
+      include: { account: { select: { name: true, type: true, bank: true } } },
+    });
+
+    res.json(updated);
+  } catch (error) {
+    console.error("Update transaction error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// DELETE /api/pdf/transactions/:id — delete a bank transaction
+router.delete("/transactions/:id", async (req: Request, res: Response) => {
+  try {
+    const tx = await verifyTransactionAccess(req.params.id, req.user!.userId);
+    if (!tx) {
+      res.status(404).json({ message: "Transaction not found" });
+      return;
+    }
+
+    await prisma.bankTransaction.delete({ where: { id: req.params.id } });
+    res.status(204).end();
+  } catch (error) {
+    console.error("Delete transaction error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 export default router;

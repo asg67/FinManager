@@ -54,6 +54,15 @@ export interface BankTransaction {
   createdAt: string;
 }
 
+export interface UpdateTransactionPayload {
+  date?: string;
+  time?: string | null;
+  amount?: string;
+  direction?: string;
+  counterparty?: string | null;
+  purpose?: string | null;
+}
+
 export interface TransactionFilters {
   bankCode?: string;
   accountId?: string;
@@ -99,4 +108,10 @@ export const pdfApi = {
     const qs = params.toString();
     return api.get<PaginatedResponse<BankTransaction>>(`/pdf/transactions${qs ? `?${qs}` : ""}`);
   },
+
+  updateTransaction: (id: string, data: UpdateTransactionPayload) =>
+    api.put<BankTransaction>(`/pdf/transactions/${id}`, data),
+
+  deleteTransaction: (id: string) =>
+    api.delete(`/pdf/transactions/${id}`),
 };

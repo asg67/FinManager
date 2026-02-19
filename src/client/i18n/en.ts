@@ -222,6 +222,11 @@ export default {
     selectBank: "Select Bank",
     selectAccount: "Select Account",
     uploadFile: "Upload File",
+    editTransaction: "Edit Transaction",
+    deleteTransaction: "Delete Transaction",
+    deleteTransactionConfirm: "Delete this transaction?",
+    direction: "Direction",
+    actions: "",
   },
   bankAccounts: {
     title: "Bank Accounts",

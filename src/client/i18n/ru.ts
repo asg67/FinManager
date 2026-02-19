@@ -222,6 +222,11 @@ export default {
     selectBank: "Выберите банк",
     selectAccount: "Выберите счёт",
     uploadFile: "Загрузите файл",
+    editTransaction: "Редактировать транзакцию",
+    deleteTransaction: "Удалить транзакцию",
+    deleteTransactionConfirm: "Удалить эту транзакцию?",
+    direction: "Направление",
+    actions: "",
   },
   bankAccounts: {
     title: "Банковские счета",

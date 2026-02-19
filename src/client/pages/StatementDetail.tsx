@@ -11,10 +11,13 @@ import {
   ChevronDown,
   LayoutGrid,
   LayoutList,
+  Pencil,
+  Trash2,
 } from "lucide-react";
-import { pdfApi, type BankTransaction, type TransactionFilters } from "../api/pdf.js";
+import { pdfApi, type BankTransaction, type TransactionFilters, type UpdateTransactionPayload } from "../api/pdf.js";
 import { exportApi } from "../api/export.js";
-import { Button, Select } from "../components/ui/index.js";
+import { Button, Select, Input } from "../components/ui/index.js";
+import Modal from "../components/ui/Modal.js";
 import StatementWizard from "../components/pdf/StatementWizard.js";
 import ExportModal from "../components/ExportModal.js";
 import type { PaginatedResponse } from "@shared/types.js";
@@ -50,6 +53,12 @@ export default function StatementDetail() {
   );
   const [wizardOpen, setWizardOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
+
+  // Edit / Delete state
+  const [editTx, setEditTx] = useState<BankTransaction | null>(null);
+  const [deleteTx, setDeleteTx] = useState<BankTransaction | null>(null);
+  const [editForm, setEditForm] = useState<UpdateTransactionPayload>({});
+  const [saving, setSaving] = useState(false);
 
   const loadData = useCallback(
     async (f: TransactionFilters) => {
@@ -93,6 +102,51 @@ export default function StatementDetail() {
       month: "2-digit",
       year: "numeric",
     });
+  }
+
+  function toInputDate(dateStr: string) {
+    return new Date(dateStr).toISOString().slice(0, 10);
+  }
+
+  function openEdit(tx: BankTransaction) {
+    setEditTx(tx);
+    setEditForm({
+      date: toInputDate(tx.date),
+      time: tx.time ?? "",
+      amount: String(parseFloat(tx.amount)),
+      direction: tx.direction,
+      counterparty: tx.counterparty ?? "",
+      purpose: tx.purpose ?? "",
+    });
+  }
+
+  async function handleSaveEdit() {
+    if (!editTx) return;
+    setSaving(true);
+    try {
+      await pdfApi.updateTransaction(editTx.id, {
+        ...editForm,
+        counterparty: editForm.counterparty || null,
+        purpose: editForm.purpose || null,
+        time: editForm.time || null,
+      });
+      setEditTx(null);
+      loadData(filters);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleDelete() {
+    if (!deleteTx) return;
+    setSaving(true);
+    try {
+      await pdfApi.deleteTransaction(deleteTx.id);
+      setDeleteTx(null);
+      loadData(filters);
+    } finally {
+      setSaving(false);
+    }
   }
 
   const label = BANK_LABELS[bankCode || ""] || bankCode;
@@ -189,12 +243,13 @@ export default function StatementDetail() {
                     <th>{t("pdf.counterparty")}</th>
                     <th>{t("pdf.purpose")}</th>
                     <th>{t("pdf.balance")}</th>
+                    <th>{t("pdf.actions")}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {data.data.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="table__empty">
+                      <td colSpan={6} className="table__empty">
                         {t("pdf.noTransactions")}
                       </td>
                     </tr>
@@ -219,6 +274,16 @@ export default function StatementDetail() {
                               })
                             : "—"}
                         </td>
+                        <td>
+                          <div style={{ display: "flex", gap: "0.25rem" }}>
+                            <button type="button" className="icon-btn" onClick={() => openEdit(tx)}>
+                              <Pencil size={16} />
+                            </button>
+                            <button type="button" className="icon-btn icon-btn--danger" onClick={() => setDeleteTx(tx)}>
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                        </td>
                       </tr>
                     ))
                   )}
@@ -236,6 +301,8 @@ export default function StatementDetail() {
                     tx={tx}
                     formatAmount={formatAmount}
                     formatDate={formatDate}
+                    onEdit={() => openEdit(tx)}
+                    onDelete={() => setDeleteTx(tx)}
                   />
                 ))
               )}
@@ -280,6 +347,79 @@ export default function StatementDetail() {
         onClose={() => setExportOpen(false)}
         onExport={(from, to) => exportApi.downloadStatementsExcel({ from, to, bankCode })}
       />
+
+      {/* Edit Modal */}
+      <Modal open={!!editTx} onClose={() => setEditTx(null)} title={t("pdf.editTransaction")} size="md">
+        <div className="form-group">
+          <label className="form-label">{t("dds.date")}</label>
+          <input
+            type="date"
+            className="input-field__input"
+            value={editForm.date ?? ""}
+            onChange={(e) => setEditForm((f) => ({ ...f, date: e.target.value }))}
+          />
+        </div>
+        <div className="form-group">
+          <label className="form-label">{t("dds.amount")}</label>
+          <input
+            type="number"
+            step="0.01"
+            className="input-field__input"
+            value={editForm.amount ?? ""}
+            onChange={(e) => setEditForm((f) => ({ ...f, amount: e.target.value }))}
+          />
+        </div>
+        <div className="form-group">
+          <label className="form-label">{t("pdf.direction")}</label>
+          <select
+            className="input-field__input input-field__select"
+            value={editForm.direction ?? ""}
+            onChange={(e) => setEditForm((f) => ({ ...f, direction: e.target.value }))}
+          >
+            <option value="income">{t("dds.income")}</option>
+            <option value="expense">{t("dds.expense")}</option>
+          </select>
+        </div>
+        <div className="form-group">
+          <label className="form-label">{t("pdf.counterparty")}</label>
+          <input
+            type="text"
+            className="input-field__input"
+            value={editForm.counterparty ?? ""}
+            onChange={(e) => setEditForm((f) => ({ ...f, counterparty: e.target.value }))}
+          />
+        </div>
+        <div className="form-group">
+          <label className="form-label">{t("pdf.purpose")}</label>
+          <textarea
+            className="input-field__input"
+            rows={3}
+            value={editForm.purpose ?? ""}
+            onChange={(e) => setEditForm((f) => ({ ...f, purpose: e.target.value }))}
+          />
+        </div>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setEditTx(null)}>
+            {t("common.cancel")}
+          </Button>
+          <Button onClick={handleSaveEdit} loading={saving}>
+            {t("common.save")}
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Delete Confirm Modal */}
+      <Modal open={!!deleteTx} onClose={() => setDeleteTx(null)} title={t("pdf.deleteTransaction")} size="sm">
+        <p className="text-secondary">{t("pdf.deleteTransactionConfirm")}</p>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setDeleteTx(null)}>
+            {t("common.cancel")}
+          </Button>
+          <Button variant="danger" onClick={handleDelete} loading={saving}>
+            {t("common.delete")}
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </div>
   );
 }
@@ -288,10 +428,14 @@ function TransactionCard({
   tx,
   formatAmount,
   formatDate,
+  onEdit,
+  onDelete,
 }: {
   tx: BankTransaction;
   formatAmount: (amount: string, direction: string) => string;
   formatDate: (dateStr: string) => string;
+  onEdit: () => void;
+  onDelete: () => void;
 }) {
   return (
     <div className="op-card">
@@ -317,6 +461,14 @@ function TransactionCard({
             Остаток: {parseFloat(tx.balance).toLocaleString("ru-RU", { minimumFractionDigits: 2 })}
           </span>
         )}
+      </div>
+      <div className="op-card__actions">
+        <button type="button" className="icon-btn" onClick={onEdit}>
+          <Pencil size={16} />
+        </button>
+        <button type="button" className="icon-btn icon-btn--danger" onClick={onDelete}>
+          <Trash2 size={16} />
+        </button>
       </div>
     </div>
   );
