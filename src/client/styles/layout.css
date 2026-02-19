@@ -737,19 +737,19 @@
     min-width: 0;
   }
 
-  /* Modal on mobile — block layout, no flex alignment issues */
+  /* Modal on mobile — portal renders to body, safe to use flex centering */
   .modal-overlay {
-    display: block;
-    overflow-y: auto;
+    align-items: center;
+    overflow: hidden;
     padding: 1rem;
     padding-top: calc(max(env(safe-area-inset-top, 0px), 20px) + 1rem);
     padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 60px + 1rem);
   }
 
   .modal {
-    margin: 0 auto;
+    margin: 0;
     max-width: 100%;
-    max-height: none;
+    max-height: 100%;
     border-radius: var(--radius-lg);
   }
 

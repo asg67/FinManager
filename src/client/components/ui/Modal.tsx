@@ -1,4 +1,5 @@
 import { type ReactNode, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import clsx from "clsx";
 
@@ -50,7 +51,7 @@ export default function Modal({ open, onClose, title, children, size = "md" }: M
 
   if (!open) return null;
 
-  return (
+  return createPortal(
     <div className="modal-overlay" onClick={onClose} role="dialog" aria-modal="true">
       <div
         className={clsx("modal", `modal--${size}`)}
@@ -71,7 +72,8 @@ export default function Modal({ open, onClose, title, children, size = "md" }: M
         )}
         <div className="modal__body">{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

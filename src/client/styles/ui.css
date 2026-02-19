@@ -395,12 +395,11 @@
   }
 
   .modal {
-    max-height: none;
     border-radius: var(--radius-lg);
   }
 
   .modal__body {
-    overflow-y: visible;
+    overflow-y: auto;
   }
 
   /* Modal buttons stack on very small screens */
