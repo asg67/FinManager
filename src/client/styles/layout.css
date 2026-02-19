@@ -677,8 +677,8 @@
 
   /* Header: safe area for notch / Dynamic Island */
   .header {
-    height: calc(56px + max(env(safe-area-inset-top, 0px), 20px));
-    padding-top: max(env(safe-area-inset-top, 0px), 20px);
+    height: calc(56px + max(env(safe-area-inset-top, 0px), 44px));
+    padding-top: max(env(safe-area-inset-top, 0px), 44px);
   }
 
   /* Show mobile controls */
@@ -742,7 +742,7 @@
     align-items: center;
     overflow: hidden;
     padding: 1rem;
-    padding-top: calc(max(env(safe-area-inset-top, 0px), 20px) + 1rem);
+    padding-top: calc(max(env(safe-area-inset-top, 0px), 44px) + 1rem);
     padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 60px + 1rem);
   }
 
