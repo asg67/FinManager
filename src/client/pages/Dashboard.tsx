@@ -243,8 +243,8 @@ export default function Dashboard() {
   const hasDonutData = donutData.length > 0;
   const donutDisplay = hasDonutData ? donutData : [{ name: "—", value: 1, color: theme === "light" ? "#E0E0E0" : "#374151" }];
 
-  // Bar chart: daily net flow; Line chart: running balance
-  const barChartData = useMemo(() => timeline.map((t) => ({ date: t.date, income: t.income, expense: -t.expense })), [timeline]);
+  // Bar chart: daily income & expense (both positive, side by side); Line chart: running balance
+  const barChartData = useMemo(() => timeline.map((t) => ({ date: t.date, income: t.income, expense: t.expense })), [timeline]);
   const lineChartData = useMemo(() => timeline.map((t) => ({ date: t.date, value: t.balance })), [timeline]);
 
   const daysHint = periodDaysHint(timelinePeriod);
@@ -473,13 +473,13 @@ export default function Dashboard() {
                   <div style={{ width: "100%", height: 260 }}>
                     <ResponsiveContainer width="100%" height="100%">
                       {chartType === "bar" ? (
-                        <BarChart data={barChartData}>
+                        <BarChart data={barChartData} barGap={2}>
                           <CartesianGrid strokeDasharray="3 3" stroke="var(--glass-border)" />
                           <XAxis dataKey="date" tick={{ fontSize: 11, fill: "#999" }} stroke="#999" interval={xTickInterval} tickFormatter={(v) => formatXTick(v, daysHint)} />
                           <YAxis tick={{ fontSize: 11, fill: "#999" }} stroke="#999" tickFormatter={formatYTick} />
-                          <Tooltip contentStyle={ttStyle} formatter={(value: number) => [`${formatMoney(Math.abs(value))} ₽`]} labelFormatter={formatTooltipDate} />
-                          <Bar dataKey="income" fill={theme === "light" ? "#F5A623" : "var(--color-income)"} radius={[10, 10, 0, 0]} maxBarSize={30} name={t("dashboard.income")} />
-                          <Bar dataKey="expense" fill={theme === "light" ? "#DC503C" : "var(--color-expense)"} radius={[0, 0, 10, 10]} maxBarSize={30} name={t("dashboard.expense")} />
+                          <Tooltip cursor={{ fill: "transparent" }} contentStyle={ttStyle} formatter={(value: number) => [`${formatMoney(value)} ₽`]} labelFormatter={formatTooltipDate} />
+                          <Bar dataKey="income" fill={theme === "light" ? "#F5A623" : "var(--color-income)"} radius={[6, 6, 0, 0]} maxBarSize={24} name={t("dashboard.income")} />
+                          <Bar dataKey="expense" fill={theme === "light" ? "#DC503C" : "var(--color-expense)"} radius={[6, 6, 0, 0]} maxBarSize={24} name={t("dashboard.expense")} />
                         </BarChart>
                       ) : chartType === "line" ? (
                         <AreaChart data={lineChartData}>
