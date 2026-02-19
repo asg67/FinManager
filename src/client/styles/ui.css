@@ -191,6 +191,7 @@
   display: flex;
   flex-direction: column;
   animation: modal-slide-in 0.15s ease;
+  flex-shrink: 0;
 }
 
 .modal--sm {
@@ -391,6 +392,22 @@
   .table th,
   .table td {
     padding: 0.5rem 0.625rem;
+  }
+
+  /* Modal: top-aligned, scrollable overlay on mobile */
+  .modal-overlay {
+    align-items: flex-start;
+    padding: 0.5rem 0.5rem 5rem;
+  }
+
+  .modal {
+    margin: 0;
+    max-height: none;
+    border-radius: var(--radius-lg);
+  }
+
+  .modal__body {
+    overflow-y: visible;
   }
 
   /* Modal buttons stack on very small screens */
