@@ -126,10 +126,6 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
                 </div>
               ))}
             </div>
-            <div className="sidebar__balance-decor">
-              <div className="sidebar__balance-oval sidebar__balance-oval--solid" />
-              <div className="sidebar__balance-oval sidebar__balance-oval--stroke" />
-            </div>
           </div>
 
           <button
