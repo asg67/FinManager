@@ -31,7 +31,7 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const [totalBalance, setTotalBalance] = useState(0);
 
   useEffect(() => {
-    analyticsApi.accountBalances().then((data) => {
+    analyticsApi.accountBalances(undefined, "true").then((data) => {
       setBalances(data.slice(0, 3));
       setTotalBalance(data.reduce((sum, a) => sum + a.balance, 0));
     }).catch(() => {});
