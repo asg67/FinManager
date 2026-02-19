@@ -92,11 +92,12 @@ model Entity {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  accounts      Account[]
-  expenseTypes  ExpenseType[]
-  ddsOperations DdsOperation[]
-  ddsTemplates  DdsTemplate[]
-  entityAccess  EntityAccess[]
+  accounts        Account[]
+  expenseTypes    ExpenseType[]
+  ddsOperations   DdsOperation[]
+  ddsTemplates    DdsTemplate[]
+  entityAccess    EntityAccess[]
+  bankConnections BankConnection[]
 }
 
 model EntityAccess {
@@ -107,6 +108,24 @@ model EntityAccess {
   entity   Entity @relation(fields: [entityId], references: [id], onDelete: Cascade)
 
   @@unique([userId, entityId])
+}
+
+// ============ BANK API CONNECTIONS ============
+
+model BankConnection {
+  id             String    @id @default(uuid())
+  entityId       String
+  entity         Entity    @relation(fields: [entityId], references: [id], onDelete: Cascade)
+  bankCode       String    // "tbank", "modulbank", "tochka"
+  token          String
+  label          String?
+  lastSyncAt     DateTime?
+  lastSyncStatus String?   // "success", "error", "partial"
+  lastSyncError  String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@unique([entityId, bankCode])
 }
 
 model Account {

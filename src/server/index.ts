@@ -16,6 +16,7 @@ import employeesRouter from "./routes/employees.js";
 import companyRouter from "./routes/company.js";
 import notificationsRouter from "./routes/notifications.js";
 import exportRouter from "./routes/export.js";
+import bankConnectionsRouter from "./routes/bankConnections.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -44,6 +45,7 @@ app.use("/api/employees", employeesRouter);
 app.use("/api/company", companyRouter);
 app.use("/api/notifications", notificationsRouter);
 app.use("/api/export", exportRouter);
+app.use("/api/bank-connections", bankConnectionsRouter);
 
 // Serve uploaded files (avatars)
 const uploadsPath = path.resolve(__dirname, "../../uploads");

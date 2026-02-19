@@ -18,6 +18,7 @@ import "./styles/settings.css";
 import "./styles/dds.css";
 import "./styles/pdf.css";
 import "./styles/dashboard.css";
+import "./styles/bank-accounts.css";
 import "./styles/onboarding.css";
 
 // Lazy-loaded pages for code splitting
@@ -25,6 +26,7 @@ const Dashboard = lazy(() => import("./pages/Dashboard.js"));
 const DdsOperations = lazy(() => import("./pages/DdsOperations.js"));
 const Settings = lazy(() => import("./pages/Settings.js"));
 const Statements = lazy(() => import("./pages/Statements.js"));
+const BankAccounts = lazy(() => import("./pages/BankAccounts.js"));
 const Admin = lazy(() => import("./pages/Admin.js"));
 const ShareTarget = lazy(() => import("./pages/ShareTarget.js"));
 
@@ -83,6 +85,7 @@ export default function App() {
             <Route path="/" element={<Suspense fallback={pageFallback}><Dashboard /></Suspense>} />
             <Route path="/dds" element={<Suspense fallback={pageFallback}><DdsOperations /></Suspense>} />
             <Route path="/pdf" element={<Suspense fallback={pageFallback}><Statements /></Suspense>} />
+            <Route path="/bank-accounts" element={<Suspense fallback={pageFallback}><BankAccounts /></Suspense>} />
             <Route path="/settings" element={<Suspense fallback={pageFallback}><Settings /></Suspense>} />
             <Route path="/admin" element={<Suspense fallback={pageFallback}><Admin /></Suspense>} />
             <Route path="/share-target" element={<Suspense fallback={pageFallback}><ShareTarget /></Suspense>} />

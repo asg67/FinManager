@@ -217,3 +217,32 @@ export interface Notification {
   read: boolean;
   createdAt: string;
 }
+
+// === Bank Connections ===
+
+export type BankCode = "tbank" | "modulbank" | "tochka";
+
+export interface BankConnection {
+  id: string;
+  entityId: string;
+  bankCode: BankCode;
+  label: string | null;
+  tokenMasked: string; // last 4 chars only
+  lastSyncAt: string | null;
+  lastSyncStatus: string | null;
+  lastSyncError: string | null;
+  createdAt: string;
+}
+
+export interface BankRemoteAccount {
+  accountNumber: string;
+  name: string;
+  bic?: string;
+}
+
+export interface SyncResult {
+  accountsSynced: number;
+  transactionsSaved: number;
+  transactionsSkipped: number;
+  errors: string[];
+}
