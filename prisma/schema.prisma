@@ -64,7 +64,8 @@ model User {
   entityAccess    EntityAccess[]
   ddsOperations   DdsOperation[]
   pdfUploads      PdfUpload[]
-  notifications   Notification[]
+  notifications      Notification[]
+  pushSubscriptions  PushSubscription[]
   ddsTemplates    DdsTemplate[]
   invitesCreated  Invite[]  @relation("InviteCreator")
   invitesUsed     Invite[]  @relation("InviteUsed")
@@ -263,4 +264,16 @@ model Notification {
   createdAt DateTime @default(now())
 
   @@index([userId, read])
+}
+
+model PushSubscription {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }

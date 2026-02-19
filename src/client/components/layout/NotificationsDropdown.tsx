@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Bell, Check, CheckCheck, Trash2, X } from "lucide-react";
 import { notificationsApi } from "../../api/notifications.js";
 import type { Notification } from "@shared/types.js";
+import { isPushSupported, subscribeToPush } from "../../utils/pushSubscription.js";
 
 export default function NotificationsDropdown() {
   const { t } = useTranslation();
@@ -32,6 +33,12 @@ export default function NotificationsDropdown() {
   useEffect(() => {
     loadCount();
     const interval = setInterval(loadCount, 30000);
+
+    // Auto-subscribe to push if supported and permission not denied
+    if (isPushSupported() && Notification.permission !== "denied") {
+      subscribeToPush().catch(() => {});
+    }
+
     return () => clearInterval(interval);
   }, []);
 

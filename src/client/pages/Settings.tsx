@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Building2, Wallet, Tags, FileText, Users, Briefcase, UserCog } from "lucide-react";
+import { Building2, Wallet, Tags, FileText, Users, Briefcase, UserCog, Bell } from "lucide-react";
 import clsx from "clsx";
 import { useAuthStore } from "../stores/auth.js";
 import ProfileTab from "../components/settings/ProfileTab.js";
@@ -10,8 +10,9 @@ import AccountsTab from "../components/settings/AccountsTab.js";
 import ExpensesTab from "../components/settings/ExpensesTab.js";
 import TemplatesTab from "../components/settings/TemplatesTab.js";
 import EmployeesTab from "../components/settings/EmployeesTab.js";
+import NotificationsTab from "../components/settings/NotificationsTab.js";
 
-type Tab = "profile" | "company" | "entities" | "accounts" | "expenses" | "templates" | "employees";
+type Tab = "profile" | "company" | "entities" | "accounts" | "expenses" | "templates" | "employees" | "notifications";
 
 export default function Settings() {
   const { t } = useTranslation();
@@ -28,6 +29,7 @@ export default function Settings() {
       { key: "expenses" as Tab, label: t("settings.expenses"), icon: Tags },
       { key: "templates" as Tab, label: t("settings.templates"), icon: FileText },
       { key: "employees" as Tab, label: t("nav.employees"), icon: Users },
+      { key: "notifications" as Tab, label: t("notifications.tab"), icon: Bell },
     ] : []),
   ];
 
@@ -57,6 +59,7 @@ export default function Settings() {
         {activeTab === "expenses" && <ExpensesTab />}
         {activeTab === "templates" && <TemplatesTab />}
         {activeTab === "employees" && <EmployeesTab />}
+        {activeTab === "notifications" && <NotificationsTab />}
       </div>
     </div>
   );

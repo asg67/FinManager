@@ -13,6 +13,7 @@ export default {
     next: "Next",
     back: "Back",
     copy: "Copy",
+    sending: "Sending...",
   },
   auth: {
     login: "Sign In",
@@ -282,6 +283,15 @@ export default {
     justNow: "Just now",
     minutesAgo: "{{count}}m ago",
     hoursAgo: "{{count}}h ago",
+    tab: "Notifications",
+    broadcast: "Broadcast Notifications",
+    broadcastDesc: "Send a push notification to all company employees",
+    broadcastTitle: "Title",
+    broadcastTitlePlaceholder: "E.g.: Maintenance scheduled",
+    broadcastBody: "Message",
+    broadcastBodyPlaceholder: "Notification text...",
+    broadcastSend: "Send to all",
+    broadcastSuccess: "Notification sent",
   },
   onboarding: {
     subtitle: "Set up your company",

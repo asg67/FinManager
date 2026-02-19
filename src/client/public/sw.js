@@ -1,4 +1,4 @@
-const CACHE_NAME = "finmanager-v2";
+const CACHE_NAME = "finmanager-v3";
 const STATIC_ASSETS = ["/", "/manifest.json"];
 
 // --- IndexedDB helpers for share target ---
@@ -87,6 +87,40 @@ self.addEventListener("fetch", (event) => {
         }
         return response;
       });
+    })
+  );
+});
+
+// Push notification received
+self.addEventListener("push", (event) => {
+  let data = { title: "FinManager", body: "" };
+  try {
+    data = event.data?.json() ?? data;
+  } catch (e) {
+    data.body = event.data?.text() || "";
+  }
+  event.waitUntil(
+    self.registration.showNotification(data.title, {
+      body: data.body,
+      icon: "/icons/icon-192.svg",
+      badge: "/icons/icon-192.svg",
+      data: { url: data.url || "/" },
+    })
+  );
+});
+
+// Notification click — focus existing window or open new one
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const url = event.notification.data?.url || "/";
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((windowClients) => {
+      for (const client of windowClients) {
+        if (client.url.includes(self.location.origin) && "focus" in client) {
+          return client.focus();
+        }
+      }
+      return self.clients.openWindow(url);
     })
   );
 });

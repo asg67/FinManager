@@ -13,6 +13,7 @@ export default {
     next: "Далее",
     back: "Назад",
     copy: "Копировать",
+    sending: "Отправка...",
   },
   auth: {
     login: "Вход",
@@ -282,6 +283,15 @@ export default {
     justNow: "Только что",
     minutesAgo: "{{count}} мин. назад",
     hoursAgo: "{{count}} ч. назад",
+    tab: "Уведомления",
+    broadcast: "Рассылка уведомлений",
+    broadcastDesc: "Отправить push-уведомление всем сотрудникам компании",
+    broadcastTitle: "Заголовок",
+    broadcastTitlePlaceholder: "Например: Технические работы",
+    broadcastBody: "Текст сообщения",
+    broadcastBodyPlaceholder: "Текст уведомления...",
+    broadcastSend: "Отправить всем",
+    broadcastSuccess: "Уведомление отправлено",
   },
   onboarding: {
     subtitle: "Настройте вашу компанию",

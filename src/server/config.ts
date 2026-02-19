@@ -7,6 +7,9 @@ const envSchema = z.object({
   PORT: z.coerce.number().default(3000),
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
   PDF_SERVICE_URL: z.string().default("http://localhost:8080"),
+  VAPID_PUBLIC_KEY: z.string().optional(),
+  VAPID_PRIVATE_KEY: z.string().optional(),
+  VAPID_SUBJECT: z.string().default("mailto:admin@finmanager.ru"),
 });
 
 const parsed = envSchema.safeParse(process.env);

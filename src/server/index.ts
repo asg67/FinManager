@@ -20,6 +20,8 @@ import bankConnectionsRouter from "./routes/bankConnections.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import cron from "node-cron";
 import { syncAllForYesterday } from "./bank-api/sync.js";
+import { initVapid } from "./utils/pushNotify.js";
+import { checkStatementReminders } from "./cron/statementReminders.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -67,11 +69,17 @@ if (config.NODE_ENV === "production") {
 
 app.use(errorHandler);
 
-// Daily bank sync cron: 07:00 UTC = 10:00 MSK
+// Initialize VAPID for push notifications
+initVapid();
+
+// Daily cron: 07:00 UTC = 10:00 MSK — bank sync + statement reminders
 cron.schedule("0 7 * * *", () => {
   console.log("[cron] Starting daily bank sync...");
   syncAllForYesterday().catch((err) =>
     console.error("[cron] Daily bank sync failed:", err),
+  );
+  checkStatementReminders().catch((err) =>
+    console.error("[cron] Statement reminders failed:", err),
   );
 });
 
