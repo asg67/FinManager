@@ -30,7 +30,7 @@ export default function ExportModal({ open, onClose, onExport }: ExportModalProp
   }
 
   return (
-    <Modal open={open} onClose={onClose} title={t("export.downloadExcel")} size="sm">
+    <Modal open={open} onClose={onClose} title={t("export.downloadExcel")} size="md">
       <DatePicker value={from} onChange={setFrom} label={t("export.dateFrom")} />
       <div style={{ height: "0.75rem" }} />
       <DatePicker value={to} onChange={setTo} label={t("export.dateTo")} />
