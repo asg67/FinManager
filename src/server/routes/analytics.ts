@@ -303,7 +303,8 @@ router.get("/account-balances", async (req: Request, res: Response) => {
       }),
     );
 
-    res.json(balances);
+    // Hide zero-balance accounts (auto-created but unused)
+    res.json(balances.filter((b) => b.balance !== 0));
   } catch (error) {
     console.error("Account balances error:", error);
     res.status(500).json({ message: "Internal server error" });
