@@ -37,6 +37,13 @@ _BALANCE_LABELS_RE = re.compile(
     r"Выписка по плат[ёе]жному сч[её]ту)",
     re.I,
 )
+_FOOTER_BOILERPLATE_RE = re.compile(
+    r"(электронн\w+\s+подпис|признаются равнозначными|подписанн\w+\s+собственноручно|"
+    r"в соответствии с законодательств|СберБанк Онлайн|Выписки и справки|"
+    r"портала Госуслуг|Проверить подпись|Проверка квалифицированной|"
+    r"могут применяться в любых правоотношениях|Скачать электронный формат)",
+    re.I,
+)
 _REMOVE_BITS_RE = re.compile(
     r"(Дата обработки\s*\d{2}:\d{2}\s*\d+|код авторизации\s*\d+|"
     r"Операция по\s+(сч[её]ту|карте)\s*\*+\d+)",
@@ -138,6 +145,7 @@ def _clean_purpose(text: str) -> str:
     t = _REMOVE_BITS_RE.sub("", text)
     t = _REMOVE_DATES_TIMES_RE.sub("", t)
     t = _BALANCE_LABELS_RE.sub("", t)
+    t = _FOOTER_BOILERPLATE_RE.sub("", t)
     return _norm(t)
 
 
@@ -217,8 +225,10 @@ def _parse_text_based(pdf_bytes: bytes) -> list[dict[str, Any]]:
         amount_s = m.group("amount")
         balance_s = m.group("balance")
 
-        # Body lines (purpose / description)
-        body_lines = [s for s in blk[1:] if not _BALANCE_LABELS_RE.search(s)]
+        # Body lines (purpose / description), skip footer boilerplate
+        body_lines = [s for s in blk[1:]
+                      if not _BALANCE_LABELS_RE.search(s)
+                      and not _FOOTER_BOILERPLATE_RE.search(s)]
         body_text = _norm(" ".join(body_lines))
 
         value = _to_float(amount_s)
