@@ -108,6 +108,13 @@ function formatMoney(n: number) {
   return n.toLocaleString("ru-RU", { maximumFractionDigits: 0 });
 }
 
+function formatYTick(v: number): string {
+  const abs = Math.abs(v);
+  if (abs >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
+  if (abs >= 1_000) return `${(v / 1_000).toFixed(0)}k`;
+  return String(Math.round(v));
+}
+
 const SHORT_WEEKDAYS = ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
 const SHORT_MONTHS = ["Янв", "Фев", "Мар", "Апр", "Май", "Июн", "Июл", "Авг", "Сен", "Окт", "Ноя", "Дек"];
 
@@ -236,18 +243,20 @@ export default function Dashboard() {
   const hasDonutData = donutData.length > 0;
   const donutDisplay = hasDonutData ? donutData : [{ name: "—", value: 1, color: theme === "light" ? "#E0E0E0" : "#374151" }];
 
-  const chartData = useMemo(() => timeline.map((t) => ({ date: t.date, value: t.balance })), [timeline]);
+  // Bar chart: daily net flow; Line chart: running balance
+  const barChartData = useMemo(() => timeline.map((t) => ({ date: t.date, income: t.income, expense: -t.expense })), [timeline]);
+  const lineChartData = useMemo(() => timeline.map((t) => ({ date: t.date, value: t.balance })), [timeline]);
 
   const daysHint = periodDaysHint(timelinePeriod);
   const xTickInterval = useMemo(() => {
-    const len = chartData.length;
+    const len = lineChartData.length;
     if (len === 0) return 0;
     if (daysHint <= 7) return 0;
     if (daysHint <= 31) return Math.max(0, Math.ceil(len / 15) - 1);
     if (daysHint <= 90) return Math.max(0, Math.ceil(len / 12) - 1);
     if (daysHint <= 180) return Math.max(0, Math.ceil(len / 10) - 1);
     return Math.max(0, Math.ceil(len / 12) - 1);
-  }, [chartData.length, daysHint]);
+  }, [lineChartData.length, daysHint]);
 
   const calcBalance = summary?.balance ?? balances.reduce((s, a) => s + a.balance, 0);
   const calcIncome = summary?.totalIncome ?? 0;
@@ -464,19 +473,20 @@ export default function Dashboard() {
                   <div style={{ width: "100%", height: 260 }}>
                     <ResponsiveContainer width="100%" height="100%">
                       {chartType === "bar" ? (
-                        <BarChart data={chartData}>
+                        <BarChart data={barChartData}>
                           <CartesianGrid strokeDasharray="3 3" stroke="var(--glass-border)" />
                           <XAxis dataKey="date" tick={{ fontSize: 11, fill: "#999" }} stroke="#999" interval={xTickInterval} tickFormatter={(v) => formatXTick(v, daysHint)} />
-                          <YAxis tick={{ fontSize: 11, fill: "#999" }} stroke="#999" tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
-                          <Tooltip contentStyle={ttStyle} formatter={(value: number) => [`${formatMoney(value)} ₽`]} labelFormatter={formatTooltipDate} />
-                          <Bar dataKey="value" fill={accentColor} radius={[10, 10, 0, 0]} maxBarSize={30} />
+                          <YAxis tick={{ fontSize: 11, fill: "#999" }} stroke="#999" tickFormatter={formatYTick} />
+                          <Tooltip contentStyle={ttStyle} formatter={(value: number) => [`${formatMoney(Math.abs(value))} ₽`]} labelFormatter={formatTooltipDate} />
+                          <Bar dataKey="income" fill={theme === "light" ? "#F5A623" : "var(--color-income)"} radius={[10, 10, 0, 0]} maxBarSize={30} name={t("dashboard.income")} />
+                          <Bar dataKey="expense" fill={theme === "light" ? "#DC503C" : "var(--color-expense)"} radius={[0, 0, 10, 10]} maxBarSize={30} name={t("dashboard.expense")} />
                         </BarChart>
                       ) : chartType === "line" ? (
-                        <AreaChart data={chartData}>
+                        <AreaChart data={lineChartData}>
                           <defs><linearGradient id="balanceGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor={accentColor} stopOpacity={0.15} /><stop offset="95%" stopColor={accentColor} stopOpacity={0} /></linearGradient></defs>
                           <CartesianGrid strokeDasharray="3 3" stroke="var(--glass-border)" />
                           <XAxis dataKey="date" tick={{ fontSize: 11, fill: "#999" }} stroke="#999" interval={xTickInterval} tickFormatter={(v) => formatXTick(v, daysHint)} />
-                          <YAxis tick={{ fontSize: 11, fill: "#999" }} stroke="#999" tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
+                          <YAxis tick={{ fontSize: 11, fill: "#999" }} stroke="#999" tickFormatter={formatYTick} />
                           <Tooltip contentStyle={ttStyle} formatter={(value: number) => [`${formatMoney(value)} ₽`]} labelFormatter={formatTooltipDate} />
                           <Area type="monotone" dataKey="value" stroke={accentColor} strokeWidth={2.5} fill="url(#balanceGrad)" fillOpacity={0.6} />
                         </AreaChart>
