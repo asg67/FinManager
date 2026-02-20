@@ -700,7 +700,7 @@
 
   /* Header: safe area for notch / Dynamic Island */
   .header {
-    height: calc(28px + max(env(safe-area-inset-top, 0px), 130px));
+    height: calc(20px + max(env(safe-area-inset-top, 0px), 130px));
     padding-top: max(env(safe-area-inset-top, 0px), 130px);
   }
 
