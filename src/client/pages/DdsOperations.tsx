@@ -262,6 +262,13 @@ function DdsTable({ companyName }: { companyName?: string }) {
     entitiesApi.list().then(setEntities);
   }, []);
 
+  // Refresh when operation added from global FAB button
+  useEffect(() => {
+    const handler = () => loadOperations(filters);
+    window.addEventListener("dds-refresh", handler);
+    return () => window.removeEventListener("dds-refresh", handler);
+  }, [filters, loadOperations]);
+
   useEffect(() => {
     if (filters.entityId) {
       accountsApi.list(filters.entityId).then(setAccounts);

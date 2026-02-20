@@ -433,6 +433,29 @@
   color: var(--accent);
 }
 
+/* Center FAB (add operation) */
+.mobile-nav__fab {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #000;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  margin-top: -20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  flex-shrink: 0;
+}
+
+.mobile-nav__fab:active {
+  transform: scale(0.92);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
 /* ===== Mobile overlay + sidebar ===== */
 .mobile-overlay {
   display: none;
