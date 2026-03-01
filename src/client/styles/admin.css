@@ -323,6 +323,123 @@
   color: var(--text-muted);
 }
 
+/* ===== Inline Edit ===== */
+
+.admin-inline-edit {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.admin-inline-input {
+  flex: 1;
+  padding: 0.375rem 0.625rem;
+  border: 1px solid var(--glass-border);
+  border-radius: 6px;
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-size: 0.8125rem;
+  outline: none;
+  min-width: 0;
+}
+
+.admin-inline-input:focus {
+  border-color: var(--accent);
+}
+
+.admin-inline-input::placeholder {
+  color: var(--text-muted);
+}
+
+/* Entity card actions */
+
+.admin-entity-actions {
+  display: inline-flex;
+  gap: 0.125rem;
+  opacity: 0.5;
+  transition: opacity 0.2s;
+}
+
+.admin-entity-card:hover .admin-entity-actions,
+.admin-expense-type__header:hover .admin-entity-actions,
+.admin-expense-article:hover .admin-entity-actions {
+  opacity: 1;
+}
+
+/* Add entity card */
+
+.admin-entity-card--add {
+  border-style: dashed;
+  cursor: default;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ===== Expense Types / Articles ===== */
+
+.admin-expense-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.admin-expense-type {
+  background: var(--bg-surface);
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.admin-expense-type__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.625rem 0.75rem;
+}
+
+.admin-expense-type__name {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.admin-expense-type__count {
+  font-weight: 400;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-left: 0.25rem;
+}
+
+.admin-expense-articles {
+  border-top: 1px solid var(--glass-border);
+  padding: 0.375rem 0.5rem;
+}
+
+.admin-expense-article {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.375rem 0.5rem 0.375rem 1.5rem;
+  border-radius: 4px;
+  transition: background 0.15s;
+}
+
+.admin-expense-article:hover {
+  background: var(--bg-surface-hover);
+}
+
+.admin-expense-article__name {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+}
+
 /* ===== Mobile ===== */
 
 @media (max-width: 600px) {

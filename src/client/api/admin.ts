@@ -66,6 +66,21 @@ export interface AdminCompanyListItem {
   createdAt: string;
 }
 
+export interface AdminExpenseArticle {
+  id: string;
+  name: string;
+  expenseTypeId: string;
+  sortOrder: number;
+}
+
+export interface AdminExpenseType {
+  id: string;
+  name: string;
+  entityId: string;
+  sortOrder: number;
+  articles: AdminExpenseArticle[];
+}
+
 export const adminApi = {
   getStats: () =>
     api.get<{ companiesCount: number; usersCount: number }>("/admin/stats"),
@@ -95,4 +110,37 @@ export const adminApi = {
 
   deleteOperation: (id: string) =>
     api.delete<void>(`/admin/operations/${id}`),
+
+  // Entity CRUD
+  createEntity: (companyId: string, name: string) =>
+    api.post<{ id: string; name: string }>(`/admin/companies/${companyId}/entities`, { name }),
+
+  updateEntity: (id: string, name: string) =>
+    api.put<{ id: string; name: string }>(`/admin/entities/${id}`, { name }),
+
+  deleteEntity: (id: string) =>
+    api.delete<void>(`/admin/entities/${id}`),
+
+  // Expense Types CRUD
+  getExpenseTypes: (entityId: string) =>
+    api.get<AdminExpenseType[]>(`/admin/entities/${entityId}/expense-types`),
+
+  createExpenseType: (entityId: string, name: string) =>
+    api.post<AdminExpenseType>(`/admin/entities/${entityId}/expense-types`, { name }),
+
+  updateExpenseType: (id: string, name: string) =>
+    api.put<AdminExpenseType>(`/admin/expense-types/${id}`, { name }),
+
+  deleteExpenseType: (id: string) =>
+    api.delete<void>(`/admin/expense-types/${id}`),
+
+  // Expense Articles CRUD
+  createArticle: (typeId: string, name: string) =>
+    api.post<AdminExpenseArticle>(`/admin/expense-types/${typeId}/articles`, { name }),
+
+  updateArticle: (id: string, name: string) =>
+    api.put<AdminExpenseArticle>(`/admin/articles/${id}`, { name }),
+
+  deleteArticle: (id: string) =>
+    api.delete<void>(`/admin/articles/${id}`),
 };

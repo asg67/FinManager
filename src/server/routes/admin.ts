@@ -277,6 +277,250 @@ router.get("/companies/:id/entities/:entityId", async (req: Request, res: Respon
   }
 });
 
+// ===== ENTITY CRUD =====
+
+// POST /api/admin/companies/:id/entities — create entity in company
+router.post("/companies/:id/entities", async (req: Request, res: Response) => {
+  try {
+    const companyId = req.params.id as string;
+    const { name } = req.body;
+    if (!name?.trim()) {
+      res.status(400).json({ message: "Name is required" });
+      return;
+    }
+
+    const company = await prisma.company.findUnique({ where: { id: companyId } });
+    if (!company) {
+      res.status(404).json({ message: "Company not found" });
+      return;
+    }
+
+    const entity = await prisma.entity.create({
+      data: {
+        name: name.trim(),
+        ownerId: req.user!.userId,
+        companyId,
+      },
+    });
+
+    res.status(201).json(entity);
+  } catch (error) {
+    console.error("Admin create entity error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// PUT /api/admin/entities/:id — rename entity
+router.put("/entities/:id", async (req: Request, res: Response) => {
+  try {
+    const { name } = req.body;
+    if (!name?.trim()) {
+      res.status(400).json({ message: "Name is required" });
+      return;
+    }
+
+    const entity = await prisma.entity.findUnique({ where: { id: req.params.id as string } });
+    if (!entity) {
+      res.status(404).json({ message: "Entity not found" });
+      return;
+    }
+
+    const updated = await prisma.entity.update({
+      where: { id: entity.id },
+      data: { name: name.trim() },
+    });
+
+    res.json(updated);
+  } catch (error) {
+    console.error("Admin update entity error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// DELETE /api/admin/entities/:id — delete entity (cascade)
+router.delete("/entities/:id", async (req: Request, res: Response) => {
+  try {
+    const entity = await prisma.entity.findUnique({ where: { id: req.params.id as string } });
+    if (!entity) {
+      res.status(404).json({ message: "Entity not found" });
+      return;
+    }
+
+    await prisma.entity.delete({ where: { id: entity.id } });
+    res.status(204).send();
+  } catch (error) {
+    console.error("Admin delete entity error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// ===== EXPENSE TYPES CRUD =====
+
+// GET /api/admin/entities/:entityId/expense-types — list types with articles
+router.get("/entities/:entityId/expense-types", async (req: Request, res: Response) => {
+  try {
+    const types = await prisma.expenseType.findMany({
+      where: { entityId: req.params.entityId as string },
+      include: { articles: { orderBy: { sortOrder: "asc" } } },
+      orderBy: { sortOrder: "asc" },
+    });
+    res.json(types);
+  } catch (error) {
+    console.error("Admin list expense types error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// POST /api/admin/entities/:entityId/expense-types — create type
+router.post("/entities/:entityId/expense-types", async (req: Request, res: Response) => {
+  try {
+    const { name } = req.body;
+    if (!name?.trim()) {
+      res.status(400).json({ message: "Name is required" });
+      return;
+    }
+
+    const entity = await prisma.entity.findUnique({ where: { id: req.params.entityId as string } });
+    if (!entity) {
+      res.status(404).json({ message: "Entity not found" });
+      return;
+    }
+
+    const type = await prisma.expenseType.create({
+      data: {
+        name: name.trim(),
+        entityId: entity.id,
+      },
+      include: { articles: true },
+    });
+
+    res.status(201).json(type);
+  } catch (error) {
+    console.error("Admin create expense type error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// PUT /api/admin/expense-types/:id — rename type
+router.put("/expense-types/:id", async (req: Request, res: Response) => {
+  try {
+    const { name } = req.body;
+    if (!name?.trim()) {
+      res.status(400).json({ message: "Name is required" });
+      return;
+    }
+
+    const type = await prisma.expenseType.findUnique({ where: { id: req.params.id as string } });
+    if (!type) {
+      res.status(404).json({ message: "Expense type not found" });
+      return;
+    }
+
+    const updated = await prisma.expenseType.update({
+      where: { id: type.id },
+      data: { name: name.trim() },
+      include: { articles: { orderBy: { sortOrder: "asc" } } },
+    });
+
+    res.json(updated);
+  } catch (error) {
+    console.error("Admin update expense type error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// DELETE /api/admin/expense-types/:id — delete type (cascade articles)
+router.delete("/expense-types/:id", async (req: Request, res: Response) => {
+  try {
+    const type = await prisma.expenseType.findUnique({ where: { id: req.params.id as string } });
+    if (!type) {
+      res.status(404).json({ message: "Expense type not found" });
+      return;
+    }
+
+    await prisma.expenseType.delete({ where: { id: type.id } });
+    res.status(204).send();
+  } catch (error) {
+    console.error("Admin delete expense type error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// ===== EXPENSE ARTICLES CRUD =====
+
+// POST /api/admin/expense-types/:typeId/articles — create article
+router.post("/expense-types/:typeId/articles", async (req: Request, res: Response) => {
+  try {
+    const { name } = req.body;
+    if (!name?.trim()) {
+      res.status(400).json({ message: "Name is required" });
+      return;
+    }
+
+    const type = await prisma.expenseType.findUnique({ where: { id: req.params.typeId as string } });
+    if (!type) {
+      res.status(404).json({ message: "Expense type not found" });
+      return;
+    }
+
+    const article = await prisma.expenseArticle.create({
+      data: {
+        name: name.trim(),
+        expenseTypeId: type.id,
+      },
+    });
+
+    res.status(201).json(article);
+  } catch (error) {
+    console.error("Admin create article error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// PUT /api/admin/articles/:id — rename article
+router.put("/articles/:id", async (req: Request, res: Response) => {
+  try {
+    const { name } = req.body;
+    if (!name?.trim()) {
+      res.status(400).json({ message: "Name is required" });
+      return;
+    }
+
+    const article = await prisma.expenseArticle.findUnique({ where: { id: req.params.id as string } });
+    if (!article) {
+      res.status(404).json({ message: "Expense article not found" });
+      return;
+    }
+
+    const updated = await prisma.expenseArticle.update({
+      where: { id: article.id },
+      data: { name: name.trim() },
+    });
+
+    res.json(updated);
+  } catch (error) {
+    console.error("Admin update article error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// DELETE /api/admin/articles/:id — delete article
+router.delete("/articles/:id", async (req: Request, res: Response) => {
+  try {
+    const article = await prisma.expenseArticle.findUnique({ where: { id: req.params.id as string } });
+    if (!article) {
+      res.status(404).json({ message: "Expense article not found" });
+      return;
+    }
+
+    await prisma.expenseArticle.delete({ where: { id: article.id } });
+    res.status(204).send();
+  } catch (error) {
+    console.error("Admin delete article error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 // DELETE /api/admin/operations/:id — delete any DDS operation
 router.delete("/operations/:id", async (req: Request, res: Response) => {
   try {

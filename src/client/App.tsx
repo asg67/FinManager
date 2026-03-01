@@ -74,6 +74,9 @@ export default function App() {
     </div>
   );
 
+  // Owner (admin) always sees admin panel, regular users see normal app
+  const isOwner = user?.role === "owner";
+
   return (
     <>
       <Routes>
@@ -83,24 +86,33 @@ export default function App() {
           <Route path="/register" element={<Register />} />
         </Route>
 
-        {/* Protected routes with layout */}
+        {/* Protected routes */}
         <Route element={<ProtectedRoute />}>
-          <Route element={<AppLayout />}>
-            <Route path="/" element={<Suspense fallback={pageFallback}><Dashboard /></Suspense>} />
-            <Route path="/dds" element={<Suspense fallback={pageFallback}><DdsOperations /></Suspense>} />
-            <Route path="/pdf" element={<Suspense fallback={pageFallback}><Statements /></Suspense>} />
-            <Route path="/pdf/:bankCode" element={<Suspense fallback={pageFallback}><StatementDetail /></Suspense>} />
-            <Route path="/bank-accounts" element={<Suspense fallback={pageFallback}><BankAccounts /></Suspense>} />
-            <Route path="/bank-accounts/:id" element={<Suspense fallback={pageFallback}><BankConnectionDetail /></Suspense>} />
-            <Route path="/settings" element={<Suspense fallback={pageFallback}><Settings /></Suspense>} />
-            <Route path="/share-target" element={<Suspense fallback={pageFallback}><ShareTarget /></Suspense>} />
-          </Route>
-          {/* Admin — full screen, no sidebar */}
-          <Route path="/admin" element={<Suspense fallback={pageFallback}><Admin /></Suspense>} />
+          {isOwner ? (
+            <>
+              {/* Admin — full screen, no sidebar, all routes redirect here */}
+              <Route path="/admin" element={<Suspense fallback={pageFallback}><Admin /></Suspense>} />
+              <Route path="*" element={<Navigate to="/admin" replace />} />
+            </>
+          ) : (
+            <>
+              <Route element={<AppLayout />}>
+                <Route path="/" element={<Suspense fallback={pageFallback}><Dashboard /></Suspense>} />
+                <Route path="/dds" element={<Suspense fallback={pageFallback}><DdsOperations /></Suspense>} />
+                <Route path="/pdf" element={<Suspense fallback={pageFallback}><Statements /></Suspense>} />
+                <Route path="/pdf/:bankCode" element={<Suspense fallback={pageFallback}><StatementDetail /></Suspense>} />
+                <Route path="/bank-accounts" element={<Suspense fallback={pageFallback}><BankAccounts /></Suspense>} />
+                <Route path="/bank-accounts/:id" element={<Suspense fallback={pageFallback}><BankConnectionDetail /></Suspense>} />
+                <Route path="/settings" element={<Suspense fallback={pageFallback}><Settings /></Suspense>} />
+                <Route path="/share-target" element={<Suspense fallback={pageFallback}><ShareTarget /></Suspense>} />
+              </Route>
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </>
+          )}
         </Route>
 
-        {/* Fallback */}
-        <Route path="*" element={<Navigate to="/" replace />} />
+        {/* Fallback for non-authenticated */}
+        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
       <ToastContainer />
     </>
