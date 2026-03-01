@@ -21,6 +21,9 @@ const BANKS = [
   { value: "other", label: "Другой" },
 ];
 
+// Standard bank codes — only these show in initial balances
+const STANDARD_BANK_CODES = ["sber", "tbank", "module", "tochka", "ozon"];
+
 interface BalanceRow {
   date: string;
   amount: string;
@@ -147,8 +150,8 @@ export default function AccountsTab() {
   }
 
   function renderBalancesList() {
-    // Only show accounts with a bank (i.e. real bank accounts, not cash/manual DDS ones)
-    const bankAccounts = accounts.filter((a) => a.bank);
+    // Only show standard bank accounts (not manual DDS ones)
+    const bankAccounts = accounts.filter((a) => a.bank && STANDARD_BANK_CODES.includes(a.bank));
     if (bankAccounts.length === 0) return null;
     return (
       <div className="initial-balances">

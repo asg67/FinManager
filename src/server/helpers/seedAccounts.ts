@@ -1,12 +1,20 @@
 import { prisma } from "../prisma.js";
 
-// Standard accounts matching available bank statement types
+// Standard accounts: bank API (checking) + PDF statements (cards/deposits)
 const STANDARD_ACCOUNTS = [
+  // Bank API — checking accounts
+  { type: "checking", bank: "tbank", name: "р/с Т-Банк" },
+  { type: "checking", bank: "module", name: "р/с Модуль" },
+  { type: "checking", bank: "tochka", name: "р/с Точка" },
+  // PDF statements — cards & deposits
   { type: "card", bank: "sber", name: "Карта Сбер" },
   { type: "card", bank: "tbank", name: "Карта Т-Банк" },
   { type: "deposit", bank: "tbank", name: "Депозит Т-Банк" },
   { type: "card", bank: "ozon", name: "Карта ОЗОН" },
 ];
+
+/** Known bank codes — only these appear in initial balances */
+export const STANDARD_BANK_CODES = STANDARD_ACCOUNTS.map((a) => a.bank);
 
 /** Creates only missing standard accounts for an entity */
 export async function seedEntityAccounts(entityId: string) {
