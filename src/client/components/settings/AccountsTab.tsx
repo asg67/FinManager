@@ -1,6 +1,6 @@
 import { useState, useEffect, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Check } from "lucide-react";
 import { entitiesApi } from "../../api/entities.js";
 import { accountsApi, type CreateAccountPayload } from "../../api/accounts.js";
 import { Button, Input, Select, Modal, Table } from "../ui/index.js";
@@ -20,6 +20,13 @@ const BANKS = [
   { value: "other", label: "Другой" },
 ];
 
+interface BalanceRow {
+  date: string;
+  amount: string;
+  saving: boolean;
+  saved: boolean;
+}
+
 export default function AccountsTab() {
   const { t } = useTranslation();
   const [entities, setEntities] = useState<Entity[]>([]);
@@ -31,6 +38,9 @@ export default function AccountsTab() {
   const [form, setForm] = useState<CreateAccountPayload>({ name: "", type: "checking" });
   const [saving, setSaving] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  // Initial balances state: accountId -> { date, amount }
+  const [balanceRows, setBalanceRows] = useState<Record<string, BalanceRow>>({});
 
   useEffect(() => {
     entitiesApi.list().then((data) => {
@@ -45,6 +55,17 @@ export default function AccountsTab() {
       setLoading(true);
       accountsApi.list(selectedEntity).then((data) => {
         setAccounts(data);
+        // Init balance rows from account data
+        const rows: Record<string, BalanceRow> = {};
+        for (const acc of data) {
+          rows[acc.id] = {
+            date: acc.initialBalanceDate ? acc.initialBalanceDate.slice(0, 10) : "",
+            amount: acc.initialBalance ? String(parseFloat(acc.initialBalance)) : "",
+            saving: false,
+            saved: false,
+          };
+        }
+        setBalanceRows(rows);
         setLoading(false);
       });
     }
@@ -91,6 +112,38 @@ export default function AccountsTab() {
     setDeleteId(null);
     const data = await accountsApi.list(selectedEntity);
     setAccounts(data);
+  }
+
+  function updateBalanceRow(accId: string, field: "date" | "amount", value: string) {
+    setBalanceRows((prev) => ({
+      ...prev,
+      [accId]: { ...prev[accId], [field]: value, saved: false },
+    }));
+  }
+
+  async function saveBalance(accId: string) {
+    const row = balanceRows[accId];
+    if (!row) return;
+
+    setBalanceRows((prev) => ({ ...prev, [accId]: { ...prev[accId], saving: true } }));
+    try {
+      await accountsApi.update(selectedEntity, accId, {
+        initialBalance: row.amount || null,
+        initialBalanceDate: row.date || null,
+      });
+      setBalanceRows((prev) => ({
+        ...prev,
+        [accId]: { ...prev[accId], saving: false, saved: true },
+      }));
+      setTimeout(() => {
+        setBalanceRows((prev) => ({
+          ...prev,
+          [accId]: prev[accId] ? { ...prev[accId], saved: false } : prev[accId],
+        }));
+      }, 2000);
+    } catch {
+      setBalanceRows((prev) => ({ ...prev, [accId]: { ...prev[accId], saving: false } }));
+    }
   }
 
   const typeLabel = (type: string) => {
@@ -144,7 +197,52 @@ export default function AccountsTab() {
       {loading ? (
         <div className="tab-loading">{t("common.loading")}</div>
       ) : (
-        <Table columns={columns} data={accounts} rowKey={(r) => r.id} emptyMessage={t("settings.noAccounts")} />
+        <>
+          <Table columns={columns} data={accounts} rowKey={(r) => r.id} emptyMessage={t("settings.noAccounts")} />
+
+          {accounts.length > 0 && (
+            <div className="initial-balances">
+              <h3 className="initial-balances__title">{t("settings.initialBalances")}</h3>
+              <div className="initial-balances__list">
+                {accounts.map((acc) => {
+                  const row = balanceRows[acc.id];
+                  if (!row) return null;
+                  return (
+                    <div key={acc.id} className="initial-balances__row">
+                      <span className="initial-balances__name">{acc.name}</span>
+                      <input
+                        type="date"
+                        className="initial-balances__input initial-balances__date"
+                        value={row.date}
+                        onChange={(e) => updateBalanceRow(acc.id, "date", e.target.value)}
+                      />
+                      <input
+                        type="number"
+                        step="0.01"
+                        className="initial-balances__input initial-balances__amount"
+                        placeholder="0.00"
+                        value={row.amount}
+                        onChange={(e) => updateBalanceRow(acc.id, "amount", e.target.value)}
+                      />
+                      <button
+                        type="button"
+                        className={`icon-btn initial-balances__save ${row.saved ? "initial-balances__save--ok" : ""}`}
+                        onClick={() => saveBalance(acc.id)}
+                        disabled={row.saving}
+                        title={t("common.save")}
+                      >
+                        <Check size={18} />
+                      </button>
+                      {row.saved && (
+                        <span className="initial-balances__saved">{t("settings.balanceSaved")}</span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       {/* Create/Edit Modal */}

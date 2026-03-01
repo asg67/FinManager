@@ -7,6 +7,8 @@ export interface CreateAccountPayload {
   bank?: string;
   accountNumber?: string;
   contractNumber?: string;
+  initialBalance?: string | null;
+  initialBalanceDate?: string | null;
 }
 
 export const accountsApi = {

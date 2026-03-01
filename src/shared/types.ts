@@ -96,6 +96,8 @@ export interface Account {
   bank: string | null;
   accountNumber: string | null;
   contractNumber: string | null;
+  initialBalance: string | null;
+  initialBalanceDate: string | null;
   entityId: string;
   createdAt: string;
 }

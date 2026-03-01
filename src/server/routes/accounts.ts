@@ -1,4 +1,5 @@
 import { Router, Request, Response } from "express";
+import { Prisma } from "@prisma/client";
 import { prisma } from "../prisma.js";
 import { authMiddleware } from "../middleware/auth.js";
 import { validate } from "../middleware/validate.js";
@@ -67,16 +68,22 @@ router.post("/", validate(createAccountSchema), async (req: Request, res: Respon
       return;
     }
 
-    const account = await prisma.account.create({
-      data: {
-        name: req.body.name,
-        type: req.body.type,
-        bank: req.body.bank,
-        accountNumber: req.body.accountNumber,
-        contractNumber: req.body.contractNumber,
-        entityId: req.params.entityId,
-      },
-    });
+    const data: any = {
+      name: req.body.name,
+      type: req.body.type,
+      bank: req.body.bank,
+      accountNumber: req.body.accountNumber,
+      contractNumber: req.body.contractNumber,
+      entityId: req.params.entityId,
+    };
+    if (req.body.initialBalance != null) {
+      data.initialBalance = new Prisma.Decimal(String(req.body.initialBalance));
+    }
+    if (req.body.initialBalanceDate) {
+      data.initialBalanceDate = new Date(req.body.initialBalanceDate);
+    }
+
+    const account = await prisma.account.create({ data });
 
     res.status(201).json(account);
   } catch (error) {
@@ -108,9 +115,21 @@ router.put("/:id", validate(updateAccountSchema), async (req: Request, res: Resp
       return;
     }
 
+    const updateData: any = { ...req.body };
+    if (updateData.initialBalance !== undefined) {
+      updateData.initialBalance = updateData.initialBalance != null
+        ? new Prisma.Decimal(String(updateData.initialBalance))
+        : null;
+    }
+    if (updateData.initialBalanceDate !== undefined) {
+      updateData.initialBalanceDate = updateData.initialBalanceDate
+        ? new Date(updateData.initialBalanceDate)
+        : null;
+    }
+
     const updated = await prisma.account.update({
       where: { id: req.params.id },
-      data: req.body,
+      data: updateData,
     });
 
     res.json(updated);

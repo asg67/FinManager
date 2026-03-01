@@ -276,22 +276,29 @@ router.get("/account-balances", async (req: Request, res: Response) => {
         bank: true,
         entityId: true,
         entity: { select: { name: true } },
+        initialBalance: true,
+        initialBalanceDate: true,
       },
     });
 
     const balances = await Promise.all(
       accounts.map(async (acc) => {
+        const dateFilter: Prisma.BankTransactionWhereInput = acc.initialBalanceDate
+          ? { date: { gt: acc.initialBalanceDate } }
+          : {};
+
         const [bankIncomeAgg, bankExpenseAgg] = await Promise.all([
           prisma.bankTransaction.aggregate({
-            where: { accountId: acc.id, direction: "income" },
+            where: { accountId: acc.id, direction: "income", ...dateFilter },
             _sum: { amount: true },
           }),
           prisma.bankTransaction.aggregate({
-            where: { accountId: acc.id, direction: "expense" },
+            where: { accountId: acc.id, direction: "expense", ...dateFilter },
             _sum: { amount: true },
           }),
         ]);
 
+        const initial = acc.initialBalance?.toNumber() ?? 0;
         const bankIncome = bankIncomeAgg._sum.amount?.toNumber() ?? 0;
         const bankExpense = bankExpenseAgg._sum.amount?.toNumber() ?? 0;
 
@@ -301,12 +308,12 @@ router.get("/account-balances", async (req: Request, res: Response) => {
           type: acc.type,
           bank: acc.bank,
           entityName: acc.entity.name,
-          balance: bankIncome - bankExpense,
+          balance: initial + bankIncome - bankExpense,
         };
       }),
     );
 
-    // Hide zero-balance accounts (auto-created but unused)
+    // Hide zero-balance accounts without initial balance set
     res.json(balances.filter((b) => b.balance !== 0));
   } catch (error) {
     console.error("Account balances error:", error);
