@@ -149,49 +149,70 @@ export default function AccountsTab() {
     }
   }
 
+  function renderBalanceRow(acc: Account) {
+    const row = balanceRows[acc.id];
+    if (!row) return null;
+    return (
+      <div key={acc.id} className="initial-balances__row">
+        <span className="initial-balances__name">{acc.name}</span>
+        <div className="initial-balances__fields">
+          <DatePicker
+            label={t("settings.balanceDate")}
+            value={row.date}
+            onChange={(val) => updateBalanceRow(acc.id, "date", val)}
+          />
+          <Input
+            type="number"
+            step="0.01"
+            label={t("settings.balanceAmount")}
+            placeholder="0.00"
+            value={row.amount}
+            onChange={(e) => updateBalanceRow(acc.id, "amount", e.target.value)}
+            className="initial-balances__amount"
+          />
+          <button
+            type="button"
+            className={`btn btn--sm initial-balances__save ${row.saved ? "initial-balances__save--ok" : ""}`}
+            onClick={() => saveBalance(acc.id)}
+            disabled={row.saving}
+          >
+            <Check size={16} />
+            {row.saved ? t("settings.balanceSaved") : t("common.save")}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   function renderBalancesList() {
     // Only show standard bank accounts (not manual DDS ones)
     const bankAccounts = accounts.filter((a) => a.bank && STANDARD_BANK_CODES.includes(a.bank));
     if (bankAccounts.length === 0) return null;
+
+    const checkingAccounts = bankAccounts.filter((a) => a.type === "checking");
+    const cardAccounts = bankAccounts.filter((a) => a.type !== "checking");
+
     return (
       <div className="initial-balances">
         <h3 className="initial-balances__title">{t("settings.initialBalances")}</h3>
-        <div className="initial-balances__list">
-          {bankAccounts.map((acc) => {
-            const row = balanceRows[acc.id];
-            if (!row) return null;
-            return (
-              <div key={acc.id} className="initial-balances__row">
-                <span className="initial-balances__name">{acc.name}</span>
-                <div className="initial-balances__fields">
-                  <DatePicker
-                    label={t("settings.balanceDate")}
-                    value={row.date}
-                    onChange={(val) => updateBalanceRow(acc.id, "date", val)}
-                  />
-                  <Input
-                    type="number"
-                    step="0.01"
-                    label={t("settings.balanceAmount")}
-                    placeholder="0.00"
-                    value={row.amount}
-                    onChange={(e) => updateBalanceRow(acc.id, "amount", e.target.value)}
-                    className="initial-balances__amount"
-                  />
-                  <button
-                    type="button"
-                    className={`btn btn--sm initial-balances__save ${row.saved ? "initial-balances__save--ok" : ""}`}
-                    onClick={() => saveBalance(acc.id)}
-                    disabled={row.saving}
-                  >
-                    <Check size={16} />
-                    {row.saved ? t("settings.balanceSaved") : t("common.save")}
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+
+        {checkingAccounts.length > 0 && (
+          <div className="initial-balances__group">
+            <h4 className="initial-balances__group-title">{t("settings.balanceChecking")}</h4>
+            <div className="initial-balances__list">
+              {checkingAccounts.map(renderBalanceRow)}
+            </div>
+          </div>
+        )}
+
+        {cardAccounts.length > 0 && (
+          <div className="initial-balances__group">
+            <h4 className="initial-balances__group-title">{t("settings.balanceCards")}</h4>
+            <div className="initial-balances__list">
+              {cardAccounts.map(renderBalanceRow)}
+            </div>
+          </div>
+        )}
       </div>
     );
   }
