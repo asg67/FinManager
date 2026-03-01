@@ -21,6 +21,7 @@ import "./styles/dashboard.css";
 import "./styles/bank-accounts.css";
 import "./styles/onboarding.css";
 import "./styles/datepicker.css";
+import "./styles/admin.css";
 
 // Lazy-loaded pages for code splitting
 const Dashboard = lazy(() => import("./pages/Dashboard.js"));

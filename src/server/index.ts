@@ -17,6 +17,7 @@ import companyRouter from "./routes/company.js";
 import notificationsRouter from "./routes/notifications.js";
 import exportRouter from "./routes/export.js";
 import bankConnectionsRouter from "./routes/bankConnections.js";
+import adminRouter from "./routes/admin.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import cron from "node-cron";
 import { syncAllForYesterday } from "./bank-api/sync.js";
@@ -50,6 +51,7 @@ app.use("/api/company", companyRouter);
 app.use("/api/notifications", notificationsRouter);
 app.use("/api/export", exportRouter);
 app.use("/api/bank-connections", bankConnectionsRouter);
+app.use("/api/admin", adminRouter);
 
 // Serve uploaded files (avatars)
 const uploadsPath = path.resolve(__dirname, "../../uploads");
