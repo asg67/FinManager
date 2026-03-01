@@ -217,6 +217,19 @@ function CompanyDetailView({
   const [editingEntityId, setEditingEntityId] = useState<string | null>(null);
   const [editEntityName, setEditEntityName] = useState("");
 
+  // Expense types/articles state
+  const [expEntityId, setExpEntityId] = useState<string | null>(null);
+  const [expenseTypes, setExpenseTypes] = useState<AdminExpenseType[]>([]);
+  const [expLoading, setExpLoading] = useState(false);
+  const [newTypeName, setNewTypeName] = useState("");
+  const [editingTypeId, setEditingTypeId] = useState<string | null>(null);
+  const [editTypeName, setEditTypeName] = useState("");
+  const [expandedType, setExpandedType] = useState<string | null>(null);
+  const [addingArticleForType, setAddingArticleForType] = useState<string | null>(null);
+  const [newArticleName, setNewArticleName] = useState("");
+  const [editingArticleId, setEditingArticleId] = useState<string | null>(null);
+  const [editArticleName, setEditArticleName] = useState("");
+
   const loadCompany = useCallback(async () => {
     const comp = await adminApi.getCompany(companyId);
     setCompany(comp);
@@ -277,7 +290,73 @@ function CompanyDetailView({
   async function handleDeleteEntity(entityId: string, entityName: string) {
     if (!confirm(`Удалить "${entityName}"? Все счета, операции и категории будут удалены!`)) return;
     await adminApi.deleteEntity(entityId);
+    if (expEntityId === entityId) { setExpEntityId(null); setExpenseTypes([]); }
     await loadCompany();
+  }
+
+  // Expense types loading
+  const loadExpenseTypes = useCallback(async (entityId: string) => {
+    setExpLoading(true);
+    const types = await adminApi.getExpenseTypes(entityId);
+    setExpenseTypes(types);
+    setExpLoading(false);
+  }, []);
+
+  // Auto-select first entity for expenses when company loads
+  useEffect(() => {
+    if (company && company.entities.length > 0 && !expEntityId) {
+      setExpEntityId(company.entities[0].id);
+    }
+  }, [company, expEntityId]);
+
+  // Load expense types when selected entity changes
+  useEffect(() => {
+    if (expEntityId) loadExpenseTypes(expEntityId);
+  }, [expEntityId, loadExpenseTypes]);
+
+  // Expense type CRUD
+  async function handleAddType() {
+    if (!newTypeName.trim() || !expEntityId) return;
+    await adminApi.createExpenseType(expEntityId, newTypeName.trim());
+    setNewTypeName("");
+    await loadExpenseTypes(expEntityId);
+  }
+
+  async function handleRenameType(id: string) {
+    if (!editTypeName.trim() || !expEntityId) return;
+    await adminApi.updateExpenseType(id, editTypeName.trim());
+    setEditingTypeId(null);
+    await loadExpenseTypes(expEntityId);
+  }
+
+  async function handleDeleteType(id: string, name: string) {
+    if (!confirm(`Удалить категорию "${name}" и все её статьи?`)) return;
+    if (!expEntityId) return;
+    await adminApi.deleteExpenseType(id);
+    await loadExpenseTypes(expEntityId);
+  }
+
+  // Article CRUD
+  async function handleAddArticle(typeId: string) {
+    if (!newArticleName.trim() || !expEntityId) return;
+    await adminApi.createArticle(typeId, newArticleName.trim());
+    setNewArticleName("");
+    setAddingArticleForType(null);
+    await loadExpenseTypes(expEntityId);
+  }
+
+  async function handleRenameArticle(id: string) {
+    if (!editArticleName.trim() || !expEntityId) return;
+    await adminApi.updateArticle(id, editArticleName.trim());
+    setEditingArticleId(null);
+    await loadExpenseTypes(expEntityId);
+  }
+
+  async function handleDeleteArticle(id: string, name: string) {
+    if (!confirm(`Удалить статью "${name}"?`)) return;
+    if (!expEntityId) return;
+    await adminApi.deleteArticle(id);
+    await loadExpenseTypes(expEntityId);
   }
 
   if (loading || !company) return <div className="tab-loading">Загрузка...</div>;
@@ -347,6 +426,137 @@ function CompanyDetailView({
           </button>
         </div>
       </div>
+
+      {/* Expense types / articles */}
+      {company.entities.length > 0 && (
+        <>
+          <h3 className="admin-subtitle" style={{ fontSize: "0.875rem" }}>Категории расходов и статьи</h3>
+
+          {/* Entity selector */}
+          {company.entities.length > 1 && (
+            <div style={{ marginBottom: "0.75rem" }}>
+              <select
+                className="admin-inline-input"
+                style={{ width: "auto", minWidth: 200 }}
+                value={expEntityId || ""}
+                onChange={(e) => { setExpEntityId(e.target.value); setExpandedType(null); }}
+              >
+                {company.entities.map((ent) => (
+                  <option key={ent.id} value={ent.id}>{ent.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {expLoading ? (
+            <div className="tab-loading" style={{ padding: "1rem 0" }}>Загрузка...</div>
+          ) : (
+            <div className="admin-expense-list">
+              {expenseTypes.map((t) => (
+                <div key={t.id} className="admin-expense-type">
+                  <div className="admin-expense-type__header">
+                    {editingTypeId === t.id ? (
+                      <div className="admin-inline-edit">
+                        <input
+                          className="admin-inline-input"
+                          value={editTypeName}
+                          onChange={(ev) => setEditTypeName(ev.target.value)}
+                          onKeyDown={(ev) => { if (ev.key === "Enter") handleRenameType(t.id); if (ev.key === "Escape") setEditingTypeId(null); }}
+                          autoFocus
+                        />
+                        <button className="btn btn--ghost btn--sm" onClick={() => handleRenameType(t.id)}><Check size={14} /></button>
+                        <button className="btn btn--ghost btn--sm" onClick={() => setEditingTypeId(null)}><X size={14} /></button>
+                      </div>
+                    ) : (
+                      <>
+                        <div
+                          className="admin-expense-type__name"
+                          onClick={() => setExpandedType(expandedType === t.id ? null : t.id)}
+                          style={{ cursor: "pointer" }}
+                        >
+                          <FolderOpen size={14} />
+                          {t.name}
+                          <span className="admin-expense-type__count">({t.articles.length})</span>
+                        </div>
+                        <span className="admin-entity-actions">
+                          <button className="btn btn--ghost btn--sm" onClick={() => { setAddingArticleForType(t.id); setNewArticleName(""); setExpandedType(t.id); }} title="Добавить статью"><Plus size={12} /></button>
+                          <button className="btn btn--ghost btn--sm" onClick={() => { setEditingTypeId(t.id); setEditTypeName(t.name); }} title="Переименовать"><Pencil size={12} /></button>
+                          <button className="btn btn--ghost btn--sm" onClick={() => handleDeleteType(t.id, t.name)} title="Удалить"><Trash2 size={12} /></button>
+                        </span>
+                      </>
+                    )}
+                  </div>
+
+                  {expandedType === t.id && (
+                    <div className="admin-expense-articles">
+                      {t.articles.map((a) => (
+                        <div key={a.id} className="admin-expense-article">
+                          {editingArticleId === a.id ? (
+                            <div className="admin-inline-edit">
+                              <input
+                                className="admin-inline-input"
+                                value={editArticleName}
+                                onChange={(ev) => setEditArticleName(ev.target.value)}
+                                onKeyDown={(ev) => { if (ev.key === "Enter") handleRenameArticle(a.id); if (ev.key === "Escape") setEditingArticleId(null); }}
+                                autoFocus
+                              />
+                              <button className="btn btn--ghost btn--sm" onClick={() => handleRenameArticle(a.id)}><Check size={14} /></button>
+                              <button className="btn btn--ghost btn--sm" onClick={() => setEditingArticleId(null)}><X size={14} /></button>
+                            </div>
+                          ) : (
+                            <>
+                              <span className="admin-expense-article__name"><Tag size={12} /> {a.name}</span>
+                              <span className="admin-entity-actions">
+                                <button className="btn btn--ghost btn--sm" onClick={() => { setEditingArticleId(a.id); setEditArticleName(a.name); }}><Pencil size={12} /></button>
+                                <button className="btn btn--ghost btn--sm" onClick={() => handleDeleteArticle(a.id, a.name)}><Trash2 size={12} /></button>
+                              </span>
+                            </>
+                          )}
+                        </div>
+                      ))}
+                      {t.articles.length === 0 && addingArticleForType !== t.id && (
+                        <div style={{ color: "var(--text-muted)", fontSize: "0.75rem", padding: "0.25rem 0 0.25rem 1.5rem" }}>Нет статей</div>
+                      )}
+                      {addingArticleForType === t.id && (
+                        <div className="admin-inline-edit" style={{ paddingLeft: "1.5rem" }}>
+                          <input
+                            className="admin-inline-input"
+                            placeholder="Название статьи"
+                            value={newArticleName}
+                            onChange={(ev) => setNewArticleName(ev.target.value)}
+                            onKeyDown={(ev) => { if (ev.key === "Enter") handleAddArticle(t.id); if (ev.key === "Escape") setAddingArticleForType(null); }}
+                            autoFocus
+                          />
+                          <button className="btn btn--ghost btn--sm" onClick={() => handleAddArticle(t.id)} disabled={!newArticleName.trim()}><Check size={14} /></button>
+                          <button className="btn btn--ghost btn--sm" onClick={() => setAddingArticleForType(null)}><X size={14} /></button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+
+              {expenseTypes.length === 0 && (
+                <div style={{ color: "var(--text-muted)", fontSize: "0.8125rem", marginBottom: "0.5rem" }}>Нет категорий</div>
+              )}
+
+              {/* Add new expense type */}
+              <div className="admin-inline-edit">
+                <input
+                  className="admin-inline-input"
+                  placeholder="Новая категория расходов"
+                  value={newTypeName}
+                  onChange={(e) => setNewTypeName(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") handleAddType(); }}
+                />
+                <button className="btn btn--primary btn--sm" onClick={handleAddType} disabled={!newTypeName.trim()}>
+                  <Plus size={14} /> Добавить
+                </button>
+              </div>
+            </div>
+          )}
+        </>
+      )}
 
       {/* DDS operations table */}
       <h3 className="admin-subtitle" style={{ fontSize: "0.875rem" }}>
