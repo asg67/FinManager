@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Plus, Pencil, Trash2, Check } from "lucide-react";
 import { entitiesApi } from "../../api/entities.js";
 import { accountsApi, type CreateAccountPayload } from "../../api/accounts.js";
+import { useAuthStore } from "../../stores/auth.js";
 import { Button, Input, Select, Modal, Table } from "../ui/index.js";
 import type { Entity, Account } from "@shared/types.js";
 
@@ -29,6 +30,9 @@ interface BalanceRow {
 
 export default function AccountsTab() {
   const { t } = useTranslation();
+  const user = useAuthStore((s) => s.user);
+  const isOwner = user?.role === "owner";
+
   const [entities, setEntities] = useState<Entity[]>([]);
   const [selectedEntity, setSelectedEntity] = useState("");
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -43,7 +47,7 @@ export default function AccountsTab() {
   const [balanceRows, setBalanceRows] = useState<Record<string, BalanceRow>>({});
 
   useEffect(() => {
-    entitiesApi.list().then((data) => {
+    entitiesApi.list({ mine: true }).then((data) => {
       setEntities(data);
       if (data.length > 0) setSelectedEntity(data[0].id);
       setLoading(false);
@@ -55,7 +59,6 @@ export default function AccountsTab() {
       setLoading(true);
       accountsApi.list(selectedEntity).then((data) => {
         setAccounts(data);
-        // Init balance rows from account data
         const rows: Record<string, BalanceRow> = {};
         for (const acc of data) {
           rows[acc.id] = {
@@ -179,6 +182,72 @@ export default function AccountsTab() {
     },
   ];
 
+  // Members: only show initial balances, no CRUD
+  if (!isOwner) {
+    return (
+      <div>
+        {entities.length > 1 && (
+          <div className="tab-header">
+            <Select
+              options={entities.map((e) => ({ value: e.id, label: e.name }))}
+              value={selectedEntity}
+              onChange={(e) => setSelectedEntity(e.target.value)}
+              label={t("settings.selectEntity")}
+            />
+          </div>
+        )}
+
+        {loading ? (
+          <div className="tab-loading">{t("common.loading")}</div>
+        ) : accounts.length > 0 ? (
+          <div className="initial-balances">
+            <h3 className="initial-balances__title">{t("settings.initialBalances")}</h3>
+            <div className="initial-balances__list">
+              {accounts.map((acc) => {
+                const row = balanceRows[acc.id];
+                if (!row) return null;
+                return (
+                  <div key={acc.id} className="initial-balances__row">
+                    <span className="initial-balances__name">{acc.name}</span>
+                    <input
+                      type="date"
+                      className="initial-balances__input initial-balances__date"
+                      value={row.date}
+                      onChange={(e) => updateBalanceRow(acc.id, "date", e.target.value)}
+                    />
+                    <input
+                      type="number"
+                      step="0.01"
+                      className="initial-balances__input initial-balances__amount"
+                      placeholder="0.00"
+                      value={row.amount}
+                      onChange={(e) => updateBalanceRow(acc.id, "amount", e.target.value)}
+                    />
+                    <button
+                      type="button"
+                      className={`icon-btn initial-balances__save ${row.saved ? "initial-balances__save--ok" : ""}`}
+                      onClick={() => saveBalance(acc.id)}
+                      disabled={row.saving}
+                      title={t("common.save")}
+                    >
+                      <Check size={18} />
+                    </button>
+                    {row.saved && (
+                      <span className="initial-balances__saved">{t("settings.balanceSaved")}</span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ) : (
+          <div className="tab-empty">{t("settings.noAccounts")}</div>
+        )}
+      </div>
+    );
+  }
+
+  // Owner: full CRUD + initial balances
   return (
     <div>
       <div className="tab-header">
