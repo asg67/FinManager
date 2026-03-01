@@ -147,12 +147,14 @@ export default function AccountsTab() {
   }
 
   function renderBalancesList() {
-    if (accounts.length === 0) return null;
+    // Only show accounts with a bank (i.e. real bank accounts, not cash/manual DDS ones)
+    const bankAccounts = accounts.filter((a) => a.bank);
+    if (bankAccounts.length === 0) return null;
     return (
       <div className="initial-balances">
         <h3 className="initial-balances__title">{t("settings.initialBalances")}</h3>
         <div className="initial-balances__list">
-          {accounts.map((acc) => {
+          {bankAccounts.map((acc) => {
             const row = balanceRows[acc.id];
             if (!row) return null;
             return (
