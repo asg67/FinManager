@@ -65,9 +65,6 @@ function sanitizeUser(user: {
   companyId: string | null;
   company?: { id: string; name: string; onboardingDone: boolean; createdAt: Date } | null;
   avatar?: string | null;
-  sberAccountNumber?: string | null;
-  tbankCardCode?: string | null;
-  tbankDepositContract?: string | null;
   createdAt: Date;
 }) {
   return {
@@ -85,9 +82,6 @@ function sanitizeUser(user: {
       createdAt: user.company.createdAt.toISOString(),
     } : null,
     avatar: user.avatar ?? null,
-    sberAccountNumber: user.sberAccountNumber ?? null,
-    tbankCardCode: user.tbankCardCode ?? null,
-    tbankDepositContract: user.tbankDepositContract ?? null,
     createdAt: user.createdAt.toISOString(),
   };
 }
@@ -234,9 +228,6 @@ router.put(
       if (req.body.name !== undefined) updates.name = req.body.name;
       if (req.body.language !== undefined) updates.language = req.body.language;
       if (req.body.theme !== undefined) updates.theme = req.body.theme;
-      if (req.body.sberAccountNumber !== undefined) updates.sberAccountNumber = req.body.sberAccountNumber;
-      if (req.body.tbankCardCode !== undefined) updates.tbankCardCode = req.body.tbankCardCode;
-      if (req.body.tbankDepositContract !== undefined) updates.tbankDepositContract = req.body.tbankDepositContract;
 
       const user = await prisma.user.update({
         where: { id: req.user!.userId },

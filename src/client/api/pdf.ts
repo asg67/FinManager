@@ -21,7 +21,6 @@ export interface UploadResult {
   totalCount: number;
   duplicateCount: number;
   accountIdentifier: string | null;
-  identifierWarning: string | null;
 }
 
 export interface ConfirmResult {

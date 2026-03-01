@@ -33,9 +33,6 @@ export interface User {
   companyId: string | null;
   company: Company | null;
   avatar: string | null;
-  sberAccountNumber: string | null;
-  tbankCardCode: string | null;
-  tbankDepositContract: string | null;
   createdAt: string;
 }
 
@@ -63,9 +60,6 @@ export interface UpdateProfilePayload {
   name?: string;
   language?: "ru" | "en";
   theme?: "dark" | "light";
-  sberAccountNumber?: string | null;
-  tbankCardCode?: string | null;
-  tbankDepositContract?: string | null;
 }
 
 export interface RegisterInvitePayload {

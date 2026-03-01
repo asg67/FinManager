@@ -275,13 +275,6 @@ export default function StatementWizard({ open, onClose, onDone, initialFile, in
                   </span>
                 </div>
               </div>
-              {uploadResult.identifierWarning && (
-                <div className="pdf-id-warning">
-                  <AlertTriangle size={16} />
-                  <span>{uploadResult.identifierWarning}</span>
-                </div>
-              )}
-
               <div className="table-wrap">
                 <table className="table">
                   <thead>
