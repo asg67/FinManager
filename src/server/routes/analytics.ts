@@ -281,15 +281,7 @@ router.get("/account-balances", async (req: Request, res: Response) => {
 
     const balances = await Promise.all(
       accounts.map(async (acc) => {
-        const [incomingAgg, outgoingAgg, bankIncomeAgg, bankExpenseAgg] = await Promise.all([
-          prisma.ddsOperation.aggregate({
-            where: { toAccountId: acc.id },
-            _sum: { amount: true },
-          }),
-          prisma.ddsOperation.aggregate({
-            where: { fromAccountId: acc.id },
-            _sum: { amount: true },
-          }),
+        const [bankIncomeAgg, bankExpenseAgg] = await Promise.all([
           prisma.bankTransaction.aggregate({
             where: { accountId: acc.id, direction: "income" },
             _sum: { amount: true },
@@ -300,8 +292,6 @@ router.get("/account-balances", async (req: Request, res: Response) => {
           }),
         ]);
 
-        const ddsIncoming = incomingAgg._sum.amount?.toNumber() ?? 0;
-        const ddsOutgoing = outgoingAgg._sum.amount?.toNumber() ?? 0;
         const bankIncome = bankIncomeAgg._sum.amount?.toNumber() ?? 0;
         const bankExpense = bankExpenseAgg._sum.amount?.toNumber() ?? 0;
 
@@ -311,7 +301,7 @@ router.get("/account-balances", async (req: Request, res: Response) => {
           type: acc.type,
           bank: acc.bank,
           entityName: acc.entity.name,
-          balance: (ddsIncoming - ddsOutgoing) + (bankIncome - bankExpense),
+          balance: bankIncome - bankExpense,
         };
       }),
     );
