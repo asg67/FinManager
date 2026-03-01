@@ -92,4 +92,7 @@ export const adminApi = {
 
   getEntity: (companyId: string, entityId: string) =>
     api.get<AdminEntityDetail>(`/admin/companies/${companyId}/entities/${entityId}`),
+
+  deleteOperation: (id: string) =>
+    api.delete<void>(`/admin/operations/${id}`),
 };

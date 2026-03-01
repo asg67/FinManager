@@ -93,9 +93,10 @@ export default function App() {
             <Route path="/bank-accounts" element={<Suspense fallback={pageFallback}><BankAccounts /></Suspense>} />
             <Route path="/bank-accounts/:id" element={<Suspense fallback={pageFallback}><BankConnectionDetail /></Suspense>} />
             <Route path="/settings" element={<Suspense fallback={pageFallback}><Settings /></Suspense>} />
-            <Route path="/admin" element={<Suspense fallback={pageFallback}><Admin /></Suspense>} />
             <Route path="/share-target" element={<Suspense fallback={pageFallback}><ShareTarget /></Suspense>} />
           </Route>
+          {/* Admin — full screen, no sidebar */}
+          <Route path="/admin" element={<Suspense fallback={pageFallback}><Admin /></Suspense>} />
         </Route>
 
         {/* Fallback */}

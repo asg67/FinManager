@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { Navigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import {
   Building2, Users, Bell, Plus, ChevronLeft, ChevronRight,
-  ArrowLeft, Send, CreditCard, FileText,
+  ArrowLeft, Send, CreditCard, FileText, Home, Trash2,
 } from "lucide-react";
 import { useAuthStore } from "../stores/auth.js";
 import { companyApi } from "../api/company.js";
@@ -48,10 +48,15 @@ export default function Admin() {
     else setView({ kind: "dashboard" });
   }
 
+  const navigate = useNavigate();
+
   return (
-    <div className="dds-page page-enter">
-      <div className="page-header">
+    <div className="admin-page">
+      <div className="admin-page__header">
         <h1 className="page-title">Панель управления</h1>
+        <button className="btn btn--secondary btn--sm" onClick={() => navigate("/")}>
+          <Home size={16} /> В приложение
+        </button>
       </div>
 
       {view.kind === "dashboard" && (
@@ -202,6 +207,7 @@ function CompanyDetailView({
   const [opsTotalPages, setOpsTotalPages] = useState(1);
   const [opsTotal, setOpsTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState<string | null>(null);
 
   const loadOps = useCallback(async (page: number) => {
     const res = await adminApi.getCompanyOperations(companyId, { page, limit: 15 });
@@ -224,6 +230,17 @@ function CompanyDetailView({
       setLoading(false);
     });
   }, [companyId]);
+
+  async function handleDeleteOp(opId: string) {
+    if (!confirm("Удалить операцию?")) return;
+    setDeleting(opId);
+    try {
+      await adminApi.deleteOperation(opId);
+      await loadOps(opsPage);
+    } finally {
+      setDeleting(null);
+    }
+  }
 
   if (loading || !company) return <div className="tab-loading">Загрузка...</div>;
 
@@ -274,6 +291,7 @@ function CompanyDetailView({
                   <th>Сумма</th>
                   <th>Статья</th>
                   <th>Комментарий</th>
+                  <th></th>
                 </tr>
               </thead>
               <tbody>
@@ -288,6 +306,16 @@ function CompanyDetailView({
                     </td>
                     <td>{op.expenseType?.name || "—"}</td>
                     <td>{op.comment || "—"}</td>
+                    <td>
+                      <button
+                        className="btn btn--ghost btn--sm"
+                        onClick={() => handleDeleteOp(op.id)}
+                        disabled={deleting === op.id}
+                        title="Удалить"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>

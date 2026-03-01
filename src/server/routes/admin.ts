@@ -277,4 +277,20 @@ router.get("/companies/:id/entities/:entityId", async (req: Request, res: Respon
   }
 });
 
+// DELETE /api/admin/operations/:id — delete any DDS operation
+router.delete("/operations/:id", async (req: Request, res: Response) => {
+  try {
+    const op = await prisma.ddsOperation.findUnique({ where: { id: req.params.id as string } });
+    if (!op) {
+      res.status(404).json({ message: "Operation not found" });
+      return;
+    }
+    await prisma.ddsOperation.delete({ where: { id: op.id } });
+    res.status(204).send();
+  } catch (error) {
+    console.error("Admin delete operation error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 export default router;
