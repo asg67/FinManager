@@ -6,10 +6,11 @@ import {
   ArrowLeft, Send, CreditCard, FileText,
 } from "lucide-react";
 import { useAuthStore } from "../stores/auth.js";
-import { companyApi, type CompanyListItem } from "../api/company.js";
+import { companyApi } from "../api/company.js";
 import {
   adminApi,
   type AdminUser,
+  type AdminCompanyListItem,
   type AdminCompanyDetail,
   type AdminOperation,
   type AdminEntityDetail,
@@ -93,8 +94,10 @@ function DashboardView({
   const [usersCount, setUsersCount] = useState(0);
 
   useEffect(() => {
-    companyApi.listMyCompanies().then((c) => setCompaniesCount(c.length));
-    adminApi.listUsers().then((u) => setUsersCount(u.length));
+    adminApi.getStats().then((s) => {
+      setCompaniesCount(s.companiesCount);
+      setUsersCount(s.usersCount);
+    });
   }, []);
 
   const cards = [
@@ -146,11 +149,11 @@ function CompaniesView({
   onBack: () => void;
   onSelect: (id: string) => void;
 }) {
-  const [companies, setCompanies] = useState<CompanyListItem[]>([]);
+  const [companies, setCompanies] = useState<AdminCompanyListItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    companyApi.listMyCompanies().then((d) => { setCompanies(d); setLoading(false); });
+    adminApi.listCompanies().then((d) => { setCompanies(d); setLoading(false); });
   }, []);
 
   return (
@@ -171,7 +174,6 @@ function CompaniesView({
                 <div className="admin-list-item__meta">
                   <span><Users size={13} /> {c.usersCount}</span>
                   <span><Building2 size={13} /> {c.entitiesCount} юр.лиц</span>
-                  {c.isActive && <span style={{ color: "var(--accent)" }}>Активная</span>}
                 </div>
               </div>
               <ChevronRight size={18} className="admin-list-item__arrow" />

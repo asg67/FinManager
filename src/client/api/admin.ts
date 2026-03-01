@@ -57,7 +57,22 @@ export interface AdminEntityDetail {
   }[];
 }
 
+export interface AdminCompanyListItem {
+  id: string;
+  name: string;
+  onboardingDone: boolean;
+  usersCount: number;
+  entitiesCount: number;
+  createdAt: string;
+}
+
 export const adminApi = {
+  getStats: () =>
+    api.get<{ companiesCount: number; usersCount: number }>("/admin/stats"),
+
+  listCompanies: () =>
+    api.get<AdminCompanyListItem[]>("/admin/companies"),
+
   listUsers: () =>
     api.get<AdminUser[]>("/admin/users"),
 

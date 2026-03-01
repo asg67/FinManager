@@ -16,6 +16,44 @@ router.use((req: Request, res: Response, next) => {
   next();
 });
 
+// GET /api/admin/stats — counts for dashboard
+router.get("/stats", async (_req: Request, res: Response) => {
+  try {
+    const [companiesCount, usersCount] = await Promise.all([
+      prisma.company.count(),
+      prisma.user.count(),
+    ]);
+    res.json({ companiesCount, usersCount });
+  } catch (error) {
+    console.error("Admin stats error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// GET /api/admin/companies — all companies list
+router.get("/companies", async (_req: Request, res: Response) => {
+  try {
+    const companies = await prisma.company.findMany({
+      orderBy: { createdAt: "desc" },
+      include: {
+        _count: { select: { users: true, entities: true } },
+      },
+    });
+
+    res.json(companies.map((c) => ({
+      id: c.id,
+      name: c.name,
+      onboardingDone: c.onboardingDone,
+      usersCount: c._count.users,
+      entitiesCount: c._count.entities,
+      createdAt: c.createdAt.toISOString(),
+    })));
+  } catch (error) {
+    console.error("Admin list companies error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 // GET /api/admin/users — all users with last activity
 router.get("/users", async (_req: Request, res: Response) => {
   try {
