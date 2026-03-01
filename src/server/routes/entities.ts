@@ -17,7 +17,13 @@ router.get("/", async (req: Request, res: Response) => {
     // Get user's company
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user?.companyId) {
-      res.json([]);
+      // No company — return user's personal entities
+      const entities = await prisma.entity.findMany({
+        where: { ownerId: userId, companyId: null },
+        include: { _count: { select: { accounts: true } } },
+        orderBy: { createdAt: "asc" },
+      });
+      res.json(entities);
       return;
     }
 
@@ -74,8 +80,10 @@ router.get("/:id", async (req: Request, res: Response) => {
       return;
     }
 
-    // Check company access
-    if (!user?.companyId || entity.companyId !== user.companyId) {
+    // Check company access or personal entity access
+    const isCompanyAccess = user?.companyId && entity.companyId === user.companyId;
+    const isPersonalAccess = !user?.companyId && entity.companyId === null && entity.ownerId === req.user!.userId;
+    if (!isCompanyAccess && !isPersonalAccess) {
       res.status(403).json({ message: "Access denied" });
       return;
     }
@@ -87,17 +95,14 @@ router.get("/:id", async (req: Request, res: Response) => {
   }
 });
 
-// POST /api/entities — create entity (owner only)
+// POST /api/entities — create entity
 router.post("/", validate(createEntitySchema), async (req: Request, res: Response) => {
   try {
-    if (req.user!.role !== "owner") {
-      res.status(403).json({ message: "Only owners can create entities" });
-      return;
-    }
-
     const user = await prisma.user.findUnique({ where: { id: req.user!.userId } });
-    if (!user?.companyId) {
-      res.status(400).json({ message: "Create a company first" });
+
+    // In company mode, only owners can create entities
+    if (user?.companyId && req.user!.role !== "owner") {
+      res.status(403).json({ message: "Only owners can create entities" });
       return;
     }
 
@@ -105,7 +110,7 @@ router.post("/", validate(createEntitySchema), async (req: Request, res: Respons
       data: {
         name: req.body.name,
         ownerId: req.user!.userId,
-        companyId: user.companyId,
+        companyId: user?.companyId || null,
       },
     });
 

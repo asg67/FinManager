@@ -127,6 +127,12 @@ router.post("/register", validate(registerSchema), async (req: Request, res: Res
       include: { company: true },
     });
 
+    // Auto-create personal entity "ИП Фамилия"
+    const lastName = name.trim().split(/\s+/)[0];
+    await prisma.entity.create({
+      data: { name: `ИП ${lastName}`, ownerId: user.id, companyId: null },
+    });
+
     const tokens = generateTokens(user.id, user.role);
 
     res.status(201).json({

@@ -88,6 +88,12 @@ router.post("/register-invite", validate(registerInviteSchema), async (req: Requ
       include: { company: true },
     });
 
+    // Auto-create personal entity "ИП Фамилия" inside the invite's company
+    const lastName = name.trim().split(/\s+/)[0];
+    await prisma.entity.create({
+      data: { name: `ИП ${lastName}`, ownerId: user.id, companyId: invite.companyId },
+    });
+
     const tokens = generateTokens(user.id, user.role);
 
     res.status(201).json({
@@ -161,6 +167,12 @@ router.post("/join", async (req: Request, res: Response) => {
       include: { company: true },
     });
 
+    // Transfer user's personal entities to the company
+    await prisma.entity.updateMany({
+      where: { ownerId: userId, companyId: null },
+      data: { companyId: invite.companyId },
+    });
+
     res.json({
       id: updatedUser.id,
       email: updatedUser.email,
@@ -212,6 +224,12 @@ router.post("/", validate(createCompanySchema), async (req: Request, res: Respon
     // Switch user to the new company
     await prisma.user.update({
       where: { id: userId },
+      data: { companyId: company.id },
+    });
+
+    // Transfer user's personal entities to the new company
+    await prisma.entity.updateMany({
+      where: { ownerId: userId, companyId: null },
       data: { companyId: company.id },
     });
 

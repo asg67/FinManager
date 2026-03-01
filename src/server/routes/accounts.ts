@@ -8,17 +8,24 @@ const router = Router({ mergeParams: true });
 
 router.use(authMiddleware);
 
-// Helper: check entity access via company
+// Helper: check entity access via company or personal ownership
 async function checkEntityAccess(entityId: string, userId: string) {
   const entity = await prisma.entity.findUnique({ where: { id: entityId } });
   if (!entity) return { error: 404 as const, message: "Entity not found" };
 
   const user = await prisma.user.findUnique({ where: { id: userId } });
-  if (!user?.companyId || entity.companyId !== user.companyId) {
-    return { error: 403 as const, message: "Access denied" };
+
+  // Company access: user and entity in same company
+  if (user?.companyId && entity.companyId === user.companyId) {
+    return { entity };
   }
 
-  return { entity };
+  // Personal access: no company, entity has no company, user owns it
+  if (!user?.companyId && entity.companyId === null && entity.ownerId === userId) {
+    return { entity };
+  }
+
+  return { error: 403 as const, message: "Access denied" };
 }
 
 // GET /api/entities/:entityId/accounts
@@ -48,14 +55,15 @@ router.get("/", async (req: Request, res: Response) => {
 // POST /api/entities/:entityId/accounts
 router.post("/", validate(createAccountSchema), async (req: Request, res: Response) => {
   try {
-    if (req.user!.role !== "owner") {
-      res.status(403).json({ message: "Only owners can create accounts" });
-      return;
-    }
-
     const check = await checkEntityAccess(req.params.entityId, req.user!.userId);
     if ("error" in check) {
       res.status(check.error).json({ message: check.message });
+      return;
+    }
+
+    // In company mode, only owners can create accounts
+    if (check.entity.companyId && req.user!.role !== "owner") {
+      res.status(403).json({ message: "Only owners can create accounts" });
       return;
     }
 
@@ -80,14 +88,15 @@ router.post("/", validate(createAccountSchema), async (req: Request, res: Respon
 // PUT /api/entities/:entityId/accounts/:id
 router.put("/:id", validate(updateAccountSchema), async (req: Request, res: Response) => {
   try {
-    if (req.user!.role !== "owner") {
-      res.status(403).json({ message: "Only owners can update accounts" });
-      return;
-    }
-
     const check = await checkEntityAccess(req.params.entityId, req.user!.userId);
     if ("error" in check) {
       res.status(check.error).json({ message: check.message });
+      return;
+    }
+
+    // In company mode, only owners can update accounts
+    if (check.entity.companyId && req.user!.role !== "owner") {
+      res.status(403).json({ message: "Only owners can update accounts" });
       return;
     }
 
@@ -114,14 +123,15 @@ router.put("/:id", validate(updateAccountSchema), async (req: Request, res: Resp
 // DELETE /api/entities/:entityId/accounts/:id
 router.delete("/:id", async (req: Request, res: Response) => {
   try {
-    if (req.user!.role !== "owner") {
-      res.status(403).json({ message: "Only owners can delete accounts" });
-      return;
-    }
-
     const check = await checkEntityAccess(req.params.entityId, req.user!.userId);
     if ("error" in check) {
       res.status(check.error).json({ message: check.message });
+      return;
+    }
+
+    // In company mode, only owners can delete accounts
+    if (check.entity.companyId && req.user!.role !== "owner") {
+      res.status(403).json({ message: "Only owners can delete accounts" });
       return;
     }
 
