@@ -360,7 +360,10 @@ router.delete("/transactions/all", async (req: Request, res: Response) => {
       if (accessCount > 0) {
         entFilter = { companyId: user.companyId, OR: [{ ownerId: userId }, { entityAccess: { some: { userId } } }] };
       } else {
-        entFilter = { companyId: user.companyId, ownerId: userId };
+        const lastName = user.name?.split(" ")[0];
+        entFilter = lastName && lastName.length >= 2
+          ? { companyId: user.companyId, name: { contains: lastName, mode: "insensitive" } }
+          : { companyId: user.companyId, ownerId: userId };
       }
     }
 
