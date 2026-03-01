@@ -4,7 +4,7 @@ import { Plus, Pencil, Trash2, Check } from "lucide-react";
 import { entitiesApi } from "../../api/entities.js";
 import { accountsApi, type CreateAccountPayload } from "../../api/accounts.js";
 import { useAuthStore } from "../../stores/auth.js";
-import { Button, Input, Select, Modal, Table } from "../ui/index.js";
+import { Button, Input, Select, Modal, Table, DatePicker } from "../ui/index.js";
 import type { Entity, Account } from "@shared/types.js";
 
 const ACCOUNT_TYPES = [
@@ -159,12 +159,10 @@ export default function AccountsTab() {
               <div key={acc.id} className="initial-balances__row">
                 <span className="initial-balances__name">{acc.name}</span>
                 <div className="initial-balances__fields">
-                  <Input
-                    type="date"
+                  <DatePicker
                     label={t("settings.balanceDate")}
                     value={row.date}
-                    onChange={(e) => updateBalanceRow(acc.id, "date", e.target.value)}
-                    className="initial-balances__date"
+                    onChange={(val) => updateBalanceRow(acc.id, "date", val)}
                   />
                   <Input
                     type="number"

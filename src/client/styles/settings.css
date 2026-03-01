@@ -460,6 +460,10 @@
   margin-bottom: 0;
 }
 
+.initial-balances__fields .datepicker {
+  flex: 1;
+}
+
 .initial-balances__fields .input-field__label {
   font-size: 0.75rem;
 }
@@ -496,7 +500,8 @@
     flex-wrap: wrap;
   }
 
-  .initial-balances__fields .input-field {
+  .initial-balances__fields .input-field,
+  .initial-balances__fields .datepicker {
     flex-basis: calc(50% - 0.25rem);
   }
 
