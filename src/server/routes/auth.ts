@@ -16,6 +16,7 @@ import {
   updateProfileSchema,
   changePasswordSchema,
 } from "../schemas/auth.js";
+import { seedEntityAccounts } from "../helpers/seedAccounts.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -121,11 +122,12 @@ router.post("/register", validate(registerSchema), async (req: Request, res: Res
       include: { company: true },
     });
 
-    // Auto-create personal entity "ИП Фамилия"
+    // Auto-create personal entity "ИП Фамилия" with standard accounts
     const lastName = name.trim().split(/\s+/)[0];
-    await prisma.entity.create({
+    const entity = await prisma.entity.create({
       data: { name: `ИП ${lastName}`, ownerId: user.id, companyId: null },
     });
+    await seedEntityAccounts(entity.id);
 
     const tokens = generateTokens(user.id, user.role);
 

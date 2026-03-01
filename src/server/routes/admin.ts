@@ -2,6 +2,7 @@ import { Router, Request, Response } from "express";
 import { Prisma } from "@prisma/client";
 import { prisma } from "../prisma.js";
 import { authMiddleware } from "../middleware/auth.js";
+import { seedEntityAccounts } from "../helpers/seedAccounts.js";
 
 const router = Router();
 
@@ -302,6 +303,7 @@ router.post("/companies/:id/entities", async (req: Request, res: Response) => {
         companyId,
       },
     });
+    await seedEntityAccounts(entity.id);
 
     res.status(201).json(entity);
   } catch (error) {

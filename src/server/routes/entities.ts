@@ -3,6 +3,7 @@ import { prisma } from "../prisma.js";
 import { authMiddleware } from "../middleware/auth.js";
 import { validate } from "../middleware/validate.js";
 import { createEntitySchema, updateEntitySchema } from "../schemas/entity.js";
+import { seedEntityAccounts } from "../helpers/seedAccounts.js";
 
 const router = Router();
 
@@ -127,6 +128,7 @@ router.post("/", validate(createEntitySchema), async (req: Request, res: Respons
         companyId: user?.companyId || null,
       },
     });
+    await seedEntityAccounts(entity.id);
 
     res.status(201).json(entity);
   } catch (error) {
