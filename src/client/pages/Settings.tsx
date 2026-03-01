@@ -22,10 +22,10 @@ export default function Settings() {
 
   const tabs: { key: Tab; label: string; icon: typeof Building2 }[] = [
     { key: "profile", label: t("profile.title"), icon: UserCog },
+    { key: "accounts", label: t("settings.accounts"), icon: Wallet },
     ...(isOwner ? [
       { key: "company" as Tab, label: t("company.title"), icon: Briefcase },
       { key: "entities" as Tab, label: t("settings.entities"), icon: Building2 },
-      { key: "accounts" as Tab, label: t("settings.accounts"), icon: Wallet },
       { key: "expenses" as Tab, label: t("settings.expenses"), icon: Tags },
       { key: "templates" as Tab, label: t("settings.templates"), icon: FileText },
       { key: "employees" as Tab, label: t("nav.employees"), icon: Users },
