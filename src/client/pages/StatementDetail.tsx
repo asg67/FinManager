@@ -197,6 +197,12 @@ export default function StatementDetail() {
           <Upload size={20} />
           {t("pdf.uploadStatement")}
         </Button>
+        {data.total > 0 && (
+          <Button variant="danger" className="dds-mobile-add__btn" onClick={() => setDeleteAllOpen(true)}>
+            <Trash2 size={20} />
+            {t("pdf.deleteAll")}
+          </Button>
+        )}
       </div>
 
       {/* Toolbar */}
