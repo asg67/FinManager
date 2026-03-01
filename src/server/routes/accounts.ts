@@ -20,8 +20,8 @@ async function checkEntityAccess(entityId: string, userId: string) {
     return { entity };
   }
 
-  // Personal access: no company, entity has no company, user owns it
-  if (!user?.companyId && entity.companyId === null && entity.ownerId === userId) {
+  // Personal access: entity has no company and user owns it
+  if (entity.companyId === null && entity.ownerId === userId) {
     return { entity };
   }
 

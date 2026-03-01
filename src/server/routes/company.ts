@@ -167,12 +167,6 @@ router.post("/join", async (req: Request, res: Response) => {
       include: { company: true },
     });
 
-    // Transfer user's personal entities to the company
-    await prisma.entity.updateMany({
-      where: { ownerId: userId, companyId: null },
-      data: { companyId: invite.companyId },
-    });
-
     res.json({
       id: updatedUser.id,
       email: updatedUser.email,
@@ -224,12 +218,6 @@ router.post("/", validate(createCompanySchema), async (req: Request, res: Respon
     // Switch user to the new company
     await prisma.user.update({
       where: { id: userId },
-      data: { companyId: company.id },
-    });
-
-    // Transfer user's personal entities to the new company
-    await prisma.entity.updateMany({
-      where: { ownerId: userId, companyId: null },
       data: { companyId: company.id },
     });
 

@@ -28,23 +28,37 @@ router.get("/", async (req: Request, res: Response) => {
     }
 
     const mine = req.query.mine === "true";
-    const where: any = { companyId: user.companyId };
+    const where: any = {};
+
     if (mine && user.role !== "owner") {
+      // Member: company entities they have access to + their personal entities
       const accessCount = await prisma.entityAccess.count({ where: { userId } });
       if (accessCount > 0) {
         where.OR = [
-          { ownerId: userId },
-          { entityAccess: { some: { userId } } },
+          { companyId: user.companyId, ownerId: userId },
+          { companyId: user.companyId, entityAccess: { some: { userId } } },
+          { companyId: null, ownerId: userId },
         ];
       } else {
-        // Match by last name
         const lastName = user.name?.split(" ")[0];
         if (lastName && lastName.length >= 2) {
-          where.name = { contains: lastName, mode: "insensitive" };
+          where.OR = [
+            { companyId: user.companyId, name: { contains: lastName, mode: "insensitive" } },
+            { companyId: null, ownerId: userId },
+          ];
         } else {
-          where.ownerId = userId;
+          where.OR = [
+            { companyId: user.companyId, ownerId: userId },
+            { companyId: null, ownerId: userId },
+          ];
         }
       }
+    } else {
+      // Owner or no mine filter: all company entities + personal entities
+      where.OR = [
+        { companyId: user.companyId },
+        { companyId: null, ownerId: userId },
+      ];
     }
 
     const entities = await prisma.entity.findMany({
@@ -82,7 +96,7 @@ router.get("/:id", async (req: Request, res: Response) => {
 
     // Check company access or personal entity access
     const isCompanyAccess = user?.companyId && entity.companyId === user.companyId;
-    const isPersonalAccess = !user?.companyId && entity.companyId === null && entity.ownerId === req.user!.userId;
+    const isPersonalAccess = entity.companyId === null && entity.ownerId === req.user!.userId;
     if (!isCompanyAccess && !isPersonalAccess) {
       res.status(403).json({ message: "Access denied" });
       return;
