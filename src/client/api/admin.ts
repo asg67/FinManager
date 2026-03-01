@@ -121,7 +121,14 @@ export const adminApi = {
   deleteEntity: (id: string) =>
     api.delete<void>(`/admin/entities/${id}`),
 
-  // Expense Types CRUD
+  // Expense Types CRUD (company-wide)
+  getCompanyExpenseTypes: (companyId: string) =>
+    api.get<AdminExpenseType[]>(`/admin/companies/${companyId}/expense-types`),
+
+  createCompanyExpenseType: (companyId: string, name: string) =>
+    api.post<AdminExpenseType>(`/admin/companies/${companyId}/expense-types`, { name }),
+
+  // Expense Types CRUD (per entity — kept for entity detail view)
   getExpenseTypes: (entityId: string) =>
     api.get<AdminExpenseType[]>(`/admin/entities/${entityId}/expense-types`),
 

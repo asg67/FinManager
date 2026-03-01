@@ -356,33 +356,39 @@ router.delete("/entities/:id", async (req: Request, res: Response) => {
 
 // ===== EXPENSE TYPES CRUD =====
 
-// GET /api/admin/entities/:entityId/expense-types — list types with articles
-router.get("/entities/:entityId/expense-types", async (req: Request, res: Response) => {
+// GET /api/admin/companies/:id/expense-types — list ALL types across all entities in company
+router.get("/companies/:id/expense-types", async (req: Request, res: Response) => {
   try {
+    const companyId = req.params.id as string;
     const types = await prisma.expenseType.findMany({
-      where: { entityId: req.params.entityId as string },
+      where: { entity: { companyId } },
       include: { articles: { orderBy: { sortOrder: "asc" } } },
       orderBy: { sortOrder: "asc" },
     });
     res.json(types);
   } catch (error) {
-    console.error("Admin list expense types error:", error);
+    console.error("Admin list company expense types error:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 });
 
-// POST /api/admin/entities/:entityId/expense-types — create type
-router.post("/entities/:entityId/expense-types", async (req: Request, res: Response) => {
+// POST /api/admin/companies/:id/expense-types — create type (assigns to first entity)
+router.post("/companies/:id/expense-types", async (req: Request, res: Response) => {
   try {
+    const companyId = req.params.id as string;
     const { name } = req.body;
     if (!name?.trim()) {
       res.status(400).json({ message: "Name is required" });
       return;
     }
 
-    const entity = await prisma.entity.findUnique({ where: { id: req.params.entityId as string } });
+    // Find first entity in the company to anchor the expense type
+    const entity = await prisma.entity.findFirst({
+      where: { companyId },
+      orderBy: { createdAt: "asc" },
+    });
     if (!entity) {
-      res.status(404).json({ message: "Entity not found" });
+      res.status(400).json({ message: "Company has no entities" });
       return;
     }
 

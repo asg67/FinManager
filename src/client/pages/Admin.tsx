@@ -217,8 +217,7 @@ function CompanyDetailView({
   const [editingEntityId, setEditingEntityId] = useState<string | null>(null);
   const [editEntityName, setEditEntityName] = useState("");
 
-  // Expense types/articles state
-  const [expEntityId, setExpEntityId] = useState<string | null>(null);
+  // Expense types/articles state (company-wide)
   const [expenseTypes, setExpenseTypes] = useState<AdminExpenseType[]>([]);
   const [expLoading, setExpLoading] = useState(false);
   const [newTypeName, setNewTypeName] = useState("");
@@ -290,73 +289,64 @@ function CompanyDetailView({
   async function handleDeleteEntity(entityId: string, entityName: string) {
     if (!confirm(`Удалить "${entityName}"? Все счета, операции и категории будут удалены!`)) return;
     await adminApi.deleteEntity(entityId);
-    if (expEntityId === entityId) { setExpEntityId(null); setExpenseTypes([]); }
     await loadCompany();
+    await loadExpenseTypes();
   }
 
-  // Expense types loading
-  const loadExpenseTypes = useCallback(async (entityId: string) => {
+  // Expense types loading (company-wide, across all entities)
+  const loadExpenseTypes = useCallback(async () => {
     setExpLoading(true);
-    const types = await adminApi.getExpenseTypes(entityId);
+    const types = await adminApi.getCompanyExpenseTypes(companyId);
     setExpenseTypes(types);
     setExpLoading(false);
-  }, []);
+  }, [companyId]);
 
-  // Auto-select first entity for expenses when company loads
+  // Load expense types on mount
   useEffect(() => {
-    if (company && company.entities.length > 0 && !expEntityId) {
-      setExpEntityId(company.entities[0].id);
-    }
-  }, [company, expEntityId]);
-
-  // Load expense types when selected entity changes
-  useEffect(() => {
-    if (expEntityId) loadExpenseTypes(expEntityId);
-  }, [expEntityId, loadExpenseTypes]);
+    loadExpenseTypes();
+  }, [loadExpenseTypes]);
 
   // Expense type CRUD
   async function handleAddType() {
-    if (!newTypeName.trim() || !expEntityId) return;
-    await adminApi.createExpenseType(expEntityId, newTypeName.trim());
+    if (!newTypeName.trim()) return;
+    await adminApi.createCompanyExpenseType(companyId, newTypeName.trim());
     setNewTypeName("");
-    await loadExpenseTypes(expEntityId);
+    await loadExpenseTypes();
   }
 
   async function handleRenameType(id: string) {
-    if (!editTypeName.trim() || !expEntityId) return;
+    if (!editTypeName.trim()) return;
     await adminApi.updateExpenseType(id, editTypeName.trim());
     setEditingTypeId(null);
-    await loadExpenseTypes(expEntityId);
+    await loadExpenseTypes();
   }
 
   async function handleDeleteType(id: string, name: string) {
     if (!confirm(`Удалить категорию "${name}" и все её статьи?`)) return;
-    if (!expEntityId) return;
     await adminApi.deleteExpenseType(id);
-    await loadExpenseTypes(expEntityId);
+    await loadExpenseTypes();
   }
 
   // Article CRUD
   async function handleAddArticle(typeId: string) {
-    if (!newArticleName.trim() || !expEntityId) return;
+    if (!newArticleName.trim()) return;
     await adminApi.createArticle(typeId, newArticleName.trim());
     setNewArticleName("");
     setAddingArticleForType(null);
-    await loadExpenseTypes(expEntityId);
+    await loadExpenseTypes();
   }
 
   async function handleRenameArticle(id: string) {
-    if (!editArticleName.trim() || !expEntityId) return;
+    if (!editArticleName.trim()) return;
     await adminApi.updateArticle(id, editArticleName.trim());
     setEditingArticleId(null);
-    await loadExpenseTypes(expEntityId);
+    await loadExpenseTypes();
   }
 
   async function handleDeleteArticle(id: string, name: string) {
     if (!confirm(`Удалить статью "${name}"?`)) return;
-    if (!expEntityId) return;
     await adminApi.deleteArticle(id);
-    await loadExpenseTypes(expEntityId);
+    await loadExpenseTypes();
   }
 
   if (loading || !company) return <div className="tab-loading">Загрузка...</div>;
@@ -427,28 +417,14 @@ function CompanyDetailView({
         </div>
       </div>
 
-      {/* Expense types / articles */}
-      {company.entities.length > 0 && (
-        <>
-          <h3 className="admin-subtitle" style={{ fontSize: "0.875rem" }}>Категории расходов и статьи</h3>
+      {/* Expense types / articles (company-wide) */}
+      <h3 className="admin-subtitle" style={{ fontSize: "0.875rem" }}>Категории расходов и статьи</h3>
 
-          {/* Entity selector */}
-          {company.entities.length > 1 && (
-            <div style={{ marginBottom: "0.75rem" }}>
-              <select
-                className="admin-inline-input"
-                style={{ width: "auto", minWidth: 200 }}
-                value={expEntityId || ""}
-                onChange={(e) => { setExpEntityId(e.target.value); setExpandedType(null); }}
-              >
-                {company.entities.map((ent) => (
-                  <option key={ent.id} value={ent.id}>{ent.name}</option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {expLoading ? (
+      {company.entities.length === 0 ? (
+        <div style={{ color: "var(--text-muted)", fontSize: "0.8125rem", marginBottom: "1.5rem" }}>
+          Сначала добавьте юридическое лицо
+        </div>
+      ) : expLoading ? (
             <div className="tab-loading" style={{ padding: "1rem 0" }}>Загрузка...</div>
           ) : (
             <div className="admin-expense-list">
@@ -555,8 +531,6 @@ function CompanyDetailView({
               </div>
             </div>
           )}
-        </>
-      )}
 
       {/* DDS operations table */}
       <h3 className="admin-subtitle" style={{ fontSize: "0.875rem" }}>
