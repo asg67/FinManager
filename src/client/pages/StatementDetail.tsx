@@ -57,6 +57,7 @@ export default function StatementDetail() {
   // Edit / Delete state
   const [editTx, setEditTx] = useState<BankTransaction | null>(null);
   const [deleteTx, setDeleteTx] = useState<BankTransaction | null>(null);
+  const [deleteAllOpen, setDeleteAllOpen] = useState(false);
   const [editForm, setEditForm] = useState<UpdateTransactionPayload>({});
   const [saving, setSaving] = useState(false);
 
@@ -149,6 +150,17 @@ export default function StatementDetail() {
     }
   }
 
+  async function handleDeleteAll() {
+    setSaving(true);
+    try {
+      await pdfApi.deleteAllTransactions(bankCode);
+      setDeleteAllOpen(false);
+      loadData(filters);
+    } finally {
+      setSaving(false);
+    }
+  }
+
   const label = BANK_LABELS[bankCode || ""] || bankCode;
 
   return (
@@ -162,6 +174,12 @@ export default function StatementDetail() {
           <h1 className="page-title">{label}</h1>
         </div>
         <div className="page-header__actions page-header__actions--desktop">
+          {data.total > 0 && (
+            <Button variant="danger" onClick={() => setDeleteAllOpen(true)}>
+              <Trash2 size={18} />
+              {t("pdf.deleteAll")}
+            </Button>
+          )}
           <Button variant="secondary" className="desktop-only" onClick={() => setExportOpen(true)}>
             <Download size={18} />
             {t("export.downloadExcel")}
@@ -417,6 +435,19 @@ export default function StatementDetail() {
           </Button>
           <Button variant="danger" onClick={handleDelete} loading={saving}>
             {t("common.delete")}
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Delete All Confirm Modal */}
+      <Modal open={deleteAllOpen} onClose={() => setDeleteAllOpen(false)} title={t("pdf.deleteAllTitle")} size="sm">
+        <p className="text-secondary">{t("pdf.deleteAllConfirm", { count: data.total })}</p>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setDeleteAllOpen(false)}>
+            {t("common.cancel")}
+          </Button>
+          <Button variant="danger" onClick={handleDeleteAll} loading={saving}>
+            {t("pdf.deleteAll")}
           </Button>
         </Modal.Footer>
       </Modal>

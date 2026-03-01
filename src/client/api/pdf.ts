@@ -113,4 +113,9 @@ export const pdfApi = {
 
   deleteTransaction: (id: string) =>
     api.delete(`/pdf/transactions/${id}`),
+
+  deleteAllTransactions: (bankCode?: string) => {
+    const params = bankCode ? `?bankCode=${bankCode}` : "";
+    return api.delete<{ deleted: number }>(`/pdf/transactions/all${params}`);
+  },
 };

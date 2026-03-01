@@ -293,9 +293,14 @@ async function verifyTransactionAccess(txId: string, userId: string) {
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) return null;
 
+  // Admin (owner role) has access to everything
+  if (user.role === "owner") return tx;
+
   const entity = tx.account.entity;
-  if (user.role === "owner" && user.companyId === entity.companyId) return tx;
+  // Entity owner has access
   if (entity.ownerId === userId) return tx;
+  // Company member has access to company entities
+  if (user.companyId && entity.companyId === user.companyId) return tx;
 
   return null;
 }
@@ -328,6 +333,48 @@ router.put("/transactions/:id", async (req: Request, res: Response) => {
     res.json(updated);
   } catch (error) {
     console.error("Update transaction error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// DELETE /api/pdf/transactions/all — delete all bank transactions (filtered by bankCode)
+router.delete("/transactions/all", async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.userId;
+    const { bankCode: bc } = req.query as Record<string, string>;
+
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      res.status(404).json({ message: "User not found" });
+      return;
+    }
+
+    // Build entity filter same as GET /transactions
+    let entFilter: any;
+    if (!user.companyId) {
+      entFilter = { ownerId: userId };
+    } else if (user.role === "owner") {
+      entFilter = { companyId: user.companyId };
+    } else {
+      const accessCount = await prisma.entityAccess.count({ where: { userId } });
+      if (accessCount > 0) {
+        entFilter = { companyId: user.companyId, OR: [{ ownerId: userId }, { entityAccess: { some: { userId } } }] };
+      } else {
+        entFilter = { companyId: user.companyId, ownerId: userId };
+      }
+    }
+
+    const where: Prisma.BankTransactionWhereInput = {
+      account: { entity: entFilter },
+      pdfUploadId: { not: null },
+    };
+    if (bc) where.pdfUpload = { bankCode: bc };
+
+    const result = await prisma.bankTransaction.deleteMany({ where });
+
+    res.json({ deleted: result.count });
+  } catch (error) {
+    console.error("Delete all transactions error:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 });
