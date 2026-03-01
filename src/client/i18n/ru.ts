@@ -86,7 +86,7 @@ export default {
   },
   settings: {
     entities: "ИП / Организации",
-    accounts: "Счета и карты",
+    accounts: "Остатки на счетах",
     expenses: "Категории расходов",
     templates: "Шаблоны ДДС",
     // Entities

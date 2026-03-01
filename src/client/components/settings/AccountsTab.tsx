@@ -42,8 +42,6 @@ export default function AccountsTab() {
   const [form, setForm] = useState<CreateAccountPayload>({ name: "", type: "checking" });
   const [saving, setSaving] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
-
-  // Initial balances state: accountId -> { date, amount }
   const [balanceRows, setBalanceRows] = useState<Record<string, BalanceRow>>({});
 
   useEffect(() => {
@@ -127,7 +125,6 @@ export default function AccountsTab() {
   async function saveBalance(accId: string) {
     const row = balanceRows[accId];
     if (!row) return;
-
     setBalanceRows((prev) => ({ ...prev, [accId]: { ...prev[accId], saving: true } }));
     try {
       await accountsApi.update(selectedEntity, accId, {
@@ -147,6 +144,53 @@ export default function AccountsTab() {
     } catch {
       setBalanceRows((prev) => ({ ...prev, [accId]: { ...prev[accId], saving: false } }));
     }
+  }
+
+  function renderBalancesList() {
+    if (accounts.length === 0) return null;
+    return (
+      <div className="initial-balances">
+        <h3 className="initial-balances__title">{t("settings.initialBalances")}</h3>
+        <div className="initial-balances__list">
+          {accounts.map((acc) => {
+            const row = balanceRows[acc.id];
+            if (!row) return null;
+            return (
+              <div key={acc.id} className="initial-balances__row">
+                <span className="initial-balances__name">{acc.name}</span>
+                <div className="initial-balances__fields">
+                  <Input
+                    type="date"
+                    label={t("settings.balanceDate")}
+                    value={row.date}
+                    onChange={(e) => updateBalanceRow(acc.id, "date", e.target.value)}
+                    className="initial-balances__date"
+                  />
+                  <Input
+                    type="number"
+                    step="0.01"
+                    label={t("settings.balanceAmount")}
+                    placeholder="0.00"
+                    value={row.amount}
+                    onChange={(e) => updateBalanceRow(acc.id, "amount", e.target.value)}
+                    className="initial-balances__amount"
+                  />
+                  <button
+                    type="button"
+                    className={`btn btn--sm initial-balances__save ${row.saved ? "initial-balances__save--ok" : ""}`}
+                    onClick={() => saveBalance(acc.id)}
+                    disabled={row.saving}
+                  >
+                    <Check size={16} />
+                    {row.saved ? t("settings.balanceSaved") : t("common.save")}
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
   }
 
   const typeLabel = (type: string) => {
@@ -182,7 +226,7 @@ export default function AccountsTab() {
     },
   ];
 
-  // Members: only show initial balances, no CRUD
+  // Members: only show initial balances
   if (!isOwner) {
     return (
       <div>
@@ -196,50 +240,10 @@ export default function AccountsTab() {
             />
           </div>
         )}
-
         {loading ? (
           <div className="tab-loading">{t("common.loading")}</div>
         ) : accounts.length > 0 ? (
-          <div className="initial-balances">
-            <h3 className="initial-balances__title">{t("settings.initialBalances")}</h3>
-            <div className="initial-balances__list">
-              {accounts.map((acc) => {
-                const row = balanceRows[acc.id];
-                if (!row) return null;
-                return (
-                  <div key={acc.id} className="initial-balances__row">
-                    <span className="initial-balances__name">{acc.name}</span>
-                    <input
-                      type="date"
-                      className="initial-balances__input initial-balances__date"
-                      value={row.date}
-                      onChange={(e) => updateBalanceRow(acc.id, "date", e.target.value)}
-                    />
-                    <input
-                      type="number"
-                      step="0.01"
-                      className="initial-balances__input initial-balances__amount"
-                      placeholder="0.00"
-                      value={row.amount}
-                      onChange={(e) => updateBalanceRow(acc.id, "amount", e.target.value)}
-                    />
-                    <button
-                      type="button"
-                      className={`icon-btn initial-balances__save ${row.saved ? "initial-balances__save--ok" : ""}`}
-                      onClick={() => saveBalance(acc.id)}
-                      disabled={row.saving}
-                      title={t("common.save")}
-                    >
-                      <Check size={18} />
-                    </button>
-                    {row.saved && (
-                      <span className="initial-balances__saved">{t("settings.balanceSaved")}</span>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+          renderBalancesList()
         ) : (
           <div className="tab-empty">{t("settings.noAccounts")}</div>
         )}
@@ -268,105 +272,28 @@ export default function AccountsTab() {
       ) : (
         <>
           <Table columns={columns} data={accounts} rowKey={(r) => r.id} emptyMessage={t("settings.noAccounts")} />
-
-          {accounts.length > 0 && (
-            <div className="initial-balances">
-              <h3 className="initial-balances__title">{t("settings.initialBalances")}</h3>
-              <div className="initial-balances__list">
-                {accounts.map((acc) => {
-                  const row = balanceRows[acc.id];
-                  if (!row) return null;
-                  return (
-                    <div key={acc.id} className="initial-balances__row">
-                      <span className="initial-balances__name">{acc.name}</span>
-                      <input
-                        type="date"
-                        className="initial-balances__input initial-balances__date"
-                        value={row.date}
-                        onChange={(e) => updateBalanceRow(acc.id, "date", e.target.value)}
-                      />
-                      <input
-                        type="number"
-                        step="0.01"
-                        className="initial-balances__input initial-balances__amount"
-                        placeholder="0.00"
-                        value={row.amount}
-                        onChange={(e) => updateBalanceRow(acc.id, "amount", e.target.value)}
-                      />
-                      <button
-                        type="button"
-                        className={`icon-btn initial-balances__save ${row.saved ? "initial-balances__save--ok" : ""}`}
-                        onClick={() => saveBalance(acc.id)}
-                        disabled={row.saving}
-                        title={t("common.save")}
-                      >
-                        <Check size={18} />
-                      </button>
-                      {row.saved && (
-                        <span className="initial-balances__saved">{t("settings.balanceSaved")}</span>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
+          {renderBalancesList()}
         </>
       )}
 
-      {/* Create/Edit Modal */}
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editAccount ? t("settings.editAccount") : t("settings.addAccount")}>
         <form onSubmit={handleSubmit}>
-          <Input
-            label={t("settings.accountName")}
-            value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
-            required
-            autoFocus
-          />
-          <Select
-            label={t("settings.accountType")}
-            options={ACCOUNT_TYPES.map((a) => ({ value: a.value, label: t(a.labelKey) }))}
-            value={form.type}
-            onChange={(e) => setForm({ ...form, type: e.target.value })}
-          />
-          {showBank && (
-            <Select
-              label={t("settings.bank")}
-              options={BANKS}
-              value={form.bank ?? ""}
-              onChange={(e) => setForm({ ...form, bank: e.target.value || undefined })}
-              placeholder={t("settings.selectBank")}
-            />
-          )}
-          {showBank && (
-            <Input
-              label={t("settings.accountNumber")}
-              value={form.accountNumber ?? ""}
-              onChange={(e) => setForm({ ...form, accountNumber: e.target.value || undefined })}
-            />
-          )}
+          <Input label={t("settings.accountName")} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required autoFocus />
+          <Select label={t("settings.accountType")} options={ACCOUNT_TYPES.map((a) => ({ value: a.value, label: t(a.labelKey) }))} value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })} />
+          {showBank && <Select label={t("settings.bank")} options={BANKS} value={form.bank ?? ""} onChange={(e) => setForm({ ...form, bank: e.target.value || undefined })} placeholder={t("settings.selectBank")} />}
+          {showBank && <Input label={t("settings.accountNumber")} value={form.accountNumber ?? ""} onChange={(e) => setForm({ ...form, accountNumber: e.target.value || undefined })} />}
           <Modal.Footer>
-            <Button variant="secondary" type="button" onClick={() => setModalOpen(false)}>
-              {t("common.cancel")}
-            </Button>
-            <Button type="submit" loading={saving}>
-              {t("common.save")}
-            </Button>
+            <Button variant="secondary" type="button" onClick={() => setModalOpen(false)}>{t("common.cancel")}</Button>
+            <Button type="submit" loading={saving}>{t("common.save")}</Button>
           </Modal.Footer>
         </form>
       </Modal>
 
-      {/* Delete Confirmation */}
       <Modal open={!!deleteId} onClose={() => setDeleteId(null)} title={t("common.confirmDelete")} size="sm">
         <p>{t("settings.deleteAccountConfirm")}</p>
         <Modal.Footer>
-          <Button variant="secondary" onClick={() => setDeleteId(null)}>
-            {t("common.cancel")}
-          </Button>
-          <Button variant="danger" onClick={handleDelete}>
-            {t("common.delete")}
-          </Button>
+          <Button variant="secondary" onClick={() => setDeleteId(null)}>{t("common.cancel")}</Button>
+          <Button variant="danger" onClick={handleDelete}>{t("common.delete")}</Button>
         </Modal.Footer>
       </Modal>
     </div>

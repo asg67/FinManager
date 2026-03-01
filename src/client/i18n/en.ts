@@ -86,7 +86,7 @@ export default {
   },
   settings: {
     entities: "Entities",
-    accounts: "Accounts",
+    accounts: "Account Balances",
     expenses: "Expense Categories",
     templates: "DDS Templates",
     // Entities

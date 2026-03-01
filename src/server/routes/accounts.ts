@@ -4,6 +4,7 @@ import { prisma } from "../prisma.js";
 import { authMiddleware } from "../middleware/auth.js";
 import { validate } from "../middleware/validate.js";
 import { createAccountSchema, updateAccountSchema } from "../schemas/account.js";
+import { seedEntityAccounts } from "../helpers/seedAccounts.js";
 
 const router = Router({ mergeParams: true });
 
@@ -37,6 +38,9 @@ router.get("/", async (req: Request, res: Response) => {
       res.status(check.error).json({ message: check.message });
       return;
     }
+
+    // Ensure standard accounts exist (auto-creates missing ones)
+    await seedEntityAccounts(req.params.entityId);
 
     const where: Record<string, unknown> = { entityId: req.params.entityId };
     if (req.query.source) where.source = req.query.source;
