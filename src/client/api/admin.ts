@@ -111,6 +111,12 @@ export const adminApi = {
   deleteOperation: (id: string) =>
     api.delete<void>(`/admin/operations/${id}`),
 
+  // Invites
+  createInvite: (companyId: string) =>
+    api.post<{ id: string; token: string; expiresAt: string; createdAt: string }>(
+      `/admin/companies/${companyId}/invites`,
+    ),
+
   // Entity CRUD
   createEntity: (companyId: string, name: string) =>
     api.post<{ id: string; name: string }>(`/admin/companies/${companyId}/entities`, { name }),

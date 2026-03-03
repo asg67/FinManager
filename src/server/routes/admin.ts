@@ -278,6 +278,41 @@ router.get("/companies/:id/entities/:entityId", async (req: Request, res: Respon
   }
 });
 
+// ===== INVITE =====
+
+// POST /api/admin/companies/:id/invites — create invite link for company
+router.post("/companies/:id/invites", async (req: Request, res: Response) => {
+  try {
+    const companyId = req.params.id as string;
+    const company = await prisma.company.findUnique({ where: { id: companyId } });
+    if (!company) {
+      res.status(404).json({ message: "Company not found" });
+      return;
+    }
+
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7);
+
+    const invite = await prisma.invite.create({
+      data: {
+        companyId,
+        createdById: req.user!.userId,
+        expiresAt,
+      },
+    });
+
+    res.status(201).json({
+      id: invite.id,
+      token: invite.token,
+      expiresAt: invite.expiresAt.toISOString(),
+      createdAt: invite.createdAt.toISOString(),
+    });
+  } catch (error) {
+    console.error("Admin create invite error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 // ===== ENTITY CRUD =====
 
 // POST /api/admin/companies/:id/entities — create entity in company

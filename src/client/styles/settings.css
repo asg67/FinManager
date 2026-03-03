@@ -510,6 +510,12 @@
   background: rgba(34, 197, 94, 0.08);
 }
 
+.initial-balances__save--error {
+  border-color: var(--color-expense, #DC503C);
+  color: var(--color-expense, #DC503C);
+  background: rgba(220, 80, 60, 0.08);
+}
+
 @media (max-width: 768px) {
   .initial-balances__fields {
     flex-wrap: wrap;

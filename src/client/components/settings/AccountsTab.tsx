@@ -29,6 +29,7 @@ interface BalanceRow {
   amount: string;
   saving: boolean;
   saved: boolean;
+  error: boolean;
 }
 
 export default function AccountsTab() {
@@ -67,6 +68,7 @@ export default function AccountsTab() {
             amount: acc.initialBalance ? String(parseFloat(acc.initialBalance)) : "",
             saving: false,
             saved: false,
+            error: false,
           };
         }
         setBalanceRows(rows);
@@ -121,7 +123,7 @@ export default function AccountsTab() {
   function updateBalanceRow(accId: string, field: "date" | "amount", value: string) {
     setBalanceRows((prev) => ({
       ...prev,
-      [accId]: { ...prev[accId], [field]: value, saved: false },
+      [accId]: { ...prev[accId], [field]: value, saved: false, error: false },
     }));
   }
 
@@ -144,8 +146,9 @@ export default function AccountsTab() {
           [accId]: prev[accId] ? { ...prev[accId], saved: false } : prev[accId],
         }));
       }, 2000);
-    } catch {
-      setBalanceRows((prev) => ({ ...prev, [accId]: { ...prev[accId], saving: false } }));
+    } catch (err) {
+      console.error("Save balance error:", err);
+      setBalanceRows((prev) => ({ ...prev, [accId]: { ...prev[accId], saving: false, error: true } }));
     }
   }
 
@@ -172,12 +175,12 @@ export default function AccountsTab() {
           />
           <button
             type="button"
-            className={`btn btn--sm initial-balances__save ${row.saved ? "initial-balances__save--ok" : ""}`}
+            className={`btn btn--sm initial-balances__save ${row.saved ? "initial-balances__save--ok" : ""} ${row.error ? "initial-balances__save--error" : ""}`}
             onClick={() => saveBalance(acc.id)}
             disabled={row.saving}
           >
             <Check size={16} />
-            {row.saved ? t("settings.balanceSaved") : t("common.save")}
+            {row.saved ? t("settings.balanceSaved") : row.error ? t("common.error") : t("common.save")}
           </button>
         </div>
       </div>

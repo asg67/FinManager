@@ -4,7 +4,7 @@ import { Navigate } from "react-router-dom";
 import {
   Building2, Users, Bell, Plus, ChevronLeft, ChevronRight,
   ArrowLeft, Send, CreditCard, FileText, LogOut, Trash2,
-  Pencil, Check, X, FolderOpen, Tag,
+  Pencil, Check, X, FolderOpen, Tag, Link, Copy,
 } from "lucide-react";
 import { useAuthStore } from "../stores/auth.js";
 import { companyApi } from "../api/company.js";
@@ -229,6 +229,10 @@ function CompanyDetailView({
   const [editingArticleId, setEditingArticleId] = useState<string | null>(null);
   const [editArticleName, setEditArticleName] = useState("");
 
+  // Invite state
+  const [inviteLoading, setInviteLoading] = useState(false);
+  const [inviteCopied, setInviteCopied] = useState(false);
+
   const loadCompany = useCallback(async () => {
     const comp = await adminApi.getCompany(companyId);
     setCompany(comp);
@@ -349,6 +353,21 @@ function CompanyDetailView({
     await loadExpenseTypes();
   }
 
+  async function handleCopyInvite() {
+    setInviteLoading(true);
+    try {
+      const inv = await adminApi.createInvite(companyId);
+      const url = `${window.location.origin}/register?invite=${inv.token}`;
+      await navigator.clipboard.writeText(url);
+      setInviteCopied(true);
+      setTimeout(() => setInviteCopied(false), 3000);
+    } catch (err) {
+      console.error("Create invite error:", err);
+    } finally {
+      setInviteLoading(false);
+    }
+  }
+
   if (loading || !company) return <div className="tab-loading">Загрузка...</div>;
 
   return (
@@ -358,9 +377,18 @@ function CompanyDetailView({
       </button>
       <h2 className="admin-subtitle">{company.name}</h2>
 
-      <p style={{ fontSize: "0.8125rem", color: "var(--text-muted)", marginBottom: "1rem" }}>
-        {company.members.length} пользователей &bull; {company.entities.length} юр.лиц
-      </p>
+      <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "1rem", flexWrap: "wrap" }}>
+        <p style={{ fontSize: "0.8125rem", color: "var(--text-muted)", margin: 0 }}>
+          {company.members.length} пользователей &bull; {company.entities.length} юр.лиц
+        </p>
+        <button
+          className={`btn btn--sm ${inviteCopied ? "btn--success" : "btn--primary"}`}
+          onClick={handleCopyInvite}
+          disabled={inviteLoading}
+        >
+          {inviteCopied ? <><Check size={14} /> Скопировано</> : <><Link size={14} /> Ссылка-приглашение</>}
+        </button>
+      </div>
 
       {/* Entities grid */}
       <h3 className="admin-subtitle" style={{ fontSize: "0.875rem" }}>Юридические лица</h3>
@@ -1013,9 +1041,11 @@ function CreateCompanyModal({
   const [name, setName] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [inviteLink, setInviteLink] = useState("");
+  const [inviteCopied, setInviteCopied] = useState(false);
 
   useEffect(() => {
-    if (open) { setName(""); setError(""); }
+    if (open) { setName(""); setError(""); setInviteLink(""); setInviteCopied(false); }
   }, [open]);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -1023,8 +1053,12 @@ function CreateCompanyModal({
     setError("");
     setSaving(true);
     try {
-      await companyApi.create({ name: name.trim() });
-      onCreated();
+      const company = await companyApi.create({ name: name.trim() });
+      // Create invite for the new company
+      try {
+        const inv = await adminApi.createInvite(company.id);
+        setInviteLink(`${window.location.origin}/register?invite=${inv.token}`);
+      } catch { /* invite creation is optional */ }
     } catch (err) {
       if (err instanceof ApiError) {
         setError(err.status === 409 ? "Компания с таким названием уже существует" : err.message);
@@ -1034,8 +1068,37 @@ function CreateCompanyModal({
     }
   }
 
+  async function handleCopyInvite() {
+    await navigator.clipboard.writeText(inviteLink);
+    setInviteCopied(true);
+    setTimeout(() => setInviteCopied(false), 2000);
+  }
+
+  function handleClose() {
+    if (inviteLink) onCreated();
+    else onClose();
+  }
+
   return (
-    <Modal open={open} onClose={onClose} title="Создать компанию" size="sm">
+    <Modal open={open} onClose={handleClose} title={inviteLink ? "Компания создана" : "Создать компанию"} size="sm">
+      {inviteLink ? (
+        <div className="wizard-form" style={{ textAlign: "center" }}>
+          <p style={{ marginBottom: "0.75rem", color: "var(--text-muted)", fontSize: "0.875rem" }}>
+            Ссылка-приглашение для участников:
+          </p>
+          <div style={{ background: "var(--bg-surface)", borderRadius: 8, padding: "0.75rem", fontSize: "0.8125rem", wordBreak: "break-all", marginBottom: "1rem" }}>
+            {inviteLink}
+          </div>
+          <div style={{ display: "flex", gap: "0.5rem", justifyContent: "center" }}>
+            <button className={`btn btn--sm ${inviteCopied ? "btn--success" : "btn--primary"}`} onClick={handleCopyInvite}>
+              {inviteCopied ? <><Check size={14} /> Скопировано</> : <><Copy size={14} /> Копировать</>}
+            </button>
+            <button className="btn btn--sm btn--secondary" onClick={() => { onCreated(); }}>
+              Готово
+            </button>
+          </div>
+        </div>
+      ) : (
       <form onSubmit={handleSubmit} className="wizard-form">
         <Input
           label="Название компании"
@@ -1055,6 +1118,7 @@ function CreateCompanyModal({
           </Button>
         </Modal.Footer>
       </form>
+      )}
     </Modal>
   );
 }

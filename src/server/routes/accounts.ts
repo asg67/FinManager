@@ -105,10 +105,15 @@ router.put("/:id", validate(updateAccountSchema), async (req: Request, res: Resp
       return;
     }
 
-    // In company mode, only owners can update accounts
+    // In company mode, only owners can update accounts (except balance fields)
     if (check.entity.companyId && req.user!.role !== "owner") {
-      res.status(403).json({ message: "Only owners can update accounts" });
-      return;
+      const allowedFields = new Set(["initialBalance", "initialBalanceDate"]);
+      const requestedFields = Object.keys(req.body);
+      const onlyBalanceFields = requestedFields.every((f) => allowedFields.has(f));
+      if (!onlyBalanceFields) {
+        res.status(403).json({ message: "Only owners can update accounts" });
+        return;
+      }
     }
 
     const account = await prisma.account.findFirst({

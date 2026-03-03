@@ -14,6 +14,7 @@ export default {
     back: "Назад",
     copy: "Копировать",
     sending: "Отправка...",
+    error: "Ошибка",
   },
   auth: {
     login: "Вход",

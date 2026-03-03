@@ -14,6 +14,7 @@ export default {
     back: "Back",
     copy: "Copy",
     sending: "Sending...",
+    error: "Error",
   },
   auth: {
     login: "Sign In",
