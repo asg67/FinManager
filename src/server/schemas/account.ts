@@ -16,6 +16,7 @@ export const updateAccountSchema = z.object({
   bank: z.string().max(255).optional(),
   accountNumber: z.string().max(255).optional(),
   contractNumber: z.string().max(255).optional(),
+  enabled: z.boolean().optional(),
   initialBalance: z.union([z.string(), z.number()]).nullable().optional(),
   initialBalanceDate: z.string().nullable().optional(),
 });

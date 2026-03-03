@@ -44,6 +44,7 @@ router.get("/", async (req: Request, res: Response) => {
 
     const where: Record<string, unknown> = { entityId: req.params.entityId };
     if (req.query.source) where.source = req.query.source;
+    if (req.query.enabled === "true") where.enabled = true;
 
     const accounts = await prisma.account.findMany({
       where,

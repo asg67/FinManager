@@ -323,6 +323,48 @@
   color: var(--text-muted);
 }
 
+.admin-account-item--disabled {
+  opacity: 0.5;
+}
+
+.admin-account-item--disabled .admin-account-item__name {
+  text-decoration: line-through;
+}
+
+/* Toggle switch */
+.admin-toggle {
+  position: relative;
+  width: 36px;
+  height: 20px;
+  border-radius: 10px;
+  border: none;
+  background: var(--glass-border);
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+
+.admin-toggle--on {
+  background: var(--accent, #F5A623);
+}
+
+.admin-toggle__knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.2s;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+}
+
+.admin-toggle--on .admin-toggle__knob {
+  transform: translateX(16px);
+}
+
 /* ===== Inline Edit ===== */
 
 .admin-inline-edit {

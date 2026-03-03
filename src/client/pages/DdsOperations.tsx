@@ -271,7 +271,7 @@ function DdsTable({ companyName }: { companyName?: string }) {
 
   useEffect(() => {
     if (filters.entityId) {
-      accountsApi.list(filters.entityId).then(setAccounts);
+      accountsApi.list(filters.entityId, undefined, true).then(setAccounts);
     } else {
       setAccounts([]);
     }

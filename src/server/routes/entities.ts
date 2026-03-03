@@ -32,34 +32,26 @@ router.get("/", async (req: Request, res: Response) => {
     const where: any = {};
 
     if (mine && user.role !== "owner") {
-      // Member: company entities they have access to + their personal entities
+      // Member: company entities they have access to
       const accessCount = await prisma.entityAccess.count({ where: { userId } });
       if (accessCount > 0) {
         where.OR = [
           { companyId: user.companyId, ownerId: userId },
           { companyId: user.companyId, entityAccess: { some: { userId } } },
-          { companyId: null, ownerId: userId },
         ];
       } else {
         const lastName = user.name?.split(" ")[0];
         if (lastName && lastName.length >= 2) {
-          where.OR = [
-            { companyId: user.companyId, name: { contains: lastName, mode: "insensitive" } },
-            { companyId: null, ownerId: userId },
-          ];
+          where.companyId = user.companyId;
+          where.name = { contains: lastName, mode: "insensitive" };
         } else {
-          where.OR = [
-            { companyId: user.companyId, ownerId: userId },
-            { companyId: null, ownerId: userId },
-          ];
+          where.companyId = user.companyId;
+          where.ownerId = userId;
         }
       }
     } else {
-      // Owner or no mine filter: all company entities + personal entities
-      where.OR = [
-        { companyId: user.companyId },
-        { companyId: null, ownerId: userId },
-      ];
+      // Owner or no mine filter: all company entities only
+      where.companyId = user.companyId;
     }
 
     const entities = await prisma.entity.findMany({

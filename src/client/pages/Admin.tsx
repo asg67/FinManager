@@ -708,6 +708,15 @@ function EntityDetailView({
     await loadExpenseTypes();
   }
 
+  async function handleToggleAccount(accountId: string) {
+    const result = await adminApi.toggleAccount(accountId);
+    setEntity((prev) =>
+      prev
+        ? { ...prev, accounts: prev.accounts.map((a) => (a.id === accountId ? { ...a, enabled: result.enabled } : a)) }
+        : prev,
+    );
+  }
+
   if (loading || !entity) return <div className="tab-loading">Загрузка...</div>;
 
   return (
@@ -726,7 +735,7 @@ function EntityDetailView({
       ) : (
         <div className="admin-account-list">
           {entity.accounts.map((a) => (
-            <div key={a.id} className="admin-account-item">
+            <div key={a.id} className={`admin-account-item${!a.enabled ? " admin-account-item--disabled" : ""}`}>
               <div>
                 <div className="admin-account-item__name">{a.name}</div>
                 <div className="admin-account-item__info">
@@ -734,8 +743,18 @@ function EntityDetailView({
                   {a.accountNumber && ` \u2022 ${a.accountNumber}`}
                 </div>
               </div>
-              <div className="admin-account-item__info">
-                <FileText size={12} /> {a.transactionCount} транзакций
+              <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                <div className="admin-account-item__info">
+                  <FileText size={12} /> {a.transactionCount}
+                </div>
+                <button
+                  type="button"
+                  className={`admin-toggle${a.enabled ? " admin-toggle--on" : ""}`}
+                  onClick={() => handleToggleAccount(a.id)}
+                  title={a.enabled ? "Отключить" : "Включить"}
+                >
+                  <span className="admin-toggle__knob" />
+                </button>
               </div>
             </div>
           ))}

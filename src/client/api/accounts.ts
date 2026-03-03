@@ -12,13 +12,18 @@ export interface CreateAccountPayload {
 }
 
 export const accountsApi = {
-  list: (entityId: string, source?: string) =>
-    api.get<Account[]>(`/entities/${entityId}/accounts${source ? `?source=${source}` : ""}`),
+  list: (entityId: string, source?: string, enabledOnly?: boolean) => {
+    const params = new URLSearchParams();
+    if (source) params.set("source", source);
+    if (enabledOnly) params.set("enabled", "true");
+    const qs = params.toString();
+    return api.get<Account[]>(`/entities/${entityId}/accounts${qs ? `?${qs}` : ""}`);
+  },
 
   create: (entityId: string, data: CreateAccountPayload) =>
     api.post<Account>(`/entities/${entityId}/accounts`, data),
 
-  update: (entityId: string, id: string, data: Partial<CreateAccountPayload>) =>
+  update: (entityId: string, id: string, data: Partial<CreateAccountPayload & { enabled: boolean }>) =>
     api.put<Account>(`/entities/${entityId}/accounts/${id}`, data),
 
   delete: (entityId: string, id: string) =>

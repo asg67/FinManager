@@ -259,6 +259,7 @@ router.get("/companies/:id/entities/:entityId", async (req: Request, res: Respon
         type: a.type,
         bank: a.bank,
         accountNumber: a.accountNumber,
+        enabled: a.enabled,
         transactionCount: a._count.bankStatements,
       })),
       recentTransactions: transactions.map((t) => ({
@@ -343,6 +344,25 @@ router.post("/companies/:id/entities", async (req: Request, res: Response) => {
     res.status(201).json(entity);
   } catch (error) {
     console.error("Admin create entity error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// PUT /api/admin/accounts/:id/toggle — enable/disable account
+router.put("/accounts/:id/toggle", async (req: Request, res: Response) => {
+  try {
+    const account = await prisma.account.findUnique({ where: { id: req.params.id as string } });
+    if (!account) {
+      res.status(404).json({ message: "Account not found" });
+      return;
+    }
+    const updated = await prisma.account.update({
+      where: { id: req.params.id as string },
+      data: { enabled: !account.enabled },
+    });
+    res.json({ id: updated.id, enabled: updated.enabled });
+  } catch (error) {
+    console.error("Admin toggle account error:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 });

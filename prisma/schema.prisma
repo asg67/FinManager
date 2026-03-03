@@ -137,6 +137,7 @@ model Account {
   accountNumber  String?
   contractNumber String?
   source             String    @default("manual") // "manual" | "bank_sync"
+  enabled            Boolean   @default(true)
   initialBalance     Decimal?
   initialBalanceDate DateTime?
   entityId           String

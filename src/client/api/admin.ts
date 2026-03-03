@@ -43,6 +43,7 @@ export interface AdminEntityDetail {
     type: string;
     bank: string | null;
     accountNumber: string | null;
+    enabled: boolean;
     transactionCount: number;
   }[];
   recentTransactions: {
@@ -116,6 +117,10 @@ export const adminApi = {
     api.post<{ id: string; token: string; expiresAt: string; createdAt: string }>(
       `/admin/companies/${companyId}/invites`,
     ),
+
+  // Accounts
+  toggleAccount: (accountId: string) =>
+    api.put<{ id: string; enabled: boolean }>(`/admin/accounts/${accountId}/toggle`),
 
   // Entity CRUD
   createEntity: (companyId: string, name: string) =>

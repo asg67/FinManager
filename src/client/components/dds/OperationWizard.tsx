@@ -68,7 +68,7 @@ export default function OperationWizard({ open, onClose, onDone, editOperation, 
   // Load accounts when entity changes
   useEffect(() => {
     if (form.entityId) {
-      accountsApi.list(form.entityId, "manual").then(setAccounts);
+      accountsApi.list(form.entityId, "manual", true).then(setAccounts);
     }
   }, [form.entityId]);
 
