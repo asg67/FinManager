@@ -120,6 +120,21 @@ export default function OperationWizard({ open, onClose, onDone, editOperation, 
   const isExpense = form.operationType === "expense";
   const isTransfer = form.operationType === "transfer";
 
+  if (open && !editOperation && entities.length === 0) {
+    return (
+      <Modal open={open} onClose={onClose} title={t("dds.addOperation")} size="lg">
+        <div className="wizard-empty">
+          <p>{t("dds.noEntities")}</p>
+        </div>
+        <Modal.Footer>
+          <Button variant="secondary" type="button" onClick={onClose}>
+            {t("common.close")}
+          </Button>
+        </Modal.Footer>
+      </Modal>
+    );
+  }
+
   return (
     <Modal
       open={open}

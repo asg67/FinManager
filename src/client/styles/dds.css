@@ -220,6 +220,13 @@
   border-color: var(--accent);
 }
 
+.wizard-empty {
+  padding: 2rem 1rem;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+}
+
 .wizard-error {
   padding: 0.5rem 0.75rem;
   background: rgba(239, 68, 68, 0.1);

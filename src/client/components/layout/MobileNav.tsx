@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   Home,
@@ -9,12 +9,16 @@ import {
   Plus,
 } from "lucide-react";
 import clsx from "clsx";
+import { useAuthStore } from "../../stores/auth.js";
 import { entitiesApi } from "../../api/entities.js";
 import OperationWizard from "../dds/OperationWizard.js";
 import type { Entity } from "@shared/types.js";
 
 export default function MobileNav() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
+  const user = useAuthStore((s) => s.user);
+  const hasCompany = !!user?.companyId;
   const [wizardOpen, setWizardOpen] = useState(false);
   const [entities, setEntities] = useState<Entity[]>([]);
 
@@ -29,9 +33,13 @@ export default function MobileNav() {
   ];
 
   const openWizard = useCallback(() => {
+    if (!hasCompany) {
+      navigate("/dds");
+      return;
+    }
     entitiesApi.list().then(setEntities);
     setWizardOpen(true);
-  }, []);
+  }, [hasCompany, navigate]);
 
   const handleDone = useCallback(() => {
     setWizardOpen(false);
