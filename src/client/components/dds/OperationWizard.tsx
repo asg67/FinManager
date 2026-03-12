@@ -1,7 +1,7 @@
 import { useState, useEffect, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { ddsApi, type CreateOperationPayload } from "../../api/dds.js";
-import { accountsApi } from "../../api/accounts.js";
+import { accountsApi, type AccountWithEntity } from "../../api/accounts.js";
 import { companyApi } from "../../api/company.js";
 import { Button, Input, Select, Modal } from "../ui/index.js";
 import type { Entity, Account, ExpenseType, DdsOperation, DdsTemplate } from "@shared/types.js";
@@ -23,6 +23,7 @@ interface Props {
 export default function OperationWizard({ open, onClose, onDone, editOperation, entities }: Props) {
   const { t } = useTranslation();
   const [accounts, setAccounts] = useState<Account[]>([]);
+  const [allAccounts, setAllAccounts] = useState<AccountWithEntity[]>([]);
   const [expenseTypes, setExpenseTypes] = useState<ExpenseType[]>([]);
   const [templates, setTemplates] = useState<DdsTemplate[]>([]);
   const [saving, setSaving] = useState(false);
@@ -71,6 +72,13 @@ export default function OperationWizard({ open, onClose, onDone, editOperation, 
       accountsApi.list(form.entityId, "manual", true).then(setAccounts);
     }
   }, [form.entityId]);
+
+  // Load all company accounts for cross-entity transfers
+  useEffect(() => {
+    if (open && entities.length > 0) {
+      accountsApi.listAllEntities(entities, "manual", true).then(setAllAccounts);
+    }
+  }, [open, entities]);
 
   function applyTemplate(tpl: DdsTemplate) {
     setForm({
@@ -202,11 +210,15 @@ export default function OperationWizard({ open, onClose, onDone, editOperation, 
           />
         )}
 
-        {/* To Account (income, transfer) */}
+        {/* To Account (income — same entity; transfer — all entities) */}
         {(isIncome || isTransfer) && (
           <Select
             label={t("dds.toAccount")}
-            options={accounts.map((a) => ({ value: a.id, label: a.name }))}
+            options={
+              isTransfer
+                ? allAccounts.map((a) => ({ value: a.id, label: `${a.entityName} — ${a.name}` }))
+                : accounts.map((a) => ({ value: a.id, label: a.name }))
+            }
             value={form.toAccountId ?? ""}
             onChange={(e) => updateField("toAccountId", e.target.value || undefined)}
             placeholder={t("common.select")}

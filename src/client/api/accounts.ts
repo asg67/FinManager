@@ -11,6 +11,10 @@ export interface CreateAccountPayload {
   initialBalanceDate?: string | null;
 }
 
+export interface AccountWithEntity extends Account {
+  entityName: string;
+}
+
 export const accountsApi = {
   list: (entityId: string, source?: string, enabledOnly?: boolean) => {
     const params = new URLSearchParams();
@@ -18,6 +22,20 @@ export const accountsApi = {
     if (enabledOnly) params.set("enabled", "true");
     const qs = params.toString();
     return api.get<Account[]>(`/entities/${entityId}/accounts${qs ? `?${qs}` : ""}`);
+  },
+
+  listAllEntities: async (
+    entities: { id: string; name: string }[],
+    source?: string,
+    enabledOnly?: boolean,
+  ): Promise<AccountWithEntity[]> => {
+    const results = await Promise.all(
+      entities.map(async (ent) => {
+        const accounts = await accountsApi.list(ent.id, source, enabledOnly);
+        return accounts.map((a) => ({ ...a, entityName: ent.name }));
+      }),
+    );
+    return results.flat();
   },
 
   create: (entityId: string, data: CreateAccountPayload) =>

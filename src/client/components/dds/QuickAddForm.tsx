@@ -2,7 +2,7 @@ import { useState, useEffect, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { Save } from "lucide-react";
 import { ddsApi, type CreateOperationPayload } from "../../api/dds.js";
-import { accountsApi } from "../../api/accounts.js";
+import { accountsApi, type AccountWithEntity } from "../../api/accounts.js";
 import { companyApi } from "../../api/company.js";
 import { Button, Input, Select } from "../ui/index.js";
 import type { Entity, Account, ExpenseType, DdsTemplate } from "@shared/types.js";
@@ -21,6 +21,7 @@ interface Props {
 export default function QuickAddForm({ entities, onSaved }: Props) {
   const { t } = useTranslation();
   const [accounts, setAccounts] = useState<Account[]>([]);
+  const [allAccounts, setAllAccounts] = useState<AccountWithEntity[]>([]);
   const [expenseTypes, setExpenseTypes] = useState<ExpenseType[]>([]);
   const [templates, setTemplates] = useState<DdsTemplate[]>([]);
   const [saving, setSaving] = useState(false);
@@ -58,6 +59,13 @@ export default function QuickAddForm({ entities, onSaved }: Props) {
       setAccounts([]);
     }
   }, [form.entityId]);
+
+  // Load all company accounts for cross-entity transfers
+  useEffect(() => {
+    if (entities.length > 0) {
+      accountsApi.listAllEntities(entities, "manual", true).then(setAllAccounts);
+    }
+  }, [entities]);
 
   function updateField<K extends keyof CreateOperationPayload>(key: K, value: CreateOperationPayload[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -159,11 +167,15 @@ export default function QuickAddForm({ entities, onSaved }: Props) {
           />
         )}
 
-        {/* To Account (income, transfer) */}
+        {/* To Account (income — same entity; transfer — all entities) */}
         {(isIncome || isTransfer) && (
           <Select
             placeholder={t("dds.toAccount")}
-            options={accounts.map((a) => ({ value: a.id, label: a.name }))}
+            options={
+              isTransfer
+                ? allAccounts.map((a) => ({ value: a.id, label: `${a.entityName} — ${a.name}` }))
+                : accounts.map((a) => ({ value: a.id, label: a.name }))
+            }
             value={form.toAccountId ?? ""}
             onChange={(e) => updateField("toAccountId", e.target.value || undefined)}
           />

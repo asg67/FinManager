@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { ArrowLeft, Check } from "lucide-react";
 import { ddsApi, type CreateOperationPayload } from "../../api/dds.js";
-import { accountsApi } from "../../api/accounts.js";
+import { accountsApi, type AccountWithEntity } from "../../api/accounts.js";
 import { companyApi } from "../../api/company.js";
 import { Button, Input, Modal } from "../ui/index.js";
 import type { Entity, Account, ExpenseType, DdsOperation, DdsTemplate } from "@shared/types.js";
@@ -21,6 +21,7 @@ export default function StepWizard({ open, onClose, onDone, editOperation, entit
   const { t } = useTranslation();
   const [step, setStep] = useState<Step>("entity");
   const [accounts, setAccounts] = useState<Account[]>([]);
+  const [allAccounts, setAllAccounts] = useState<AccountWithEntity[]>([]);
   const [expenseTypes, setExpenseTypes] = useState<ExpenseType[]>([]);
   const [templates, setTemplates] = useState<DdsTemplate[]>([]);
   const [saving, setSaving] = useState(false);
@@ -74,6 +75,13 @@ export default function StepWizard({ open, onClose, onDone, editOperation, entit
       setAccounts([]);
     }
   }, [form.entityId]);
+
+  // Load all company accounts for cross-entity transfers
+  useEffect(() => {
+    if (open && entities.length > 0) {
+      accountsApi.listAllEntities(entities, "manual", true).then(setAllAccounts);
+    }
+  }, [open, entities]);
 
   function updateField<K extends keyof CreateOperationPayload>(key: K, value: CreateOperationPayload[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -184,17 +192,22 @@ export default function StepWizard({ open, onClose, onDone, editOperation, entit
     }
   }
 
-  // Resolve display names for review
-  const entityName = entities.find((e) => e.id === form.entityId)?.name ?? "";
-  const fromAccountName = accounts.find((a) => a.id === form.fromAccountId)?.name;
-  const toAccountName = accounts.find((a) => a.id === form.toAccountId)?.name;
-  const expenseTypeName = expenseTypes.find((et) => et.id === form.expenseTypeId)?.name;
-  const selectedExpenseType = expenseTypes.find((et) => et.id === form.expenseTypeId);
-  const expenseArticleName = selectedExpenseType?.articles.find((a) => a.id === form.expenseArticleId)?.name;
-
   const isIncome = form.operationType === "income";
   const isExpense = form.operationType === "expense";
   const isTransfer = form.operationType === "transfer";
+
+  // Resolve display names for review
+  const entityName = entities.find((e) => e.id === form.entityId)?.name ?? "";
+  const fromAccountName = accounts.find((a) => a.id === form.fromAccountId)?.name;
+  const toAcc = isTransfer
+    ? allAccounts.find((a) => a.id === form.toAccountId)
+    : accounts.find((a) => a.id === form.toAccountId);
+  const toAccountName = toAcc
+    ? isTransfer && "entityName" in toAcc ? `${(toAcc as AccountWithEntity).entityName} — ${toAcc.name}` : toAcc.name
+    : undefined;
+  const expenseTypeName = expenseTypes.find((et) => et.id === form.expenseTypeId)?.name;
+  const selectedExpenseType = expenseTypes.find((et) => et.id === form.expenseTypeId);
+  const expenseArticleName = selectedExpenseType?.articles.find((a) => a.id === form.expenseArticleId)?.name;
 
   const stepLabels: Record<Step, string> = {
     entity: t("dds.selectEntity"),
@@ -353,19 +366,19 @@ export default function StepWizard({ open, onClose, onDone, editOperation, entit
               </div>
             )}
 
-            {/* To Account (income, transfer) */}
+            {/* To Account (income — same entity; transfer — all entities) */}
             {(isIncome || isTransfer) && (
               <div className="step-wizard__field">
                 <label className="step-wizard__field-label">{t("dds.toAccount")}</label>
                 <div className="step-wizard__grid step-wizard__grid--compact">
-                  {accounts.map((a) => (
+                  {(isTransfer ? allAccounts : accounts).map((a) => (
                     <button
                       key={a.id}
                       type="button"
                       className={`step-wizard__option step-wizard__option--sm ${form.toAccountId === a.id ? "step-wizard__option--selected" : ""}`}
                       onClick={() => updateField("toAccountId", a.id)}
                     >
-                      {a.name}
+                      {isTransfer && "entityName" in a ? `${(a as AccountWithEntity).entityName} — ${a.name}` : a.name}
                     </button>
                   ))}
                 </div>
