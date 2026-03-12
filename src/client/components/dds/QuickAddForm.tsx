@@ -21,7 +21,7 @@ interface Props {
 export default function QuickAddForm({ entities, onSaved }: Props) {
   const { t } = useTranslation();
   const [accounts, setAccounts] = useState<Account[]>([]);
-  const [allAccounts, setAllAccounts] = useState<AccountWithEntity[]>([]);
+  const [otherCash, setOtherCash] = useState<AccountWithEntity[]>([]);
   const [expenseTypes, setExpenseTypes] = useState<ExpenseType[]>([]);
   const [templates, setTemplates] = useState<DdsTemplate[]>([]);
   const [saving, setSaving] = useState(false);
@@ -60,12 +60,14 @@ export default function QuickAddForm({ entities, onSaved }: Props) {
     }
   }, [form.entityId]);
 
-  // Load all company accounts for cross-entity transfers
+  // Load cash accounts from other entities for transfers
   useEffect(() => {
-    if (entities.length > 0) {
-      accountsApi.listAllEntities(entities, "manual", true).then(setAllAccounts);
+    if (form.entityId && entities.length > 1) {
+      accountsApi.listOtherCash(entities, form.entityId, "manual", true).then(setOtherCash);
+    } else {
+      setOtherCash([]);
     }
-  }, [entities]);
+  }, [form.entityId, entities]);
 
   function updateField<K extends keyof CreateOperationPayload>(key: K, value: CreateOperationPayload[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -167,15 +169,14 @@ export default function QuickAddForm({ entities, onSaved }: Props) {
           />
         )}
 
-        {/* To Account (income — same entity; transfer — all entities) */}
+        {/* To Account (income — same entity; transfer — own accounts + other entities' cash) */}
         {(isIncome || isTransfer) && (
           <Select
             placeholder={t("dds.toAccount")}
-            options={
-              isTransfer
-                ? allAccounts.map((a) => ({ value: a.id, label: `${a.entityName} — ${a.name}` }))
-                : accounts.map((a) => ({ value: a.id, label: a.name }))
-            }
+            options={[
+              ...accounts.map((a) => ({ value: a.id, label: a.name })),
+              ...(isTransfer ? otherCash.map((a) => ({ value: a.id, label: `${a.entityName} — ${a.name}` })) : []),
+            ]}
             value={form.toAccountId ?? ""}
             onChange={(e) => updateField("toAccountId", e.target.value || undefined)}
           />
