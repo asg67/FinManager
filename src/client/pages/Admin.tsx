@@ -16,6 +16,8 @@ import {
   type AdminOperation,
   type AdminEntityDetail,
   type AdminExpenseType,
+  type AdminIncomeType,
+  type AdminCustomField,
 } from "../api/admin.js";
 import { authApi } from "../api/auth.js";
 import { notificationsApi } from "../api/notifications.js";
@@ -229,6 +231,28 @@ function CompanyDetailView({
   const [editingArticleId, setEditingArticleId] = useState<string | null>(null);
   const [editArticleName, setEditArticleName] = useState("");
 
+  // Income types/articles state (company-wide)
+  const [incomeTypes, setIncomeTypes] = useState<AdminIncomeType[]>([]);
+  const [incLoading, setIncLoading] = useState(false);
+  const [newIncTypeName, setNewIncTypeName] = useState("");
+  const [editingIncTypeId, setEditingIncTypeId] = useState<string | null>(null);
+  const [editIncTypeName, setEditIncTypeName] = useState("");
+  const [expandedIncType, setExpandedIncType] = useState<string | null>(null);
+  const [addingIncArticleForType, setAddingIncArticleForType] = useState<string | null>(null);
+  const [newIncArticleName, setNewIncArticleName] = useState("");
+  const [editingIncArticleId, setEditingIncArticleId] = useState<string | null>(null);
+  const [editIncArticleName, setEditIncArticleName] = useState("");
+
+  // Custom fields state
+  const [customFields, setCustomFields] = useState<AdminCustomField[]>([]);
+  const [cfLoading, setCfLoading] = useState(false);
+  const [showCfForm, setShowCfForm] = useState(false);
+  const [cfName, setCfName] = useState("");
+  const [cfType, setCfType] = useState("select");
+  const [cfOptions, setCfOptions] = useState("");
+  const [cfShowWhen, setCfShowWhen] = useState<string>("always");
+  const [cfRequired, setCfRequired] = useState(false);
+
   // Invite state
   const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteCopied, setInviteCopied] = useState(false);
@@ -353,6 +377,98 @@ function CompanyDetailView({
     await loadExpenseTypes();
   }
 
+  // Income types loading (company-wide)
+  const loadIncomeTypes = useCallback(async () => {
+    setIncLoading(true);
+    const types = await adminApi.getCompanyIncomeTypes(companyId);
+    setIncomeTypes(types);
+    setIncLoading(false);
+  }, [companyId]);
+
+  useEffect(() => { loadIncomeTypes(); }, [loadIncomeTypes]);
+
+  async function handleAddIncType() {
+    if (!newIncTypeName.trim()) return;
+    await adminApi.createCompanyIncomeType(companyId, newIncTypeName.trim());
+    setNewIncTypeName("");
+    await loadIncomeTypes();
+  }
+
+  async function handleRenameIncType(id: string) {
+    if (!editIncTypeName.trim()) return;
+    await adminApi.updateIncomeType(id, editIncTypeName.trim());
+    setEditingIncTypeId(null);
+    await loadIncomeTypes();
+  }
+
+  async function handleDeleteIncType(id: string, name: string) {
+    if (!confirm(`Удалить категорию прихода "${name}" и все её статьи?`)) return;
+    await adminApi.deleteIncomeType(id);
+    await loadIncomeTypes();
+  }
+
+  async function handleAddIncArticle(typeId: string) {
+    if (!newIncArticleName.trim()) return;
+    await adminApi.createIncomeArticle(typeId, newIncArticleName.trim());
+    setNewIncArticleName("");
+    setAddingIncArticleForType(null);
+    await loadIncomeTypes();
+  }
+
+  async function handleRenameIncArticle(id: string) {
+    if (!editIncArticleName.trim()) return;
+    await adminApi.updateIncomeArticle(id, editIncArticleName.trim());
+    setEditingIncArticleId(null);
+    await loadIncomeTypes();
+  }
+
+  async function handleDeleteIncArticle(id: string, name: string) {
+    if (!confirm(`Удалить статью прихода "${name}"?`)) return;
+    await adminApi.deleteIncomeArticle(id);
+    await loadIncomeTypes();
+  }
+
+  // Custom fields loading
+  const loadCustomFields = useCallback(async () => {
+    setCfLoading(true);
+    const fields = await adminApi.getCustomFields(companyId);
+    setCustomFields(fields);
+    setCfLoading(false);
+  }, [companyId]);
+
+  useEffect(() => { loadCustomFields(); }, [loadCustomFields]);
+
+  async function handleAddCustomField() {
+    if (!cfName.trim()) return;
+    const showWhen = cfShowWhen === "always" ? null
+      : cfShowWhen === "expense_only" ? { operationType: "expense" }
+      : cfShowWhen === "income_only" ? { operationType: "income" }
+      : null;
+
+    await adminApi.createCustomField(companyId, {
+      name: cfName.trim(),
+      fieldType: cfType,
+      options: cfType === "select" ? cfOptions.split(",").map(o => o.trim()).filter(Boolean) : undefined,
+      showWhen,
+      required: cfRequired,
+    });
+    setCfName(""); setCfOptions(""); setCfType("select"); setCfShowWhen("always"); setCfRequired(false); setShowCfForm(false);
+    await loadCustomFields();
+  }
+
+  async function handleDeleteCustomField(id: string, name: string) {
+    if (!confirm(`Удалить поле "${name}"?`)) return;
+    await adminApi.deleteCustomField(id);
+    await loadCustomFields();
+  }
+
+  async function handleToggleMode() {
+    if (!company) return;
+    const newMode = company.mode === "full" ? "dds_only" : "full";
+    await adminApi.setCompanyMode(companyId, newMode);
+    await loadCompany();
+  }
+
   async function handleCopyInvite() {
     setInviteLoading(true);
     try {
@@ -381,6 +497,13 @@ function CompanyDetailView({
         <p style={{ fontSize: "0.8125rem", color: "var(--text-muted)", margin: 0 }}>
           {company.members.length} пользователей &bull; {company.entities.length} юр.лиц
         </p>
+        <button
+          className={`btn btn--sm ${company.mode === "dds_only" ? "btn--warning" : "btn--ghost"}`}
+          onClick={handleToggleMode}
+          title={company.mode === "full" ? "Переключить в режим Только ДДС" : "Переключить в Полный режим"}
+        >
+          {company.mode === "dds_only" ? "Только ДДС" : "Полный режим"}
+        </button>
         <button
           className={`btn btn--sm ${inviteCopied ? "btn--success" : "btn--primary"}`}
           onClick={handleCopyInvite}
@@ -559,6 +682,196 @@ function CompanyDetailView({
               </div>
             </div>
           )}
+
+      {/* Income types section */}
+      <h3 className="admin-subtitle" style={{ fontSize: "0.875rem" }}>Категории приходов и статьи</h3>
+
+      {company.entities.length === 0 ? (
+        <div style={{ color: "var(--text-muted)", fontSize: "0.8125rem", marginBottom: "1.5rem" }}>
+          Сначала добавьте юридическое лицо
+        </div>
+      ) : incLoading ? (
+            <div className="tab-loading" style={{ padding: "1rem 0" }}>Загрузка...</div>
+          ) : (
+            <div className="admin-expense-list">
+              {incomeTypes.map((t) => (
+                <div key={t.id} className="admin-expense-type">
+                  <div className="admin-expense-type__header">
+                    {editingIncTypeId === t.id ? (
+                      <div className="admin-inline-edit">
+                        <input
+                          className="admin-inline-input"
+                          value={editIncTypeName}
+                          onChange={(ev) => setEditIncTypeName(ev.target.value)}
+                          onKeyDown={(ev) => { if (ev.key === "Enter") handleRenameIncType(t.id); if (ev.key === "Escape") setEditingIncTypeId(null); }}
+                          autoFocus
+                        />
+                        <button className="btn btn--ghost btn--sm" onClick={() => handleRenameIncType(t.id)}><Check size={14} /></button>
+                        <button className="btn btn--ghost btn--sm" onClick={() => setEditingIncTypeId(null)}><X size={14} /></button>
+                      </div>
+                    ) : (
+                      <>
+                        <div
+                          className="admin-expense-type__name"
+                          onClick={() => setExpandedIncType(expandedIncType === t.id ? null : t.id)}
+                          style={{ cursor: "pointer" }}
+                        >
+                          <FolderOpen size={14} />
+                          {t.name}
+                          <span className="admin-expense-type__count">({t.articles.length})</span>
+                        </div>
+                        <span className="admin-entity-actions">
+                          <button className="btn btn--ghost btn--sm" onClick={() => { setAddingIncArticleForType(t.id); setNewIncArticleName(""); setExpandedIncType(t.id); }} title="Добавить статью"><Plus size={12} /></button>
+                          <button className="btn btn--ghost btn--sm" onClick={() => { setEditingIncTypeId(t.id); setEditIncTypeName(t.name); }} title="Переименовать"><Pencil size={12} /></button>
+                          <button className="btn btn--ghost btn--sm" onClick={() => handleDeleteIncType(t.id, t.name)} title="Удалить"><Trash2 size={12} /></button>
+                        </span>
+                      </>
+                    )}
+                  </div>
+
+                  {expandedIncType === t.id && (
+                    <div className="admin-expense-articles">
+                      {t.articles.map((a) => (
+                        <div key={a.id} className="admin-expense-article">
+                          {editingIncArticleId === a.id ? (
+                            <div className="admin-inline-edit">
+                              <input
+                                className="admin-inline-input"
+                                value={editIncArticleName}
+                                onChange={(ev) => setEditIncArticleName(ev.target.value)}
+                                onKeyDown={(ev) => { if (ev.key === "Enter") handleRenameIncArticle(a.id); if (ev.key === "Escape") setEditingIncArticleId(null); }}
+                                autoFocus
+                              />
+                              <button className="btn btn--ghost btn--sm" onClick={() => handleRenameIncArticle(a.id)}><Check size={14} /></button>
+                              <button className="btn btn--ghost btn--sm" onClick={() => setEditingIncArticleId(null)}><X size={14} /></button>
+                            </div>
+                          ) : (
+                            <>
+                              <span className="admin-expense-article__name"><Tag size={12} /> {a.name}</span>
+                              <span className="admin-entity-actions">
+                                <button className="btn btn--ghost btn--sm" onClick={() => { setEditingIncArticleId(a.id); setEditIncArticleName(a.name); }}><Pencil size={12} /></button>
+                                <button className="btn btn--ghost btn--sm" onClick={() => handleDeleteIncArticle(a.id, a.name)}><Trash2 size={12} /></button>
+                              </span>
+                            </>
+                          )}
+                        </div>
+                      ))}
+                      {t.articles.length === 0 && addingIncArticleForType !== t.id && (
+                        <div style={{ color: "var(--text-muted)", fontSize: "0.75rem", padding: "0.25rem 0 0.25rem 1.5rem" }}>Нет статей</div>
+                      )}
+                      {addingIncArticleForType === t.id && (
+                        <div className="admin-inline-edit" style={{ paddingLeft: "1.5rem" }}>
+                          <input
+                            className="admin-inline-input"
+                            placeholder="Название статьи"
+                            value={newIncArticleName}
+                            onChange={(ev) => setNewIncArticleName(ev.target.value)}
+                            onKeyDown={(ev) => { if (ev.key === "Enter") handleAddIncArticle(t.id); if (ev.key === "Escape") setAddingIncArticleForType(null); }}
+                            autoFocus
+                          />
+                          <button className="btn btn--ghost btn--sm" onClick={() => handleAddIncArticle(t.id)} disabled={!newIncArticleName.trim()}><Check size={14} /></button>
+                          <button className="btn btn--ghost btn--sm" onClick={() => setAddingIncArticleForType(null)}><X size={14} /></button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+
+              {incomeTypes.length === 0 && (
+                <div style={{ color: "var(--text-muted)", fontSize: "0.8125rem", marginBottom: "0.5rem" }}>Нет категорий</div>
+              )}
+
+              <div className="admin-inline-edit">
+                <input
+                  className="admin-inline-input"
+                  placeholder="Новая категория приходов"
+                  value={newIncTypeName}
+                  onChange={(e) => setNewIncTypeName(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") handleAddIncType(); }}
+                />
+                <button className="btn btn--primary btn--sm" onClick={handleAddIncType} disabled={!newIncTypeName.trim()}>
+                  <Plus size={14} /> Добавить
+                </button>
+              </div>
+            </div>
+          )}
+
+      {/* Custom fields section */}
+      <h3 className="admin-subtitle" style={{ fontSize: "0.875rem" }}>Кастомные поля ДДС</h3>
+
+      {cfLoading ? (
+        <div className="tab-loading" style={{ padding: "1rem 0" }}>Загрузка...</div>
+      ) : (
+        <div className="admin-expense-list">
+          {customFields.map((cf) => (
+            <div key={cf.id} className="admin-expense-type">
+              <div className="admin-expense-type__header">
+                <div className="admin-expense-type__name">
+                  <Tag size={14} />
+                  {cf.name}
+                  <span className="admin-expense-type__count" style={{ fontWeight: "normal" }}>
+                    ({cf.fieldType}{cf.required ? ", обяз." : ""})
+                  </span>
+                  {cf.showWhen && (
+                    <span style={{ fontSize: "0.7rem", color: "var(--text-muted)", marginLeft: "0.25rem" }}>
+                      — {cf.showWhen.operationType === "expense" ? "только расход" : cf.showWhen.operationType === "income" ? "только приход" : "условие"}
+                    </span>
+                  )}
+                </div>
+                <span className="admin-entity-actions">
+                  <button className="btn btn--ghost btn--sm" onClick={() => handleDeleteCustomField(cf.id, cf.name)} title="Удалить"><Trash2 size={12} /></button>
+                </span>
+              </div>
+              {cf.options && Array.isArray(cf.options) && (
+                <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", padding: "0.25rem 0 0.25rem 1.5rem" }}>
+                  Варианты: {(cf.options as string[]).join(", ")}
+                </div>
+              )}
+            </div>
+          ))}
+
+          {customFields.length === 0 && !showCfForm && (
+            <div style={{ color: "var(--text-muted)", fontSize: "0.8125rem", marginBottom: "0.5rem" }}>Нет кастомных полей</div>
+          )}
+
+          {showCfForm ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", padding: "0.5rem 0" }}>
+              <input className="admin-inline-input" placeholder="Название поля" value={cfName} onChange={(e) => setCfName(e.target.value)} autoFocus />
+              <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
+                <select className="admin-inline-input" value={cfType} onChange={(e) => setCfType(e.target.value)} style={{ width: "auto" }}>
+                  <option value="select">Выбор из списка</option>
+                  <option value="text">Текст</option>
+                  <option value="number">Число</option>
+                </select>
+                <select className="admin-inline-input" value={cfShowWhen} onChange={(e) => setCfShowWhen(e.target.value)} style={{ width: "auto" }}>
+                  <option value="always">Всегда</option>
+                  <option value="expense_only">Только расход</option>
+                  <option value="income_only">Только приход</option>
+                </select>
+                <label style={{ display: "flex", alignItems: "center", gap: "0.25rem", fontSize: "0.8125rem" }}>
+                  <input type="checkbox" checked={cfRequired} onChange={(e) => setCfRequired(e.target.checked)} /> Обязательное
+                </label>
+              </div>
+              {cfType === "select" && (
+                <input className="admin-inline-input" placeholder="Варианты через запятую" value={cfOptions} onChange={(e) => setCfOptions(e.target.value)} />
+              )}
+              <div style={{ display: "flex", gap: "0.5rem" }}>
+                <button className="btn btn--primary btn--sm" onClick={handleAddCustomField} disabled={!cfName.trim()}>
+                  <Check size={14} /> Сохранить
+                </button>
+                <button className="btn btn--ghost btn--sm" onClick={() => setShowCfForm(false)}>
+                  <X size={14} /> Отмена
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button className="btn btn--primary btn--sm" onClick={() => setShowCfForm(true)} style={{ marginTop: "0.5rem" }}>
+              <Plus size={14} /> Добавить поле
+            </button>
+          )}
+        </div>
+      )}
 
       {/* DDS operations table */}
       <h3 className="admin-subtitle" style={{ fontSize: "0.875rem" }}>

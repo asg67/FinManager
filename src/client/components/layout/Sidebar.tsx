@@ -41,11 +41,15 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
     return n.toLocaleString("ru-RU", { maximumFractionDigits: 0 });
   }
 
+  const isDdsOnly = user?.company?.mode === "dds_only";
+
   const navItems = [
     { to: "/", icon: Home, label: t("nav.dashboard") },
     { to: "/dds", icon: ArrowLeftRight, label: t("nav.dds") },
-    { to: "/pdf", icon: FileText, label: t("nav.statements") },
-    { to: "/bank-accounts", icon: Landmark, label: t("nav.bankAccounts") },
+    ...(!isDdsOnly ? [
+      { to: "/pdf", icon: FileText, label: t("nav.statements") },
+      { to: "/bank-accounts", icon: Landmark, label: t("nav.bankAccounts") },
+    ] : []),
   ];
 
   const toolItems = [

@@ -51,7 +51,7 @@ router.get("/dds", async (req: Request, res: Response) => {
       if (to) (where.createdAt as Record<string, unknown>).lte = new Date(to as string);
     }
 
-    const operations = await prisma.ddsOperation.findMany({
+    const operations: any[] = await (prisma.ddsOperation.findMany as any)({
       where,
       include: {
         entity: { select: { name: true } },
@@ -59,6 +59,8 @@ router.get("/dds", async (req: Request, res: Response) => {
         toAccount: { select: { name: true } },
         expenseType: { select: { name: true } },
         expenseArticle: { select: { name: true } },
+        incomeType: { select: { name: true } },
+        incomeArticle: { select: { name: true } },
       },
       orderBy: { createdAt: "desc" },
     });
@@ -66,15 +68,15 @@ router.get("/dds", async (req: Request, res: Response) => {
     // Build CSV
     const BOM = "\uFEFF"; // UTF-8 BOM for Excel
     const header = "Date,Type,Entity,Amount,From Account,To Account,Category,Article,Order Number,Comment";
-    const rows = operations.map((op) => {
+    const rows = operations.map((op: any) => {
       const date = op.createdAt.toISOString().slice(0, 10);
       const type = op.operationType;
       const entity = csvEscape(op.entity.name);
       const amount = op.amount.toString();
       const fromAcc = csvEscape(op.fromAccount?.name ?? "");
       const toAcc = csvEscape(op.toAccount?.name ?? "");
-      const category = csvEscape(op.expenseType?.name ?? "");
-      const article = csvEscape(op.expenseArticle?.name ?? "");
+      const category = csvEscape(op.expenseType?.name ?? op.incomeType?.name ?? "");
+      const article = csvEscape(op.expenseArticle?.name ?? op.incomeArticle?.name ?? "");
       const orderNum = csvEscape(op.orderNumber ?? "");
       const comment = csvEscape(op.comment ?? "");
       return `${date},${type},${entity},${amount},${fromAcc},${toAcc},${category},${article},${orderNum},${comment}`;
@@ -135,7 +137,7 @@ router.get("/dds-excel", async (req: Request, res: Response) => {
       if (to) (where.createdAt as any).lte = new Date(to + "T23:59:59");
     }
 
-    const ops = await prisma.ddsOperation.findMany({
+    const ops: any[] = await (prisma.ddsOperation.findMany as any)({
       where,
       include: {
         entity: { select: { name: true } },
@@ -144,27 +146,47 @@ router.get("/dds-excel", async (req: Request, res: Response) => {
         toAccount: { select: { name: true } },
         expenseType: { select: { name: true } },
         expenseArticle: { select: { name: true } },
+        incomeType: { select: { name: true } },
+        incomeArticle: { select: { name: true } },
+        customFieldValues: { include: { customField: { select: { name: true } } } },
       },
       orderBy: { createdAt: "desc" },
     });
 
+    // Collect all unique custom field names across operations for dynamic columns
+    const cfNameSet = new Set<string>();
+    for (const op of ops) {
+      for (const cfv of op.customFieldValues ?? []) {
+        cfNameSet.add(cfv.customField.name);
+      }
+    }
+    const cfNames = [...cfNameSet];
+
     const typeLabels: Record<string, string> = { income: "Приход", expense: "Расход", transfer: "Перевод" };
 
-    const rows = ops.map((op) => ({
-      date: op.createdAt.toLocaleDateString("ru-RU"),
-      user: op.user?.name ?? "",
-      entity: op.entity.name,
-      type: typeLabels[op.operationType] ?? op.operationType,
-      from: op.fromAccount?.name ?? "",
-      to: op.toAccount?.name ?? "",
-      amount: op.amount.toNumber(),
-      category: op.expenseType?.name ?? "",
-      article: op.expenseArticle?.name ?? "",
-      orderNumber: op.orderNumber ?? "",
-      comment: op.comment ?? "",
-    }));
+    const rows = ops.map((op: any) => {
+      const row: Record<string, unknown> = {
+        date: op.createdAt.toLocaleDateString("ru-RU"),
+        user: op.user?.name ?? "",
+        entity: op.entity.name,
+        type: typeLabels[op.operationType] ?? op.operationType,
+        from: op.fromAccount?.name ?? "",
+        to: op.toAccount?.name ?? "",
+        amount: op.amount.toNumber(),
+        category: op.expenseType?.name ?? op.incomeType?.name ?? "",
+        article: op.expenseArticle?.name ?? op.incomeArticle?.name ?? "",
+        orderNumber: op.orderNumber ?? "",
+        comment: op.comment ?? "",
+      };
+      // Add custom field values as dynamic columns
+      for (const name of cfNames) {
+        const cfv = (op.customFieldValues ?? []).find((v: any) => v.customField.name === name);
+        row[`cf_${name}`] = cfv?.value ?? "";
+      }
+      return row;
+    });
 
-    await createExcelResponse(res, `dds-${new Date().toISOString().slice(0, 10)}.xlsx`, [
+    const columns = [
       { header: "Дата", key: "date", width: 12 },
       { header: "Пользователь", key: "user", width: 20 },
       { header: "Юрлицо", key: "entity", width: 22 },
@@ -176,7 +198,10 @@ router.get("/dds-excel", async (req: Request, res: Response) => {
       { header: "Статья", key: "article", width: 18 },
       { header: "№ заказа", key: "orderNumber", width: 14 },
       { header: "Комментарий", key: "comment", width: 30 },
-    ], rows);
+      ...cfNames.map((name) => ({ header: name, key: `cf_${name}`, width: 18 })),
+    ];
+
+    await createExcelResponse(res, `dds-${new Date().toISOString().slice(0, 10)}.xlsx`, columns, rows);
   } catch (error) {
     console.error("Export DDS Excel error:", error);
     res.status(500).json({ message: "Internal server error" });

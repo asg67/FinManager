@@ -22,13 +22,15 @@ export default function MobileNav() {
   const [wizardOpen, setWizardOpen] = useState(false);
   const [entities, setEntities] = useState<Entity[]>([]);
 
+  const isDdsOnly = user?.company?.mode === "dds_only";
+
   const leftItems = [
     { to: "/", icon: Home, label: t("nav.dashboard") },
     { to: "/dds", icon: ArrowLeftRight, label: t("nav.dds") },
   ];
 
   const rightItems = [
-    { to: "/pdf", icon: FileText, label: t("nav.statements") },
+    ...(!isDdsOnly ? [{ to: "/pdf", icon: FileText, label: t("nav.statements") }] : []),
     { to: "/settings", icon: Settings, label: t("nav.settings") },
   ];
 

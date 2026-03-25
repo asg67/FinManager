@@ -64,7 +64,7 @@ function sanitizeUser(user: {
   theme: string;
   role: string;
   companyId: string | null;
-  company?: { id: string; name: string; onboardingDone: boolean; createdAt: Date } | null;
+  company?: { id: string; name: string; mode: string; onboardingDone: boolean; createdAt: Date } | null;
   avatar?: string | null;
   createdAt: Date;
 }) {
@@ -79,6 +79,7 @@ function sanitizeUser(user: {
     company: user.company ? {
       id: user.company.id,
       name: user.company.name,
+      mode: user.company.mode,
       onboardingDone: user.company.onboardingDone,
       createdAt: user.company.createdAt.toISOString(),
     } : null,

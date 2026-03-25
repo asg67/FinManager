@@ -3,8 +3,9 @@ import { useTranslation } from "react-i18next";
 import { ddsApi, type CreateOperationPayload } from "../../api/dds.js";
 import { accountsApi, type AccountWithEntity } from "../../api/accounts.js";
 import { companyApi } from "../../api/company.js";
+import { incomesApi } from "../../api/incomes.js";
 import { Button, Input, Select, Modal } from "../ui/index.js";
-import type { Entity, Account, ExpenseType, DdsOperation, DdsTemplate } from "@shared/types.js";
+import type { Entity, Account, ExpenseType, IncomeType, CustomField, DdsOperation, DdsTemplate } from "@shared/types.js";
 
 const OP_TYPES = [
   { value: "income", labelKey: "dds.income" },
@@ -25,9 +26,12 @@ export default function OperationWizard({ open, onClose, onDone, editOperation, 
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [otherCash, setOtherCash] = useState<AccountWithEntity[]>([]);
   const [expenseTypes, setExpenseTypes] = useState<ExpenseType[]>([]);
+  const [incomeTypes, setIncomeTypes] = useState<IncomeType[]>([]);
+  const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [templates, setTemplates] = useState<DdsTemplate[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [cfValues, setCfValues] = useState<Record<string, string>>({});
 
   const [form, setForm] = useState<CreateOperationPayload>({
     operationType: "income",
@@ -39,6 +43,7 @@ export default function OperationWizard({ open, onClose, onDone, editOperation, 
   useEffect(() => {
     if (!open) return;
     setError("");
+    setCfValues({});
     if (editOperation) {
       setForm({
         operationType: editOperation.operationType,
@@ -48,9 +53,16 @@ export default function OperationWizard({ open, onClose, onDone, editOperation, 
         toAccountId: editOperation.toAccountId ?? undefined,
         expenseTypeId: editOperation.expenseTypeId ?? undefined,
         expenseArticleId: editOperation.expenseArticleId ?? undefined,
+        incomeTypeId: editOperation.incomeTypeId ?? undefined,
+        incomeArticleId: editOperation.incomeArticleId ?? undefined,
         orderNumber: editOperation.orderNumber ?? undefined,
         comment: editOperation.comment ?? undefined,
       });
+      if (editOperation.customFieldValues) {
+        const vals: Record<string, string> = {};
+        editOperation.customFieldValues.forEach((cfv) => { vals[cfv.customFieldId] = cfv.value; });
+        setCfValues(vals);
+      }
     } else {
       setForm({
         operationType: "income",
@@ -64,6 +76,22 @@ export default function OperationWizard({ open, onClose, onDone, editOperation, 
   // Load expense types once (company-wide)
   useEffect(() => {
     if (open) companyApi.listExpenseTypes().then(setExpenseTypes);
+  }, [open]);
+
+  // Load income types when entity changes
+  useEffect(() => {
+    if (open && form.entityId) {
+      incomesApi.listTypes(form.entityId).then(setIncomeTypes).catch(() => setIncomeTypes([]));
+    } else {
+      setIncomeTypes([]);
+    }
+  }, [open, form.entityId]);
+
+  // Load custom fields
+  useEffect(() => {
+    if (open) {
+      ddsApi.getCustomFields().then(setCustomFields).catch(() => setCustomFields([]));
+    }
   }, [open]);
 
   // Load accounts when entity changes
@@ -91,6 +119,21 @@ export default function OperationWizard({ open, onClose, onDone, editOperation, 
       toAccountId: tpl.toAccountId ?? undefined,
       expenseTypeId: tpl.expenseTypeId ?? undefined,
       expenseArticleId: tpl.expenseArticleId ?? undefined,
+      incomeTypeId: tpl.incomeTypeId ?? undefined,
+      incomeArticleId: tpl.incomeArticleId ?? undefined,
+    });
+    setCfValues({});
+  }
+
+  // Get visible custom fields based on current form state
+  function getVisibleCustomFields(): CustomField[] {
+    return customFields.filter((cf) => {
+      if (!cf.showWhen) return true;
+      const sw = cf.showWhen;
+      if (sw.operationType && sw.operationType !== form.operationType) return false;
+      if (sw.expenseTypeId && sw.expenseTypeId !== form.expenseTypeId) return false;
+      if (sw.expenseArticleId && sw.expenseArticleId !== form.expenseArticleId) return false;
+      return true;
     });
   }
 
@@ -103,6 +146,11 @@ export default function OperationWizard({ open, onClose, onDone, editOperation, 
     setError("");
     setSaving(true);
     try {
+      const visibleCf = getVisibleCustomFields();
+      const customFieldValues = visibleCf
+        .filter((cf) => cfValues[cf.id]?.trim())
+        .map((cf) => ({ customFieldId: cf.id, value: cfValues[cf.id] }));
+
       if (editOperation) {
         await ddsApi.updateOperation(editOperation.id, {
           amount: form.amount,
@@ -110,11 +158,14 @@ export default function OperationWizard({ open, onClose, onDone, editOperation, 
           toAccountId: form.toAccountId ?? null,
           expenseTypeId: form.expenseTypeId ?? null,
           expenseArticleId: form.expenseArticleId ?? null,
+          incomeTypeId: form.incomeTypeId ?? null,
+          incomeArticleId: form.incomeArticleId ?? null,
           orderNumber: form.orderNumber ?? null,
           comment: form.comment ?? null,
+          customFieldValues,
         });
       } else {
-        await ddsApi.createOperation(form);
+        await ddsApi.createOperation({ ...form, customFieldValues });
       }
       onDone();
     } catch (err: unknown) {
@@ -126,9 +177,11 @@ export default function OperationWizard({ open, onClose, onDone, editOperation, 
   }
 
   const selectedExpenseType = expenseTypes.find((et) => et.id === form.expenseTypeId);
+  const selectedIncomeType = incomeTypes.find((it) => it.id === form.incomeTypeId);
   const isIncome = form.operationType === "income";
   const isExpense = form.operationType === "expense";
   const isTransfer = form.operationType === "transfer";
+  const visibleCustomFields = getVisibleCustomFields();
 
   if (open && !editOperation && entities.length === 0) {
     return (
@@ -255,6 +308,53 @@ export default function OperationWizard({ open, onClose, onDone, editOperation, 
             />
           </>
         )}
+
+        {/* Income type & article */}
+        {isIncome && incomeTypes.length > 0 && (
+          <>
+            <Select
+              label="Тип прихода"
+              options={incomeTypes.map((it) => ({ value: it.id, label: it.name }))}
+              value={form.incomeTypeId ?? ""}
+              onChange={(e) => {
+                updateField("incomeTypeId", e.target.value || undefined);
+                updateField("incomeArticleId", undefined);
+              }}
+              placeholder={t("common.select")}
+            />
+            {selectedIncomeType && selectedIncomeType.articles.length > 0 && (
+              <Select
+                label="Статья прихода"
+                options={selectedIncomeType.articles.map((a) => ({ value: a.id, label: a.name }))}
+                value={form.incomeArticleId ?? ""}
+                onChange={(e) => updateField("incomeArticleId", e.target.value || undefined)}
+                placeholder={t("common.select")}
+              />
+            )}
+          </>
+        )}
+
+        {/* Custom fields */}
+        {visibleCustomFields.map((cf) => (
+          cf.fieldType === "select" && cf.options ? (
+            <Select
+              key={cf.id}
+              label={`${cf.name}${cf.required ? " *" : ""}`}
+              options={cf.options.map((opt) => ({ value: opt, label: opt }))}
+              value={cfValues[cf.id] ?? ""}
+              onChange={(e) => setCfValues((prev) => ({ ...prev, [cf.id]: e.target.value }))}
+              placeholder={t("common.select")}
+            />
+          ) : (
+            <Input
+              key={cf.id}
+              label={`${cf.name}${cf.required ? " *" : ""}`}
+              type={cf.fieldType === "number" ? "number" : "text"}
+              value={cfValues[cf.id] ?? ""}
+              onChange={(e) => setCfValues((prev) => ({ ...prev, [cf.id]: e.target.value }))}
+            />
+          )
+        ))}
 
         {/* Amount */}
         <Input

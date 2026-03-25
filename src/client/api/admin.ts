@@ -13,6 +13,7 @@ export interface AdminUser {
 export interface AdminCompanyDetail {
   id: string;
   name: string;
+  mode: string;
   onboardingDone: boolean;
   createdAt: string;
   members: { id: string; name: string; email: string; role: string; createdAt: string }[];
@@ -61,6 +62,7 @@ export interface AdminEntityDetail {
 export interface AdminCompanyListItem {
   id: string;
   name: string;
+  mode: string;
   onboardingDone: boolean;
   usersCount: number;
   entitiesCount: number;
@@ -80,6 +82,33 @@ export interface AdminExpenseType {
   entityId: string;
   sortOrder: number;
   articles: AdminExpenseArticle[];
+}
+
+export interface AdminIncomeArticle {
+  id: string;
+  name: string;
+  incomeTypeId: string;
+  sortOrder: number;
+}
+
+export interface AdminIncomeType {
+  id: string;
+  name: string;
+  entityId: string;
+  sortOrder: number;
+  articles: AdminIncomeArticle[];
+}
+
+export interface AdminCustomField {
+  id: string;
+  companyId: string;
+  name: string;
+  fieldType: string;
+  options: string[] | null;
+  showWhen: Record<string, string> | null;
+  required: boolean;
+  sortOrder: number;
+  createdAt: string;
 }
 
 export const adminApi = {
@@ -161,4 +190,57 @@ export const adminApi = {
 
   deleteArticle: (id: string) =>
     api.delete<void>(`/admin/articles/${id}`),
+
+  // Company mode
+  setCompanyMode: (companyId: string, mode: string) =>
+    api.put<{ id: string; mode: string }>(`/admin/companies/${companyId}/mode`, { mode }),
+
+  // Income Types CRUD (company-wide)
+  getCompanyIncomeTypes: (companyId: string) =>
+    api.get<AdminIncomeType[]>(`/admin/companies/${companyId}/income-types`),
+
+  createCompanyIncomeType: (companyId: string, name: string) =>
+    api.post<AdminIncomeType>(`/admin/companies/${companyId}/income-types`, { name }),
+
+  updateIncomeType: (id: string, name: string) =>
+    api.put<AdminIncomeType>(`/admin/income-types/${id}`, { name }),
+
+  deleteIncomeType: (id: string) =>
+    api.delete<void>(`/admin/income-types/${id}`),
+
+  // Income Articles CRUD
+  createIncomeArticle: (typeId: string, name: string) =>
+    api.post<AdminIncomeArticle>(`/admin/income-types/${typeId}/articles`, { name }),
+
+  updateIncomeArticle: (id: string, name: string) =>
+    api.put<AdminIncomeArticle>(`/admin/income-articles/${id}`, { name }),
+
+  deleteIncomeArticle: (id: string) =>
+    api.delete<void>(`/admin/income-articles/${id}`),
+
+  // Custom Fields CRUD
+  getCustomFields: (companyId: string) =>
+    api.get<AdminCustomField[]>(`/admin/companies/${companyId}/custom-fields`),
+
+  createCustomField: (companyId: string, data: {
+    name: string;
+    fieldType?: string;
+    options?: string[];
+    showWhen?: Record<string, string> | null;
+    required?: boolean;
+  }) =>
+    api.post<AdminCustomField>(`/admin/companies/${companyId}/custom-fields`, data),
+
+  updateCustomField: (id: string, data: Partial<{
+    name: string;
+    fieldType: string;
+    options: string[];
+    showWhen: Record<string, string> | null;
+    required: boolean;
+    sortOrder: number;
+  }>) =>
+    api.put<AdminCustomField>(`/admin/custom-fields/${id}`, data),
+
+  deleteCustomField: (id: string) =>
+    api.delete<void>(`/admin/custom-fields/${id}`),
 };

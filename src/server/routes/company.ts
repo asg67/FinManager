@@ -109,6 +109,7 @@ router.post("/register-invite", validate(registerInviteSchema), async (req: Requ
         company: user.company ? {
           id: user.company.id,
           name: user.company.name,
+          mode: user.company.mode,
           onboardingDone: user.company.onboardingDone,
           createdAt: user.company.createdAt.toISOString(),
         } : null,
@@ -224,6 +225,7 @@ router.post("/", validate(createCompanySchema), async (req: Request, res: Respon
     res.status(201).json({
       id: company.id,
       name: company.name,
+      mode: company.mode,
       onboardingDone: company.onboardingDone,
       createdAt: company.createdAt.toISOString(),
     });
@@ -249,6 +251,7 @@ router.get("/", async (req: Request, res: Response) => {
     res.json({
       id: user.company.id,
       name: user.company.name,
+      mode: user.company.mode,
       onboardingDone: user.company.onboardingDone,
       createdAt: user.company.createdAt.toISOString(),
     });
@@ -280,6 +283,7 @@ router.put("/", validate(updateCompanySchema), async (req: Request, res: Respons
     res.json({
       id: company.id,
       name: company.name,
+      mode: company.mode,
       onboardingDone: company.onboardingDone,
       createdAt: company.createdAt.toISOString(),
     });
@@ -536,6 +540,7 @@ router.get("/my-companies", async (req: Request, res: Response) => {
     res.json(companies.map((c) => ({
       id: c.id,
       name: c.name,
+      mode: c.mode,
       onboardingDone: c.onboardingDone,
       isActive: c.id === user?.companyId,
       usersCount: c._count.users,

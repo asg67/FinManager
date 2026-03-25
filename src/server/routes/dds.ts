@@ -19,7 +19,7 @@ router.use(authMiddleware);
 router.post("/operations", validate(createOperationSchema), async (req: Request, res: Response) => {
   try {
     const userId = req.user!.userId;
-    const { operationType, amount, entityId, fromAccountId, toAccountId, expenseTypeId, expenseArticleId, orderNumber, comment } = req.body;
+    const { operationType, amount, entityId, fromAccountId, toAccountId, expenseTypeId, expenseArticleId, incomeTypeId, incomeArticleId, orderNumber, comment, customFieldValues } = req.body;
 
     // Verify entity belongs to user's company
     const user = await prisma.user.findUnique({ where: { id: userId } });
@@ -42,9 +42,21 @@ router.post("/operations", validate(createOperationSchema), async (req: Request,
         toAccountId: toAccountId ?? null,
         expenseTypeId: expenseTypeId ?? null,
         expenseArticleId: expenseArticleId ?? null,
+        incomeTypeId: incomeTypeId ?? null,
+        incomeArticleId: incomeArticleId ?? null,
         orderNumber: orderNumber ?? null,
         comment: comment ?? null,
         userId,
+        ...(customFieldValues && Array.isArray(customFieldValues) && customFieldValues.length > 0
+          ? {
+              customFieldValues: {
+                create: customFieldValues.map((cfv: { customFieldId: string; value: string }) => ({
+                  customFieldId: cfv.customFieldId,
+                  value: cfv.value,
+                })),
+              },
+            }
+          : {}),
       },
       include: {
         entity: { select: { name: true } },
@@ -52,7 +64,10 @@ router.post("/operations", validate(createOperationSchema), async (req: Request,
         toAccount: { select: { name: true, type: true } },
         expenseType: { select: { name: true } },
         expenseArticle: { select: { name: true } },
+        incomeType: { select: { name: true } },
+        incomeArticle: { select: { name: true } },
         user: { select: { name: true } },
+        customFieldValues: { include: { customField: { select: { name: true, fieldType: true } } } },
       },
     });
 
@@ -112,7 +127,10 @@ router.get("/operations", async (req: Request, res: Response) => {
           toAccount: { select: { name: true, type: true } },
           expenseType: { select: { name: true } },
           expenseArticle: { select: { name: true } },
+          incomeType: { select: { name: true } },
+          incomeArticle: { select: { name: true } },
           user: { select: { name: true } },
+          customFieldValues: { include: { customField: { select: { name: true, fieldType: true } } } },
         },
         orderBy: { createdAt: "desc" },
         skip,
@@ -153,18 +171,53 @@ router.put("/operations/:id", validate(updateOperationSchema), async (req: Reque
       return;
     }
 
+    const { customFieldValues, ...updateData } = req.body;
+
     const updated = await prisma.ddsOperation.update({
       where: { id: req.params.id },
-      data: req.body,
+      data: updateData,
       include: {
         entity: { select: { name: true } },
         fromAccount: { select: { name: true, type: true } },
         toAccount: { select: { name: true, type: true } },
         expenseType: { select: { name: true } },
         expenseArticle: { select: { name: true } },
+        incomeType: { select: { name: true } },
+        incomeArticle: { select: { name: true } },
         user: { select: { name: true } },
+        customFieldValues: { include: { customField: { select: { name: true, fieldType: true } } } },
       },
     });
+
+    // Update custom field values if provided
+    if (customFieldValues && Array.isArray(customFieldValues)) {
+      await prisma.customFieldValue.deleteMany({ where: { ddsOperationId: req.params.id } });
+      if (customFieldValues.length > 0) {
+        await prisma.customFieldValue.createMany({
+          data: customFieldValues.map((cfv: { customFieldId: string; value: string }) => ({
+            customFieldId: cfv.customFieldId,
+            ddsOperationId: req.params.id,
+            value: cfv.value,
+          })),
+        });
+      }
+      const refreshed = await prisma.ddsOperation.findUnique({
+        where: { id: req.params.id },
+        include: {
+          entity: { select: { name: true } },
+          fromAccount: { select: { name: true, type: true } },
+          toAccount: { select: { name: true, type: true } },
+          expenseType: { select: { name: true } },
+          expenseArticle: { select: { name: true } },
+          incomeType: { select: { name: true } },
+          incomeArticle: { select: { name: true } },
+          user: { select: { name: true } },
+          customFieldValues: { include: { customField: { select: { name: true, fieldType: true } } } },
+        },
+      });
+      res.json(refreshed);
+      return;
+    }
 
     res.json(updated);
   } catch (error) {
@@ -211,6 +264,8 @@ router.get("/templates", async (req: Request, res: Response) => {
         entity: { select: { name: true } },
         expenseType: { select: { name: true } },
         expenseArticle: { select: { name: true } },
+        incomeType: { select: { name: true } },
+        incomeArticle: { select: { name: true } },
       },
       orderBy: { createdAt: "desc" },
     });
@@ -234,6 +289,8 @@ router.post("/templates", validate(createTemplateSchema), async (req: Request, r
         toAccountId: req.body.toAccountId ?? null,
         expenseTypeId: req.body.expenseTypeId ?? null,
         expenseArticleId: req.body.expenseArticleId ?? null,
+        incomeTypeId: req.body.incomeTypeId ?? null,
+        incomeArticleId: req.body.incomeArticleId ?? null,
         userId: req.user!.userId,
       },
     });

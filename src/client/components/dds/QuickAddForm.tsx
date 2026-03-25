@@ -4,8 +4,9 @@ import { Save } from "lucide-react";
 import { ddsApi, type CreateOperationPayload } from "../../api/dds.js";
 import { accountsApi, type AccountWithEntity } from "../../api/accounts.js";
 import { companyApi } from "../../api/company.js";
+import { incomesApi } from "../../api/incomes.js";
 import { Button, Input, Select } from "../ui/index.js";
-import type { Entity, Account, ExpenseType, DdsTemplate } from "@shared/types.js";
+import type { Entity, Account, ExpenseType, IncomeType, CustomField, DdsTemplate } from "@shared/types.js";
 
 const OP_TYPES = [
   { value: "income", labelKey: "dds.income" },
@@ -23,10 +24,13 @@ export default function QuickAddForm({ entities, onSaved }: Props) {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [otherCash, setOtherCash] = useState<AccountWithEntity[]>([]);
   const [expenseTypes, setExpenseTypes] = useState<ExpenseType[]>([]);
+  const [incomeTypes, setIncomeTypes] = useState<IncomeType[]>([]);
+  const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [templates, setTemplates] = useState<DdsTemplate[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const [cfValues, setCfValues] = useState<Record<string, string>>({});
 
   const [form, setForm] = useState<CreateOperationPayload>({
     operationType: "expense",
@@ -49,6 +53,20 @@ export default function QuickAddForm({ entities, onSaved }: Props) {
   // Load expense types once (company-wide)
   useEffect(() => {
     companyApi.listExpenseTypes().then(setExpenseTypes);
+  }, []);
+
+  // Load income types when entity changes
+  useEffect(() => {
+    if (form.entityId) {
+      incomesApi.listTypes(form.entityId).then(setIncomeTypes).catch(() => setIncomeTypes([]));
+    } else {
+      setIncomeTypes([]);
+    }
+  }, [form.entityId]);
+
+  // Load custom fields
+  useEffect(() => {
+    ddsApi.getCustomFields().then(setCustomFields).catch(() => setCustomFields([]));
   }, []);
 
   // Load accounts when entity changes
@@ -82,6 +100,21 @@ export default function QuickAddForm({ entities, onSaved }: Props) {
       toAccountId: tpl.toAccountId ?? undefined,
       expenseTypeId: tpl.expenseTypeId ?? undefined,
       expenseArticleId: tpl.expenseArticleId ?? undefined,
+      incomeTypeId: tpl.incomeTypeId ?? undefined,
+      incomeArticleId: tpl.incomeArticleId ?? undefined,
+    });
+    setCfValues({});
+  }
+
+  // Get visible custom fields based on current form state
+  function getVisibleCustomFields(): CustomField[] {
+    return customFields.filter((cf) => {
+      if (!cf.showWhen) return true;
+      const sw = cf.showWhen;
+      if (sw.operationType && sw.operationType !== form.operationType) return false;
+      if (sw.expenseTypeId && sw.expenseTypeId !== form.expenseTypeId) return false;
+      if (sw.expenseArticleId && sw.expenseArticleId !== form.expenseArticleId) return false;
+      return true;
     });
   }
 
@@ -90,13 +123,19 @@ export default function QuickAddForm({ entities, onSaved }: Props) {
     setError("");
     setSaving(true);
     try {
-      await ddsApi.createOperation(form);
+      const visibleCf = getVisibleCustomFields();
+      const customFieldValues = visibleCf
+        .filter((cf) => cfValues[cf.id]?.trim())
+        .map((cf) => ({ customFieldId: cf.id, value: cfValues[cf.id] }));
+
+      await ddsApi.createOperation({ ...form, customFieldValues });
       // Reset form but keep entity and operation type
       setForm((prev) => ({
         operationType: prev.operationType,
         amount: 0,
         entityId: prev.entityId,
       }));
+      setCfValues({});
       setSuccess(true);
       setTimeout(() => setSuccess(false), 1500);
       onSaved();
@@ -109,9 +148,11 @@ export default function QuickAddForm({ entities, onSaved }: Props) {
   }
 
   const selectedExpenseType = expenseTypes.find((et) => et.id === form.expenseTypeId);
+  const selectedIncomeType = incomeTypes.find((it) => it.id === form.incomeTypeId);
   const isIncome = form.operationType === "income";
   const isExpense = form.operationType === "expense";
   const isTransfer = form.operationType === "transfer";
+  const visibleCustomFields = getVisibleCustomFields();
 
   return (
     <form onSubmit={handleSubmit} className="quick-add">
@@ -204,6 +245,50 @@ export default function QuickAddForm({ entities, onSaved }: Props) {
             onChange={(e) => updateField("expenseArticleId", e.target.value || undefined)}
           />
         )}
+
+        {/* Income type */}
+        {isIncome && incomeTypes.length > 0 && (
+          <Select
+            placeholder="Тип прихода"
+            options={incomeTypes.map((it) => ({ value: it.id, label: it.name }))}
+            value={form.incomeTypeId ?? ""}
+            onChange={(e) => {
+              updateField("incomeTypeId", e.target.value || undefined);
+              updateField("incomeArticleId", undefined);
+            }}
+          />
+        )}
+
+        {/* Income article */}
+        {isIncome && selectedIncomeType && selectedIncomeType.articles.length > 0 && (
+          <Select
+            placeholder="Статья прихода"
+            options={selectedIncomeType.articles.map((a) => ({ value: a.id, label: a.name }))}
+            value={form.incomeArticleId ?? ""}
+            onChange={(e) => updateField("incomeArticleId", e.target.value || undefined)}
+          />
+        )}
+
+        {/* Custom fields */}
+        {visibleCustomFields.map((cf) => (
+          cf.fieldType === "select" && cf.options ? (
+            <Select
+              key={cf.id}
+              placeholder={`${cf.name}${cf.required ? " *" : ""}`}
+              options={cf.options.map((opt) => ({ value: opt, label: opt }))}
+              value={cfValues[cf.id] ?? ""}
+              onChange={(e) => setCfValues((prev) => ({ ...prev, [cf.id]: e.target.value }))}
+            />
+          ) : (
+            <Input
+              key={cf.id}
+              type={cf.fieldType === "number" ? "number" : "text"}
+              value={cfValues[cf.id] ?? ""}
+              onChange={(e) => setCfValues((prev) => ({ ...prev, [cf.id]: e.target.value }))}
+              placeholder={`${cf.name}${cf.required ? " *" : ""}`}
+            />
+          )
+        ))}
       </div>
 
       <div className="quick-add__row">

@@ -12,15 +12,17 @@ datasource db {
 model Company {
   id             String   @id @default(uuid())
   name           String   @unique
+  mode           String   @default("full") // "full" | "dds_only"
   onboardingDone Boolean  @default(false)
   createdById    String?
   createdBy      User?    @relation("CompanyCreator", fields: [createdById], references: [id])
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  users    User[]
-  entities Entity[]
-  invites  Invite[]
+  users        User[]
+  entities     Entity[]
+  invites      Invite[]
+  customFields CustomField[]
 }
 
 model Invite {
@@ -95,6 +97,7 @@ model Entity {
 
   accounts        Account[]
   expenseTypes    ExpenseType[]
+  incomeTypes     IncomeType[]
   ddsOperations   DdsOperation[]
   ddsTemplates    DdsTemplate[]
   entityAccess    EntityAccess[]
@@ -175,6 +178,60 @@ model ExpenseArticle {
   ddsTemplates  DdsTemplate[]
 }
 
+// ============ INCOME CATEGORIES ============
+
+model IncomeType {
+  id        String   @id @default(uuid())
+  name      String
+  entityId  String
+  entity    Entity   @relation(fields: [entityId], references: [id], onDelete: Cascade)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  articles      IncomeArticle[]
+  ddsOperations DdsOperation[]
+  ddsTemplates  DdsTemplate[]
+}
+
+model IncomeArticle {
+  id           String     @id @default(uuid())
+  name         String
+  incomeTypeId String
+  incomeType   IncomeType @relation(fields: [incomeTypeId], references: [id], onDelete: Cascade)
+  sortOrder    Int        @default(0)
+
+  ddsOperations DdsOperation[]
+  ddsTemplates  DdsTemplate[]
+}
+
+// ============ CUSTOM FIELDS ============
+
+model CustomField {
+  id        String  @id @default(uuid())
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  name      String                  // e.g. "Направление"
+  fieldType String  @default("select") // "select" | "text" | "number"
+  options   Json?                   // ["Томск", "Новосибирск", ...] for select
+  showWhen  Json?                   // null = always, { operationType?, expenseTypeId?, expenseArticleId? }
+  required  Boolean @default(false)
+  sortOrder Int     @default(0)
+  createdAt DateTime @default(now())
+
+  values CustomFieldValue[]
+}
+
+model CustomFieldValue {
+  id              String       @id @default(uuid())
+  customFieldId   String
+  customField     CustomField  @relation(fields: [customFieldId], references: [id], onDelete: Cascade)
+  ddsOperationId  String
+  ddsOperation    DdsOperation @relation(fields: [ddsOperationId], references: [id], onDelete: Cascade)
+  value           String
+
+  @@unique([customFieldId, ddsOperationId])
+}
+
 // ============ DDS OPERATIONS ============
 
 model DdsOperation {
@@ -189,6 +246,10 @@ model DdsOperation {
   expenseType      ExpenseType?    @relation(fields: [expenseTypeId], references: [id])
   expenseArticleId String?
   expenseArticle   ExpenseArticle? @relation(fields: [expenseArticleId], references: [id])
+  incomeTypeId     String?
+  incomeType       IncomeType?     @relation(fields: [incomeTypeId], references: [id])
+  incomeArticleId  String?
+  incomeArticle    IncomeArticle?  @relation(fields: [incomeArticleId], references: [id])
   orderNumber      String?
   comment          String?
   entityId         String
@@ -197,6 +258,8 @@ model DdsOperation {
   user             User            @relation(fields: [userId], references: [id])
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
+
+  customFieldValues CustomFieldValue[]
 }
 
 // ============ DDS TEMPLATES ============
@@ -213,6 +276,10 @@ model DdsTemplate {
   expenseType      ExpenseType?    @relation(fields: [expenseTypeId], references: [id])
   expenseArticleId String?
   expenseArticle   ExpenseArticle? @relation(fields: [expenseArticleId], references: [id])
+  incomeTypeId     String?
+  incomeType       IncomeType?     @relation(fields: [incomeTypeId], references: [id])
+  incomeArticleId  String?
+  incomeArticle    IncomeArticle?  @relation(fields: [incomeArticleId], references: [id])
   userId           String
   user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt        DateTime        @default(now())

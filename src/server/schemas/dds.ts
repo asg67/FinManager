@@ -1,5 +1,10 @@
 import { z } from "zod";
 
+const customFieldValueSchema = z.object({
+  customFieldId: z.string().uuid(),
+  value: z.string().max(1000),
+});
+
 export const createOperationSchema = z
   .object({
     operationType: z.enum(["income", "expense", "transfer"]),
@@ -9,8 +14,11 @@ export const createOperationSchema = z
     toAccountId: z.string().uuid().optional(),
     expenseTypeId: z.string().uuid().optional(),
     expenseArticleId: z.string().uuid().optional(),
+    incomeTypeId: z.string().uuid().optional(),
+    incomeArticleId: z.string().uuid().optional(),
     orderNumber: z.string().max(255).optional(),
     comment: z.string().max(1000).optional(),
+    customFieldValues: z.array(customFieldValueSchema).optional(),
   })
   .superRefine((data, ctx) => {
     if (data.operationType === "income" && !data.toAccountId) {
@@ -36,8 +44,11 @@ export const updateOperationSchema = z.object({
   toAccountId: z.string().uuid().optional().nullable(),
   expenseTypeId: z.string().uuid().optional().nullable(),
   expenseArticleId: z.string().uuid().optional().nullable(),
+  incomeTypeId: z.string().uuid().optional().nullable(),
+  incomeArticleId: z.string().uuid().optional().nullable(),
   orderNumber: z.string().max(255).optional().nullable(),
   comment: z.string().max(1000).optional().nullable(),
+  customFieldValues: z.array(customFieldValueSchema).optional(),
 });
 
 export const listOperationsSchema = z.object({
@@ -59,6 +70,8 @@ export const createTemplateSchema = z.object({
   toAccountId: z.string().uuid().optional(),
   expenseTypeId: z.string().uuid().optional(),
   expenseArticleId: z.string().uuid().optional(),
+  incomeTypeId: z.string().uuid().optional(),
+  incomeArticleId: z.string().uuid().optional(),
 });
 
 export const updateTemplateSchema = z.object({
@@ -67,4 +80,6 @@ export const updateTemplateSchema = z.object({
   toAccountId: z.string().uuid().optional().nullable(),
   expenseTypeId: z.string().uuid().optional().nullable(),
   expenseArticleId: z.string().uuid().optional().nullable(),
+  incomeTypeId: z.string().uuid().optional().nullable(),
+  incomeArticleId: z.string().uuid().optional().nullable(),
 });

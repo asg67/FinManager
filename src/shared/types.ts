@@ -3,6 +3,7 @@
 export interface Company {
   id: string;
   name: string;
+  mode: "full" | "dds_only";
   onboardingDone: boolean;
   createdAt: string;
 }
@@ -87,7 +88,7 @@ export interface Entity {
 
 // === Accounts ===
 
-export type AccountType = "checking" | "card" | "cash" | "deposit";
+export type AccountType = "checking" | "card" | "cash" | "deposit" | "wallet";
 
 export interface Account {
   id: string;
@@ -121,6 +122,46 @@ export interface ExpenseType {
   articles: ExpenseArticle[];
 }
 
+// === Income Types & Articles ===
+
+export interface IncomeArticle {
+  id: string;
+  name: string;
+  incomeTypeId: string;
+  sortOrder: number;
+}
+
+export interface IncomeType {
+  id: string;
+  name: string;
+  entityId: string;
+  sortOrder: number;
+  createdAt: string;
+  articles: IncomeArticle[];
+}
+
+// === Custom Fields ===
+
+export interface CustomField {
+  id: string;
+  companyId: string;
+  name: string;
+  fieldType: "select" | "text" | "number";
+  options: string[] | null;
+  showWhen: { operationType?: string; expenseTypeId?: string; expenseArticleId?: string } | null;
+  required: boolean;
+  sortOrder: number;
+  createdAt: string;
+}
+
+export interface CustomFieldValue {
+  id: string;
+  customFieldId: string;
+  ddsOperationId: string;
+  value: string;
+  customField: { name: string; fieldType: string };
+}
+
 // === DDS ===
 
 export type OperationType = "income" | "expense" | "transfer";
@@ -137,12 +178,17 @@ export interface DdsOperation {
   expenseType: { name: string } | null;
   expenseArticleId: string | null;
   expenseArticle: { name: string } | null;
+  incomeTypeId: string | null;
+  incomeType: { name: string } | null;
+  incomeArticleId: string | null;
+  incomeArticle: { name: string } | null;
   orderNumber: string | null;
   comment: string | null;
   entityId: string;
   entity: { name: string };
   userId: string;
   user: { name: string };
+  customFieldValues?: CustomFieldValue[];
   createdAt: string;
 }
 
@@ -158,6 +204,10 @@ export interface DdsTemplate {
   expenseType?: { name: string } | null;
   expenseArticleId: string | null;
   expenseArticle?: { name: string } | null;
+  incomeTypeId: string | null;
+  incomeType?: { name: string } | null;
+  incomeArticleId: string | null;
+  incomeArticle?: { name: string } | null;
   userId: string;
   createdAt: string;
 }

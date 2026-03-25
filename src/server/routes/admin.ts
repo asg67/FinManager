@@ -44,6 +44,7 @@ router.get("/companies", async (_req: Request, res: Response) => {
     res.json(companies.map((c) => ({
       id: c.id,
       name: c.name,
+      mode: c.mode,
       onboardingDone: c.onboardingDone,
       usersCount: c._count.users,
       entitiesCount: c._count.entities,
@@ -152,6 +153,7 @@ router.get("/companies/:id", async (req: Request, res: Response) => {
     res.json({
       id: company.id,
       name: company.name,
+      mode: company.mode,
       onboardingDone: company.onboardingDone,
       createdAt: company.createdAt.toISOString(),
       members: members.map((u) => ({
@@ -199,7 +201,10 @@ router.get("/companies/:id/operations", async (req: Request, res: Response) => {
           toAccount: { select: { name: true, type: true } },
           expenseType: { select: { name: true } },
           expenseArticle: { select: { name: true } },
+          incomeType: { select: { name: true } },
+          incomeArticle: { select: { name: true } },
           user: { select: { name: true } },
+          customFieldValues: { include: { customField: { select: { name: true, fieldType: true } } } },
         },
         orderBy: { createdAt: "desc" },
         skip,
@@ -580,6 +585,296 @@ router.delete("/articles/:id", async (req: Request, res: Response) => {
     res.status(204).send();
   } catch (error) {
     console.error("Admin delete article error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// ===== COMPANY MODE =====
+
+// PUT /api/admin/companies/:id/mode — set company mode
+router.put("/companies/:id/mode", async (req: Request, res: Response) => {
+  try {
+    const { mode } = req.body;
+    if (!mode || !["full", "dds_only"].includes(mode)) {
+      res.status(400).json({ message: "Mode must be 'full' or 'dds_only'" });
+      return;
+    }
+
+    const company = await prisma.company.findUnique({ where: { id: req.params.id as string } });
+    if (!company) {
+      res.status(404).json({ message: "Company not found" });
+      return;
+    }
+
+    const updated = await prisma.company.update({
+      where: { id: company.id },
+      data: { mode },
+    });
+
+    res.json({ id: updated.id, mode: updated.mode });
+  } catch (error) {
+    console.error("Admin set company mode error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// ===== INCOME TYPES CRUD (admin) =====
+
+// GET /api/admin/companies/:id/income-types
+router.get("/companies/:id/income-types", async (req: Request, res: Response) => {
+  try {
+    const companyId = req.params.id as string;
+    const types = await prisma.incomeType.findMany({
+      where: { entity: { companyId } },
+      include: { articles: { orderBy: { sortOrder: "asc" } } },
+      orderBy: { sortOrder: "asc" },
+    });
+    res.json(types);
+  } catch (error) {
+    console.error("Admin list income types error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// POST /api/admin/companies/:id/income-types
+router.post("/companies/:id/income-types", async (req: Request, res: Response) => {
+  try {
+    const companyId = req.params.id as string;
+    const { name } = req.body;
+    if (!name?.trim()) {
+      res.status(400).json({ message: "Name is required" });
+      return;
+    }
+
+    const entity = await prisma.entity.findFirst({
+      where: { companyId },
+      orderBy: { createdAt: "asc" },
+    });
+    if (!entity) {
+      res.status(400).json({ message: "Company has no entities" });
+      return;
+    }
+
+    const type = await prisma.incomeType.create({
+      data: { name: name.trim(), entityId: entity.id },
+      include: { articles: true },
+    });
+
+    res.status(201).json(type);
+  } catch (error) {
+    console.error("Admin create income type error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// PUT /api/admin/income-types/:id
+router.put("/income-types/:id", async (req: Request, res: Response) => {
+  try {
+    const { name } = req.body;
+    if (!name?.trim()) {
+      res.status(400).json({ message: "Name is required" });
+      return;
+    }
+
+    const type = await prisma.incomeType.findUnique({ where: { id: req.params.id as string } });
+    if (!type) {
+      res.status(404).json({ message: "Income type not found" });
+      return;
+    }
+
+    const updated = await prisma.incomeType.update({
+      where: { id: type.id },
+      data: { name: name.trim() },
+      include: { articles: { orderBy: { sortOrder: "asc" } } },
+    });
+
+    res.json(updated);
+  } catch (error) {
+    console.error("Admin update income type error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// DELETE /api/admin/income-types/:id
+router.delete("/income-types/:id", async (req: Request, res: Response) => {
+  try {
+    const type = await prisma.incomeType.findUnique({ where: { id: req.params.id as string } });
+    if (!type) {
+      res.status(404).json({ message: "Income type not found" });
+      return;
+    }
+
+    await prisma.incomeType.delete({ where: { id: type.id } });
+    res.status(204).send();
+  } catch (error) {
+    console.error("Admin delete income type error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// POST /api/admin/income-types/:typeId/articles
+router.post("/income-types/:typeId/articles", async (req: Request, res: Response) => {
+  try {
+    const { name } = req.body;
+    if (!name?.trim()) {
+      res.status(400).json({ message: "Name is required" });
+      return;
+    }
+
+    const type = await prisma.incomeType.findUnique({ where: { id: req.params.typeId as string } });
+    if (!type) {
+      res.status(404).json({ message: "Income type not found" });
+      return;
+    }
+
+    const article = await prisma.incomeArticle.create({
+      data: { name: name.trim(), incomeTypeId: type.id },
+    });
+
+    res.status(201).json(article);
+  } catch (error) {
+    console.error("Admin create income article error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// PUT /api/admin/income-articles/:id
+router.put("/income-articles/:id", async (req: Request, res: Response) => {
+  try {
+    const { name } = req.body;
+    if (!name?.trim()) {
+      res.status(400).json({ message: "Name is required" });
+      return;
+    }
+
+    const article = await prisma.incomeArticle.findUnique({ where: { id: req.params.id as string } });
+    if (!article) {
+      res.status(404).json({ message: "Income article not found" });
+      return;
+    }
+
+    const updated = await prisma.incomeArticle.update({
+      where: { id: article.id },
+      data: { name: name.trim() },
+    });
+
+    res.json(updated);
+  } catch (error) {
+    console.error("Admin update income article error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// DELETE /api/admin/income-articles/:id
+router.delete("/income-articles/:id", async (req: Request, res: Response) => {
+  try {
+    const article = await prisma.incomeArticle.findUnique({ where: { id: req.params.id as string } });
+    if (!article) {
+      res.status(404).json({ message: "Income article not found" });
+      return;
+    }
+
+    await prisma.incomeArticle.delete({ where: { id: article.id } });
+    res.status(204).send();
+  } catch (error) {
+    console.error("Admin delete income article error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// ===== CUSTOM FIELDS CRUD =====
+
+// GET /api/admin/companies/:id/custom-fields
+router.get("/companies/:id/custom-fields", async (req: Request, res: Response) => {
+  try {
+    const fields = await prisma.customField.findMany({
+      where: { companyId: req.params.id as string },
+      orderBy: { sortOrder: "asc" },
+    });
+    res.json(fields);
+  } catch (error) {
+    console.error("Admin list custom fields error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// POST /api/admin/companies/:id/custom-fields
+router.post("/companies/:id/custom-fields", async (req: Request, res: Response) => {
+  try {
+    const companyId = req.params.id as string;
+    const { name, fieldType, options, showWhen, required } = req.body;
+
+    if (!name?.trim()) {
+      res.status(400).json({ message: "Name is required" });
+      return;
+    }
+
+    const company = await prisma.company.findUnique({ where: { id: companyId } });
+    if (!company) {
+      res.status(404).json({ message: "Company not found" });
+      return;
+    }
+
+    const field = await prisma.customField.create({
+      data: {
+        companyId,
+        name: name.trim(),
+        fieldType: fieldType || "select",
+        options: options || null,
+        showWhen: showWhen || null,
+        required: required || false,
+      },
+    });
+
+    res.status(201).json(field);
+  } catch (error) {
+    console.error("Admin create custom field error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// PUT /api/admin/custom-fields/:id
+router.put("/custom-fields/:id", async (req: Request, res: Response) => {
+  try {
+    const field = await prisma.customField.findUnique({ where: { id: req.params.id as string } });
+    if (!field) {
+      res.status(404).json({ message: "Custom field not found" });
+      return;
+    }
+
+    const data: Record<string, unknown> = {};
+    if (req.body.name !== undefined) data.name = req.body.name.trim();
+    if (req.body.fieldType !== undefined) data.fieldType = req.body.fieldType;
+    if (req.body.options !== undefined) data.options = req.body.options;
+    if (req.body.showWhen !== undefined) data.showWhen = req.body.showWhen;
+    if (req.body.required !== undefined) data.required = req.body.required;
+    if (req.body.sortOrder !== undefined) data.sortOrder = req.body.sortOrder;
+
+    const updated = await prisma.customField.update({
+      where: { id: field.id },
+      data,
+    });
+
+    res.json(updated);
+  } catch (error) {
+    console.error("Admin update custom field error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// DELETE /api/admin/custom-fields/:id
+router.delete("/custom-fields/:id", async (req: Request, res: Response) => {
+  try {
+    const field = await prisma.customField.findUnique({ where: { id: req.params.id as string } });
+    if (!field) {
+      res.status(404).json({ message: "Custom field not found" });
+      return;
+    }
+
+    await prisma.customField.delete({ where: { id: field.id } });
+    res.status(204).send();
+  } catch (error) {
+    console.error("Admin delete custom field error:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 });

@@ -179,7 +179,11 @@ function OperationCard({ op, onEdit, onDelete, t, formatAmount, formatDate }: {
         {op.fromAccount && <span className="op-card__meta">{t("dds.from")}: {op.fromAccount.name}</span>}
         {op.toAccount && <span className="op-card__meta">{t("dds.to")}: {op.toAccount.name}</span>}
         {op.expenseType && <span className="op-card__meta">{op.expenseType.name}{op.expenseArticle ? ` / ${op.expenseArticle.name}` : ""}</span>}
+        {op.incomeType && <span className="op-card__meta">{op.incomeType.name}{op.incomeArticle ? ` / ${op.incomeArticle.name}` : ""}</span>}
         {op.orderNumber && <span className="op-card__meta">#{op.orderNumber}</span>}
+        {op.customFieldValues && op.customFieldValues.length > 0 && op.customFieldValues.map((cfv) => (
+          <span key={cfv.id} className="op-card__meta">{cfv.customField?.name ?? ""}: {cfv.value}</span>
+        ))}
         {op.comment && <span className="op-card__comment">{op.comment}</span>}
       </div>
       <div className="op-card__actions">
@@ -371,14 +375,14 @@ function DdsTable({ companyName }: { companyName?: string }) {
       ),
     },
     {
-      key: "expenseType",
+      key: "category",
       header: t("dds.expenseType"),
-      render: (r: DdsOperation) => r.expenseType?.name ?? "\u2014",
+      render: (r: DdsOperation) => r.expenseType?.name ?? r.incomeType?.name ?? "\u2014",
     },
     {
-      key: "expenseArticle",
+      key: "article",
       header: t("dds.expenseArticle"),
-      render: (r: DdsOperation) => r.expenseArticle?.name ?? "\u2014",
+      render: (r: DdsOperation) => r.expenseArticle?.name ?? r.incomeArticle?.name ?? "\u2014",
     },
     {
       key: "orderNumber",

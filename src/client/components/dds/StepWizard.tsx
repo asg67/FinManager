@@ -4,10 +4,11 @@ import { ArrowLeft, Check } from "lucide-react";
 import { ddsApi, type CreateOperationPayload } from "../../api/dds.js";
 import { accountsApi, type AccountWithEntity } from "../../api/accounts.js";
 import { companyApi } from "../../api/company.js";
+import { incomesApi } from "../../api/incomes.js";
 import { Button, Input, Modal } from "../ui/index.js";
-import type { Entity, Account, ExpenseType, DdsOperation, DdsTemplate } from "@shared/types.js";
+import type { Entity, Account, ExpenseType, IncomeType, CustomField, DdsOperation, DdsTemplate } from "@shared/types.js";
 
-type Step = "entity" | "opType" | "fromAccount" | "category" | "article" | "details" | "review";
+type Step = "entity" | "opType" | "fromAccount" | "category" | "article" | "incomeCategory" | "incomeArticle" | "details" | "review";
 
 interface Props {
   open: boolean;
@@ -23,6 +24,8 @@ export default function StepWizard({ open, onClose, onDone, editOperation, entit
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [otherCash, setOtherCash] = useState<AccountWithEntity[]>([]);
   const [expenseTypes, setExpenseTypes] = useState<ExpenseType[]>([]);
+  const [incomeTypes, setIncomeTypes] = useState<IncomeType[]>([]);
+  const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [templates, setTemplates] = useState<DdsTemplate[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -33,10 +36,14 @@ export default function StepWizard({ open, onClose, onDone, editOperation, entit
     entityId: "",
   });
 
+  // Custom field values state: { [customFieldId]: value }
+  const [cfValues, setCfValues] = useState<Record<string, string>>({});
+
   // Initialize when opened
   useEffect(() => {
     if (!open) return;
     setError("");
+    setCfValues({});
     if (editOperation) {
       setForm({
         operationType: editOperation.operationType,
@@ -46,9 +53,17 @@ export default function StepWizard({ open, onClose, onDone, editOperation, entit
         toAccountId: editOperation.toAccountId ?? undefined,
         expenseTypeId: editOperation.expenseTypeId ?? undefined,
         expenseArticleId: editOperation.expenseArticleId ?? undefined,
+        incomeTypeId: editOperation.incomeTypeId ?? undefined,
+        incomeArticleId: editOperation.incomeArticleId ?? undefined,
         orderNumber: editOperation.orderNumber ?? undefined,
         comment: editOperation.comment ?? undefined,
       });
+      // Restore custom field values
+      if (editOperation.customFieldValues) {
+        const vals: Record<string, string> = {};
+        editOperation.customFieldValues.forEach((cfv) => { vals[cfv.customFieldId] = cfv.value; });
+        setCfValues(vals);
+      }
       setStep("review");
     } else {
       const autoEntity = entities.length === 1 ? entities[0].id : "";
@@ -57,6 +72,7 @@ export default function StepWizard({ open, onClose, onDone, editOperation, entit
         amount: 0,
         entityId: autoEntity,
       });
+      setCfValues({});
       setStep(entities.length === 1 ? "opType" : "entity");
       ddsApi.listTemplates().then(setTemplates);
     }
@@ -65,6 +81,22 @@ export default function StepWizard({ open, onClose, onDone, editOperation, entit
   // Load expense types (company-wide)
   useEffect(() => {
     if (open) companyApi.listExpenseTypes().then(setExpenseTypes);
+  }, [open]);
+
+  // Load income types when entity changes
+  useEffect(() => {
+    if (open && form.entityId) {
+      incomesApi.listTypes(form.entityId).then(setIncomeTypes).catch(() => setIncomeTypes([]));
+    } else {
+      setIncomeTypes([]);
+    }
+  }, [open, form.entityId]);
+
+  // Load custom fields
+  useEffect(() => {
+    if (open) {
+      ddsApi.getCustomFields().then(setCustomFields).catch(() => setCustomFields([]));
+    }
   }, [open]);
 
   // Load accounts when entity changes
@@ -95,9 +127,11 @@ export default function StepWizard({ open, onClose, onDone, editOperation, entit
   }
 
   function selectOpType(opType: string) {
-    setForm((prev) => ({ ...prev, operationType: opType, expenseTypeId: undefined, expenseArticleId: undefined }));
+    setForm((prev) => ({ ...prev, operationType: opType, expenseTypeId: undefined, expenseArticleId: undefined, incomeTypeId: undefined, incomeArticleId: undefined }));
     if (opType === "expense") {
       setStep("fromAccount");
+    } else if (opType === "income" && incomeTypes.length > 0) {
+      setStep("incomeCategory");
     } else {
       setStep("details");
     }
@@ -123,6 +157,21 @@ export default function StepWizard({ open, onClose, onDone, editOperation, entit
     setStep("details");
   }
 
+  function selectIncomeCategory(typeId: string) {
+    const cat = incomeTypes.find((it) => it.id === typeId);
+    setForm((prev) => ({ ...prev, incomeTypeId: typeId, incomeArticleId: undefined }));
+    if (cat && cat.articles.length > 0) {
+      setStep("incomeArticle");
+    } else {
+      setStep("details");
+    }
+  }
+
+  function selectIncomeArticle(articleId: string) {
+    setForm((prev) => ({ ...prev, incomeArticleId: articleId }));
+    setStep("details");
+  }
+
   function applyTemplate(tpl: DdsTemplate) {
     setForm({
       operationType: tpl.operationType,
@@ -132,6 +181,8 @@ export default function StepWizard({ open, onClose, onDone, editOperation, entit
       toAccountId: tpl.toAccountId ?? undefined,
       expenseTypeId: tpl.expenseTypeId ?? undefined,
       expenseArticleId: tpl.expenseArticleId ?? undefined,
+      incomeTypeId: tpl.incomeTypeId ?? undefined,
+      incomeArticleId: tpl.incomeArticleId ?? undefined,
     });
     setStep("details");
   }
@@ -150,6 +201,12 @@ export default function StepWizard({ open, onClose, onDone, editOperation, entit
       case "article":
         setStep("category");
         break;
+      case "incomeCategory":
+        setStep("opType");
+        break;
+      case "incomeArticle":
+        setStep("incomeCategory");
+        break;
       case "details":
         if (form.operationType === "expense") {
           const cat = expenseTypes.find((et) => et.id === form.expenseTypeId);
@@ -157,6 +214,13 @@ export default function StepWizard({ open, onClose, onDone, editOperation, entit
             setStep("article");
           } else {
             setStep("category");
+          }
+        } else if (form.operationType === "income" && incomeTypes.length > 0) {
+          const cat = incomeTypes.find((it) => it.id === form.incomeTypeId);
+          if (cat && cat.articles.length > 0) {
+            setStep("incomeArticle");
+          } else {
+            setStep("incomeCategory");
           }
         } else {
           setStep("opType");
@@ -168,10 +232,27 @@ export default function StepWizard({ open, onClose, onDone, editOperation, entit
     }
   }
 
+  // Get visible custom fields based on current form state
+  function getVisibleCustomFields(): CustomField[] {
+    return customFields.filter((cf) => {
+      if (!cf.showWhen) return true; // always show
+      const sw = cf.showWhen;
+      if (sw.operationType && sw.operationType !== form.operationType) return false;
+      if (sw.expenseTypeId && sw.expenseTypeId !== form.expenseTypeId) return false;
+      if (sw.expenseArticleId && sw.expenseArticleId !== form.expenseArticleId) return false;
+      return true;
+    });
+  }
+
   async function handleSubmit() {
     setError("");
     setSaving(true);
     try {
+      const visibleCf = getVisibleCustomFields();
+      const customFieldValues = visibleCf
+        .filter((cf) => cfValues[cf.id]?.trim())
+        .map((cf) => ({ customFieldId: cf.id, value: cfValues[cf.id] }));
+
       if (editOperation) {
         await ddsApi.updateOperation(editOperation.id, {
           amount: form.amount,
@@ -179,11 +260,14 @@ export default function StepWizard({ open, onClose, onDone, editOperation, entit
           toAccountId: form.toAccountId ?? null,
           expenseTypeId: form.expenseTypeId ?? null,
           expenseArticleId: form.expenseArticleId ?? null,
+          incomeTypeId: form.incomeTypeId ?? null,
+          incomeArticleId: form.incomeArticleId ?? null,
           orderNumber: form.orderNumber ?? null,
           comment: form.comment ?? null,
+          customFieldValues,
         });
       } else {
-        await ddsApi.createOperation(form);
+        await ddsApi.createOperation({ ...form, customFieldValues });
       }
       onDone();
     } catch (err: unknown) {
@@ -207,6 +291,11 @@ export default function StepWizard({ open, onClose, onDone, editOperation, entit
   const expenseTypeName = expenseTypes.find((et) => et.id === form.expenseTypeId)?.name;
   const selectedExpenseType = expenseTypes.find((et) => et.id === form.expenseTypeId);
   const expenseArticleName = selectedExpenseType?.articles.find((a) => a.id === form.expenseArticleId)?.name;
+  const incomeTypeName = incomeTypes.find((it) => it.id === form.incomeTypeId)?.name;
+  const selectedIncomeType = incomeTypes.find((it) => it.id === form.incomeTypeId);
+  const incomeArticleName = selectedIncomeType?.articles.find((a) => a.id === form.incomeArticleId)?.name;
+
+  const visibleCustomFields = getVisibleCustomFields();
 
   const stepLabels: Record<Step, string> = {
     entity: t("dds.selectEntity"),
@@ -214,6 +303,8 @@ export default function StepWizard({ open, onClose, onDone, editOperation, entit
     fromAccount: t("dds.fromAccount"),
     category: t("dds.selectCategory"),
     article: t("dds.selectArticle"),
+    incomeCategory: "Тип прихода",
+    incomeArticle: "Статья прихода",
     details: t("dds.fillDetails"),
     review: t("dds.reviewTitle"),
   };
@@ -311,7 +402,7 @@ export default function StepWizard({ open, onClose, onDone, editOperation, entit
           </div>
         )}
 
-        {/* Step: Category */}
+        {/* Step: Category (expense) */}
         {step === "category" && (
           <div className="step-wizard__grid">
             {expenseTypes.map((et) => (
@@ -327,7 +418,7 @@ export default function StepWizard({ open, onClose, onDone, editOperation, entit
           </div>
         )}
 
-        {/* Step: Article */}
+        {/* Step: Article (expense) */}
         {step === "article" && selectedExpenseType && (
           <div className="step-wizard__grid">
             {selectedExpenseType.articles.map((a) => (
@@ -336,6 +427,38 @@ export default function StepWizard({ open, onClose, onDone, editOperation, entit
                 type="button"
                 className={`step-wizard__option ${form.expenseArticleId === a.id ? "step-wizard__option--selected" : ""}`}
                 onClick={() => selectArticle(a.id)}
+              >
+                {a.name}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Step: Income Category */}
+        {step === "incomeCategory" && (
+          <div className="step-wizard__grid">
+            {incomeTypes.map((it) => (
+              <button
+                key={it.id}
+                type="button"
+                className={`step-wizard__option ${form.incomeTypeId === it.id ? "step-wizard__option--selected" : ""}`}
+                onClick={() => selectIncomeCategory(it.id)}
+              >
+                {it.name}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Step: Income Article */}
+        {step === "incomeArticle" && selectedIncomeType && (
+          <div className="step-wizard__grid">
+            {selectedIncomeType.articles.map((a) => (
+              <button
+                key={a.id}
+                type="button"
+                className={`step-wizard__option ${form.incomeArticleId === a.id ? "step-wizard__option--selected" : ""}`}
+                onClick={() => selectIncomeArticle(a.id)}
               >
                 {a.name}
               </button>
@@ -415,6 +538,36 @@ export default function StepWizard({ open, onClose, onDone, editOperation, entit
               />
             )}
 
+            {/* Custom fields */}
+            {visibleCustomFields.map((cf) => (
+              <div key={cf.id} className="step-wizard__field">
+                {cf.fieldType === "select" && cf.options ? (
+                  <>
+                    <label className="step-wizard__field-label">{cf.name}{cf.required ? " *" : ""}</label>
+                    <div className="step-wizard__grid step-wizard__grid--compact">
+                      {cf.options.map((opt) => (
+                        <button
+                          key={opt}
+                          type="button"
+                          className={`step-wizard__option step-wizard__option--sm ${cfValues[cf.id] === opt ? "step-wizard__option--selected" : ""}`}
+                          onClick={() => setCfValues((prev) => ({ ...prev, [cf.id]: opt }))}
+                        >
+                          {opt}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <Input
+                    label={`${cf.name}${cf.required ? " *" : ""}`}
+                    type={cf.fieldType === "number" ? "number" : "text"}
+                    value={cfValues[cf.id] ?? ""}
+                    onChange={(e) => setCfValues((prev) => ({ ...prev, [cf.id]: e.target.value }))}
+                  />
+                )}
+              </div>
+            ))}
+
             {/* Comment */}
             <Input
               label={t("dds.comment")}
@@ -465,6 +618,18 @@ export default function StepWizard({ open, onClose, onDone, editOperation, entit
                 <span className="step-wizard__review-value">{expenseArticleName}</span>
               </div>
             )}
+            {incomeTypeName && (
+              <div className="step-wizard__review-row">
+                <span className="step-wizard__review-label">Тип прихода</span>
+                <span className="step-wizard__review-value">{incomeTypeName}</span>
+              </div>
+            )}
+            {incomeArticleName && (
+              <div className="step-wizard__review-row">
+                <span className="step-wizard__review-label">Статья прихода</span>
+                <span className="step-wizard__review-value">{incomeArticleName}</span>
+              </div>
+            )}
             <div className="step-wizard__review-row">
               <span className="step-wizard__review-label">{t("dds.amount")}</span>
               <span className={`step-wizard__review-value step-wizard__review-amount amount--${form.operationType}`}>
@@ -477,6 +642,13 @@ export default function StepWizard({ open, onClose, onDone, editOperation, entit
                 <span className="step-wizard__review-value">{form.orderNumber}</span>
               </div>
             )}
+            {/* Custom field values in review */}
+            {visibleCustomFields.filter((cf) => cfValues[cf.id]?.trim()).map((cf) => (
+              <div key={cf.id} className="step-wizard__review-row">
+                <span className="step-wizard__review-label">{cf.name}</span>
+                <span className="step-wizard__review-value">{cfValues[cf.id]}</span>
+              </div>
+            ))}
             {form.comment && (
               <div className="step-wizard__review-row">
                 <span className="step-wizard__review-label">{t("dds.comment")}</span>
