@@ -289,6 +289,131 @@
   cursor: pointer;
 }
 
+/* ===== Admin User Cards ===== */
+.admin-users-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.admin-user-card {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card-bg);
+  overflow: hidden;
+}
+
+.admin-user-card__header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.admin-user-card__header:hover {
+  background: var(--hover);
+}
+
+.admin-user-card__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.admin-user-card__name {
+  font-weight: 600;
+  font-size: 0.875rem;
+  display: block;
+}
+
+.admin-user-card__email {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.admin-user-card__meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.admin-user-card__company {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.admin-user-card__chevron {
+  transition: transform 0.2s;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+.admin-user-card__chevron--open {
+  transform: rotate(180deg);
+}
+
+.admin-user-card__body {
+  padding: 0 1rem 1rem;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding-top: 0.75rem;
+}
+
+.admin-user-card__section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.admin-user-card__label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-muted);
+}
+
+.admin-bank-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+
+.admin-bank-toggle {
+  padding: 0.25rem 0.625rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.admin-bank-toggle--on {
+  background: rgba(34, 197, 94, 0.12);
+  color: #22c55e;
+  border-color: rgba(34, 197, 94, 0.3);
+}
+
+.admin-bank-toggle--off {
+  background: rgba(239, 68, 68, 0.08);
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.2);
+  text-decoration: line-through;
+  opacity: 0.7;
+}
+
+.admin-user-card__footer {
+  padding-top: 0.25rem;
+}
+
+.admin-user-card__date {
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+}
+
 /* ===== Admin Activity ===== */
 
 .admin-activity {

@@ -75,13 +75,14 @@ model User {
 }
 
 model Permission {
-  id        String  @id @default(uuid())
-  userId    String  @unique
-  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  dds       Boolean @default(false)
-  pdfUpload Boolean @default(false)
-  analytics Boolean @default(false)
-  export    Boolean @default(false)
+  id            String   @id @default(uuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dds           Boolean  @default(false)
+  pdfUpload     Boolean  @default(false)
+  analytics     Boolean  @default(false)
+  export        Boolean  @default(false)
+  disabledBanks String[] @default([])
 }
 
 // ============ BUSINESS ENTITIES ============

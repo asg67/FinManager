@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { Navigate } from "react-router-dom";
 import {
-  Building2, Users, Bell, Plus, ChevronLeft, ChevronRight,
+  Building2, Users, Bell, Plus, ChevronLeft, ChevronRight, ChevronDown,
   ArrowLeft, Send, CreditCard, FileText, LogOut, Trash2,
   Pencil, Check, X, FolderOpen, Tag, Link, Copy,
 } from "lucide-react";
@@ -1225,9 +1225,19 @@ function EntityDetailView({
 
 /* ==================== Users List ==================== */
 
+const ALL_BANKS = [
+  { code: "sber", label: "Сбер" },
+  { code: "tbank", label: "Т-Банк" },
+  { code: "tbank_deposit", label: "Т-Банк Депозит" },
+  { code: "ozon", label: "Озон" },
+  { code: "module", label: "Модуль" },
+  { code: "tochka", label: "Точка" },
+];
+
 function UsersView({ onBack }: { onBack: () => void }) {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
+  const [expandedUser, setExpandedUser] = useState<string | null>(null);
 
   useEffect(() => {
     adminApi.listUsers().then((d) => { setUsers(d); setLoading(false); });
@@ -1237,6 +1247,15 @@ function UsersView({ onBack }: { onBack: () => void }) {
     const newMode = mode === "" ? null : mode;
     await adminApi.setUserMode(userId, newMode);
     setUsers((prev) => prev.map((u) => u.id === userId ? { ...u, mode: newMode } : u));
+  }
+
+  async function handleBankToggle(userId: string, bankCode: string, currentDisabled: string[]) {
+    const isDisabled = currentDisabled.includes(bankCode);
+    const newDisabled = isDisabled
+      ? currentDisabled.filter((b) => b !== bankCode)
+      : [...currentDisabled, bankCode];
+    await adminApi.setUserDisabledBanks(userId, newDisabled);
+    setUsers((prev) => prev.map((u) => u.id === userId ? { ...u, disabledBanks: newDisabled } : u));
   }
 
   return (
@@ -1249,30 +1268,32 @@ function UsersView({ onBack }: { onBack: () => void }) {
       {loading ? (
         <div className="tab-loading">Загрузка...</div>
       ) : (
-        <div className="admin-table-wrap">
-          <table className="admin-table">
-            <thead>
-              <tr>
-                <th>Имя</th>
-                <th>Email</th>
-                <th>Роль</th>
-                <th>Режим</th>
-                <th>Компания</th>
-                <th>Последнее действие</th>
-                <th>Регистрация</th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.map((u) => (
-                <tr key={u.id}>
-                  <td style={{ fontWeight: 600 }}>{u.name}</td>
-                  <td>{u.email}</td>
-                  <td>
-                    <span className={`admin-role admin-role--${u.role}`}>
-                      {u.role === "owner" ? "Админ" : "Участник"}
+        <div className="admin-users-list">
+          {users.map((u) => (
+            <div key={u.id} className="admin-user-card">
+              <div className="admin-user-card__header" onClick={() => setExpandedUser(expandedUser === u.id ? null : u.id)}>
+                <div className="admin-user-card__info">
+                  <span className="admin-user-card__name">{u.name}</span>
+                  <span className="admin-user-card__email">{u.email}</span>
+                </div>
+                <div className="admin-user-card__meta">
+                  <span className={`admin-role admin-role--${u.role}`}>
+                    {u.role === "owner" ? "Админ" : "Участник"}
+                  </span>
+                  {u.companyName && <span className="admin-user-card__company">{u.companyName}</span>}
+                  {u.lastAction && (
+                    <span className={`admin-activity admin-activity--${u.lastAction.type}`}>
+                      {u.lastAction.type === "dds" ? "ДДС" : "PDF"} &bull; {formatDate(u.lastAction.date)}
                     </span>
-                  </td>
-                  <td>
+                  )}
+                </div>
+                <ChevronDown size={16} className={`admin-user-card__chevron ${expandedUser === u.id ? "admin-user-card__chevron--open" : ""}`} />
+              </div>
+
+              {expandedUser === u.id && (
+                <div className="admin-user-card__body">
+                  <div className="admin-user-card__section">
+                    <label className="admin-user-card__label">Режим</label>
                     <select
                       className="admin-mode-select"
                       value={u.mode ?? ""}
@@ -1282,22 +1303,34 @@ function UsersView({ onBack }: { onBack: () => void }) {
                       <option value="full">Полный</option>
                       <option value="dds_only">Только ДДС</option>
                     </select>
-                  </td>
-                  <td>{u.companyName || "—"}</td>
-                  <td>
-                    {u.lastAction ? (
-                      <span className={`admin-activity admin-activity--${u.lastAction.type}`}>
-                        {u.lastAction.type === "dds" ? "ДДС" : "PDF"} &bull; {formatDate(u.lastAction.date)}
-                      </span>
-                    ) : (
-                      <span className="admin-activity">—</span>
-                    )}
-                  </td>
-                  <td>{formatDate(u.createdAt)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  </div>
+
+                  <div className="admin-user-card__section">
+                    <label className="admin-user-card__label">Доступные банки</label>
+                    <div className="admin-bank-toggles">
+                      {ALL_BANKS.map((bank) => {
+                        const isEnabled = !u.disabledBanks.includes(bank.code);
+                        return (
+                          <button
+                            key={bank.code}
+                            type="button"
+                            className={`admin-bank-toggle ${isEnabled ? "admin-bank-toggle--on" : "admin-bank-toggle--off"}`}
+                            onClick={() => handleBankToggle(u.id, bank.code, u.disabledBanks)}
+                          >
+                            {bank.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="admin-user-card__footer">
+                    <span className="admin-user-card__date">Регистрация: {formatDate(u.createdAt)}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
         </div>
       )}
     </div>

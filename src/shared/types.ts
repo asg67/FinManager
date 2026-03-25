@@ -33,6 +33,7 @@ export interface User {
   role: string;
   companyId: string | null;
   company: Company | null;
+  disabledBanks: string[];
   avatar: string | null;
   createdAt: string;
 }

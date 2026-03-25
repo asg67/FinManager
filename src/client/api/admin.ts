@@ -6,6 +6,7 @@ export interface AdminUser {
   email: string;
   role: string;
   mode: string | null;
+  disabledBanks: string[];
   companyName: string | null;
   lastAction: { type: string; date: string } | null;
   createdAt: string;
@@ -124,6 +125,9 @@ export const adminApi = {
 
   setUserMode: (userId: string, mode: string | null) =>
     api.put<{ ok: boolean }>(`/admin/users/${userId}/mode`, { mode }),
+
+  setUserDisabledBanks: (userId: string, disabledBanks: string[]) =>
+    api.put<{ ok: boolean }>(`/admin/users/${userId}/disabled-banks`, { disabledBanks }),
 
   getCompany: (id: string) =>
     api.get<AdminCompanyDetail>(`/admin/companies/${id}`),

@@ -66,6 +66,7 @@ function sanitizeUser(user: {
   mode?: string | null;
   companyId: string | null;
   company?: { id: string; name: string; mode: string; onboardingDone: boolean; createdAt: Date } | null;
+  permission?: { disabledBanks: string[] } | null;
   avatar?: string | null;
   createdAt: Date;
 }) {
@@ -86,6 +87,7 @@ function sanitizeUser(user: {
       onboardingDone: user.company.onboardingDone,
       createdAt: user.company.createdAt.toISOString(),
     } : null,
+    disabledBanks: user.permission?.disabledBanks ?? [],
     avatar: user.avatar ?? null,
     createdAt: user.createdAt.toISOString(),
   };
@@ -152,7 +154,7 @@ router.post("/login", validate(loginSchema), async (req: Request, res: Response)
 
     const user = await prisma.user.findUnique({
       where: { email },
-      include: { company: true },
+      include: { company: true, permission: { select: { disabledBanks: true } } },
     });
     if (!user) {
       res.status(401).json({ message: "Invalid credentials" });
@@ -208,7 +210,7 @@ router.get("/me", authMiddleware, async (req: Request, res: Response) => {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.user!.userId },
-      include: { company: true },
+      include: { company: true, permission: { select: { disabledBanks: true } } },
     });
 
     if (!user) {

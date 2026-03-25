@@ -68,6 +68,7 @@ router.get("/users", async (_req: Request, res: Response) => {
         mode: true,
         companyId: true,
         company: { select: { name: true } },
+        permission: { select: { disabledBanks: true } },
         createdAt: true,
       },
       orderBy: { createdAt: "asc" },
@@ -113,6 +114,7 @@ router.get("/users", async (_req: Request, res: Response) => {
         email: u.email,
         role: u.role,
         mode: u.mode ?? null,
+        disabledBanks: u.permission?.disabledBanks ?? [],
         companyName: u.company?.name || null,
         lastAction,
         createdAt: u.createdAt.toISOString(),
@@ -141,6 +143,32 @@ router.put("/users/:id/mode", async (req: Request, res: Response) => {
     res.json({ ok: true });
   } catch (error) {
     console.error("Admin set user mode error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// PUT /api/admin/users/:id/disabled-banks — set user's disabled banks
+const VALID_BANK_CODES = ["sber", "tbank", "tbank_deposit", "ozon", "module", "tochka"];
+router.put("/users/:id/disabled-banks", async (req: Request, res: Response) => {
+  try {
+    const { disabledBanks } = req.body;
+    if (!Array.isArray(disabledBanks)) {
+      res.status(400).json({ message: "disabledBanks must be an array" });
+      return;
+    }
+    const invalid = disabledBanks.filter((b: string) => !VALID_BANK_CODES.includes(b));
+    if (invalid.length > 0) {
+      res.status(400).json({ message: `Invalid bank codes: ${invalid.join(", ")}` });
+      return;
+    }
+    await prisma.permission.upsert({
+      where: { userId: req.params.id },
+      update: { disabledBanks },
+      create: { userId: req.params.id, disabledBanks },
+    });
+    res.json({ ok: true });
+  } catch (error) {
+    console.error("Admin set disabled banks error:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 });

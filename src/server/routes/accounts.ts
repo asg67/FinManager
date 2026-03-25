@@ -46,8 +46,14 @@ router.get("/", async (req: Request, res: Response) => {
     if (req.query.source) where.source = req.query.source;
     if (req.query.enabled === "true") where.enabled = true;
 
+    // Filter out accounts from banks disabled for this user
+    const perm = await prisma.permission.findUnique({ where: { userId: req.user!.userId } });
+    if (perm?.disabledBanks && perm.disabledBanks.length > 0) {
+      where.bankCode = { notIn: perm.disabledBanks };
+    }
+
     const accounts = await prisma.account.findMany({
-      where,
+      where: where as any,
       orderBy: { createdAt: "asc" },
     });
 

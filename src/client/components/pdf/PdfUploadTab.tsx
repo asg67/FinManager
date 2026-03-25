@@ -1,13 +1,14 @@
-import { useState, useEffect, useRef, type ChangeEvent } from "react";
+import { useState, useEffect, useRef, useMemo, type ChangeEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { Upload, FileText, Check, AlertTriangle } from "lucide-react";
 import { entitiesApi } from "../../api/entities.js";
 import { accountsApi } from "../../api/accounts.js";
 import { pdfApi, type ParsedTransaction, type UploadResult } from "../../api/pdf.js";
+import { useAuthStore } from "../../stores/auth.js";
 import { Button, Select } from "../ui/index.js";
 import type { Entity, Account } from "@shared/types.js";
 
-const BANK_CODES = [
+const ALL_BANK_CODES = [
   { value: "sber", label: "Сбер" },
   { value: "tbank", label: "Т-Банк" },
   { value: "tbank_deposit", label: "Т-Банк (вклад)" },
@@ -18,12 +19,14 @@ type Step = "select" | "uploading" | "preview" | "done";
 export default function PdfUploadTab() {
   const { t } = useTranslation();
   const fileRef = useRef<HTMLInputElement>(null);
+  const disabledBanks = useAuthStore((s) => s.user?.disabledBanks ?? []);
+  const BANK_CODES = useMemo(() => ALL_BANK_CODES.filter((b) => !disabledBanks.includes(b.value)), [disabledBanks]);
 
   const [entities, setEntities] = useState<Entity[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [selectedEntity, setSelectedEntity] = useState("");
   const [selectedAccount, setSelectedAccount] = useState("");
-  const [bankCode, setBankCode] = useState("sber");
+  const [bankCode, setBankCode] = useState("");
   const [step, setStep] = useState<Step>("select");
   const [error, setError] = useState("");
 
@@ -39,6 +42,11 @@ export default function PdfUploadTab() {
       if (data.length > 0) setSelectedEntity(data[0].id);
     });
   }, []);
+
+  // Set default bankCode when available banks change
+  useEffect(() => {
+    if (!bankCode && BANK_CODES.length > 0) setBankCode(BANK_CODES[0].value);
+  }, [BANK_CODES, bankCode]);
 
   useEffect(() => {
     if (selectedEntity) {
