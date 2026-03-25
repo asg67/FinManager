@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Upload, CreditCard, PiggyBank, Wallet } from "lucide-react";
 import { Button } from "../components/ui/index.js";
+import { useAuthStore } from "../stores/auth.js";
 import StatementWizard from "../components/pdf/StatementWizard.js";
 
 const STATEMENT_BANKS = [
@@ -16,6 +17,8 @@ export default function Statements() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [wizardOpen, setWizardOpen] = useState(false);
+  const disabledBanks = useAuthStore((s) => s.user?.disabledBanks ?? []);
+  const banks = useMemo(() => STATEMENT_BANKS.filter((b) => !disabledBanks.includes(b.code)), [disabledBanks]);
 
   return (
     <div className="statements-page page-enter">
@@ -39,7 +42,7 @@ export default function Statements() {
 
       {/* Bank cards */}
       <div className="stmt-bank-cards">
-        {STATEMENT_BANKS.map(({ code, labelKey, icon: Icon, color }) => (
+        {banks.map(({ code, labelKey, icon: Icon, color }) => (
           <button
             key={code}
             type="button"

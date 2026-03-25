@@ -32,11 +32,20 @@ router.get("/", async (req: Request, res: Response) => {
     const where: any = {};
 
     if (mine && user.role !== "owner") {
-      // Member: entities they own or have explicit access to
-      where.OR = [
+      // Member: entities they own, have explicit access to, or match by last name
+      const accessCount = await prisma.entityAccess.count({ where: { userId } });
+      const conditions: any[] = [
         { companyId: user.companyId, ownerId: userId },
         { companyId: user.companyId, entityAccess: { some: { userId } } },
       ];
+      // Fallback: if member has no explicit access, also match by last name
+      if (accessCount === 0) {
+        const lastName = user.name?.split(" ")[0];
+        if (lastName && lastName.length >= 2) {
+          conditions.push({ companyId: user.companyId, name: { contains: lastName, mode: "insensitive" } });
+        }
+      }
+      where.OR = conditions;
     } else {
       // Owner or no mine filter: all company entities only
       where.companyId = user.companyId;

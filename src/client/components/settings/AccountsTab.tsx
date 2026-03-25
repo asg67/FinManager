@@ -188,8 +188,9 @@ export default function AccountsTab() {
   }
 
   function renderBalancesList() {
-    // Only show standard bank accounts (not manual DDS ones)
-    const bankAccounts = accounts.filter((a) => a.bank && STANDARD_BANK_CODES.includes(a.bank));
+    // Only show standard bank accounts (not manual DDS ones), excluding disabled banks
+    const disabledBanks = user?.disabledBanks ?? [];
+    const bankAccounts = accounts.filter((a) => a.bank && STANDARD_BANK_CODES.includes(a.bank) && !disabledBanks.includes(a.bank));
     if (bankAccounts.length === 0) return null;
 
     const checkingAccounts = bankAccounts.filter((a) => a.type === "checking");

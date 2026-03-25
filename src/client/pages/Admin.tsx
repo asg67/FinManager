@@ -678,7 +678,7 @@ function CompanyDetailView({
           <span className="admin-company-header__stat">{company.members.length} пользователей</span>
           <span className="admin-company-header__stat">{company.entities.length} юр.лиц</span>
           <button className={`btn btn--sm ${company.mode === "dds_only" ? "btn--warning" : "btn--ghost"}`} onClick={handleToggleMode}>
-            {company.mode === "dds_only" ? "Только ДДС" : "Полный режим"}
+            {company.mode === "dds_only" ? "Только ДДС (без выписок)" : "Полный (ДДС + выписки)"}
           </button>
           <button className={`btn btn--sm ${inviteCopied ? "btn--success" : "btn--primary"}`} onClick={handleCopyInvite} disabled={inviteLoading}>
             {inviteCopied ? <><Check size={14} /> Скопировано</> : <><Link size={14} /> Приглашение</>}
@@ -1291,9 +1291,9 @@ function UsersView({ onBack }: { onBack: () => void }) {
                       value={u.mode ?? ""}
                       onChange={(e) => handleModeChange(u.id, e.target.value)}
                     >
-                      <option value="">По компании</option>
-                      <option value="full">Полный</option>
-                      <option value="dds_only">Только ДДС</option>
+                      <option value="">По компании (как у компании)</option>
+                      <option value="full">Полный (ДДС + выписки)</option>
+                      <option value="dds_only">Только ДДС (без выписок)</option>
                     </select>
                   </div>
 

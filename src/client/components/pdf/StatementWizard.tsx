@@ -1,9 +1,10 @@
-import { useState, useEffect, useRef, type ChangeEvent } from "react";
+import { useState, useEffect, useRef, useMemo, type ChangeEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { X, ArrowLeft, Upload, FileText, Check, AlertTriangle, CreditCard, Landmark } from "lucide-react";
 import { entitiesApi } from "../../api/entities.js";
 import { accountsApi } from "../../api/accounts.js";
 import { pdfApi, type UploadResult } from "../../api/pdf.js";
+import { useAuthStore } from "../../stores/auth.js";
 import { Button } from "../ui/index.js";
 import type { Entity, Account } from "@shared/types.js";
 
@@ -35,6 +36,8 @@ interface Props {
 export default function StatementWizard({ open, onClose, onDone, initialFile, initialBankCode }: Props) {
   const { t } = useTranslation();
   const fileRef = useRef<HTMLInputElement>(null);
+  const disabledBanks = useAuthStore((s) => s.user?.disabledBanks ?? []);
+  const availableBanks = useMemo(() => BANKS.filter((b) => !disabledBanks.includes(b.code)), [disabledBanks]);
 
   const [step, setStep] = useState<Step>("bank");
   const [bankCode, setBankCode] = useState("");
@@ -208,7 +211,7 @@ export default function StatementWizard({ open, onClose, onDone, initialFile, in
         <div className="modal__body">
           {step === "bank" && (
             <div className="stmt-wizard__grid">
-              {BANKS.map((b) => {
+              {availableBanks.map((b) => {
                 const Icon = b.icon;
                 return (
                   <button
