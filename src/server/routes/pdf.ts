@@ -187,6 +187,41 @@ router.post("/confirm", validate(confirmSchema), async (req: Request, res: Respo
       data: { status: "confirmed" },
     });
 
+    // Auto-match: link new bank transactions to existing DDS operations
+    if (saved > 0) {
+      try {
+        const account = await prisma.account.findUnique({ where: { id: pdfUpload.accountId }, select: { entityId: true } });
+        if (account) {
+          const newBankTxs = await prisma.bankTransaction.findMany({
+            where: { pdfUploadId: pdfUpload.id, linkedDdsOp: { is: null } },
+            select: { id: true, date: true, amount: true, direction: true },
+          });
+          const unlinkedDds = await prisma.ddsOperation.findMany({
+            where: {
+              linkedBankTxId: null,
+              entityId: account.entityId,
+              operationType: { in: ["income", "expense"] },
+            },
+            select: { id: true, operationType: true, amount: true, createdAt: true, fromAccountId: true, toAccountId: true },
+          });
+
+          for (const bt of newBankTxs) {
+            const btDate = new Date(bt.date); btDate.setHours(0, 0, 0, 0);
+            const match = unlinkedDds.find((d) => {
+              if (d.operationType !== bt.direction) return false;
+              if (Math.abs(Number(d.amount) - Number(bt.amount)) > 0.01) return false;
+              const dDate = new Date(d.createdAt); dDate.setHours(0, 0, 0, 0);
+              return Math.abs(btDate.getTime() - dDate.getTime()) <= 86400000;
+            });
+            if (match) {
+              await prisma.ddsOperation.update({ where: { id: match.id }, data: { linkedBankTxId: bt.id } });
+              unlinkedDds.splice(unlinkedDds.indexOf(match), 1);
+            }
+          }
+        }
+      } catch (e) { console.error("Auto-match after confirm:", e); }
+    }
+
     res.json({ saved, skipped, total: transactions.length });
   } catch (error) {
     console.error("Confirm error:", error);

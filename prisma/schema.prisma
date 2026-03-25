@@ -258,6 +258,8 @@ model DdsOperation {
   entity           Entity          @relation(fields: [entityId], references: [id])
   userId           String
   user             User            @relation(fields: [userId], references: [id])
+  linkedBankTxId   String?         @unique
+  linkedBankTx     BankTransaction? @relation(fields: [linkedBankTxId], references: [id], onDelete: SetNull)
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
 
@@ -318,6 +320,8 @@ model BankTransaction {
   pdfUpload    PdfUpload? @relation(fields: [pdfUploadId], references: [id])
   dedupeKey    String?
   createdAt    DateTime  @default(now())
+
+  linkedDdsOp  DdsOperation?
 
   @@index([accountId, date])
   @@index([dedupeKey])

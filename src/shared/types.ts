@@ -190,6 +190,7 @@ export interface DdsOperation {
   userId: string;
   user: { name: string };
   customFieldValues?: CustomFieldValue[];
+  linkedBankTxId?: string | null;
   createdAt: string;
 }
 

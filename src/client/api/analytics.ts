@@ -39,6 +39,7 @@ export interface RecentOperation {
   description: string;
   entity: string | null;
   account: string | null;
+  linked?: boolean;
 }
 
 export interface AnalyticsFilters {

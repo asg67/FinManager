@@ -15,22 +15,11 @@ async function entityFilter(companyId: string | null, userId: string, mine: bool
   // Owner sees all company entities
   if (user?.role === "owner") return { companyId };
 
-  // Check if user has explicit entity access
-  const accessCount = await prisma.entityAccess.count({ where: { userId } });
-  if (accessCount > 0) {
-    return {
-      companyId,
-      OR: [{ ownerId: userId }, { entityAccess: { some: { userId } } }],
-    };
-  }
-
-  // No explicit access — match by last name (first word of user name)
-  const lastName = user?.name?.split(" ")[0];
-  if (lastName && lastName.length >= 2) {
-    return { companyId, name: { contains: lastName, mode: "insensitive" } };
-  }
-
-  return { companyId, ownerId: userId };
+  // Member: entities they own or have explicit access to
+  return {
+    companyId,
+    OR: [{ ownerId: userId }, { entityAccess: { some: { userId } } }],
+  };
 }
 
 // GET /api/analytics/summary — total income, expense, count for a period
@@ -62,9 +51,10 @@ router.get("/summary", async (req: Request, res: Response) => {
       prisma.ddsOperation.count({ where }),
     ]);
 
-    // Bank transactions (same entity filter, date filter)
+    // Bank transactions (same entity filter, date filter, exclude linked to avoid double-counting)
     const bankWhere: Prisma.BankTransactionWhereInput = {
       account: { entity: where.entity },
+      linkedDdsOp: { is: null },
     };
     if (where.createdAt) {
       bankWhere.date = {};
@@ -185,6 +175,7 @@ router.get("/timeline", async (req: Request, res: Response) => {
         ...(accountType ? { type: accountType } : {}),
       },
       date: { gte: startDate },
+      linkedDdsOp: { is: null }, // exclude linked to avoid double-counting
     };
 
     const [operations, bankTxs] = await Promise.all([
@@ -347,6 +338,7 @@ router.get("/recent", async (req: Request, res: Response) => {
         where: { account: { entity: entFilter } },
         include: {
           account: { select: { name: true, bank: true } },
+          linkedDdsOp: { select: { id: true } },
         },
         orderBy: { date: "desc" },
         take: limitNum,
@@ -366,6 +358,7 @@ router.get("/recent", async (req: Request, res: Response) => {
         account: op.operationType === "income"
           ? op.toAccount?.name
           : op.fromAccount?.name,
+        linked: !!(op as any).linkedBankTxId,
       })),
       ...bankTxs.map((tx) => ({
         id: tx.id,
@@ -376,6 +369,7 @@ router.get("/recent", async (req: Request, res: Response) => {
         description: tx.counterparty ?? tx.purpose ?? tx.direction,
         entity: null as string | null,
         account: tx.account.name,
+        linked: !!(tx as any).linkedDdsOp,
       })),
     ]
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())

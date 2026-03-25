@@ -129,7 +129,8 @@ router.post("/register", validate(registerSchema), async (req: Request, res: Res
     });
 
     // Auto-create personal entity "ИП Фамилия" with standard accounts
-    const lastName = name.trim().split(/\s+/)[0];
+    const nameParts = name.trim().split(/\s+/);
+    const lastName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : nameParts[0];
     const entity = await prisma.entity.create({
       data: { name: `ИП ${lastName}`, ownerId: user.id, companyId: null },
     });

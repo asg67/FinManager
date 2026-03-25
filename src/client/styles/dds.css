@@ -674,6 +674,15 @@
   font-style: italic;
 }
 
+.op-card__linked {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.7rem;
+  color: #22c55e;
+  font-weight: 500;
+}
+
 .op-card__actions {
   display: flex;
   gap: 0.25rem;

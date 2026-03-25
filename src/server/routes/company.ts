@@ -6,6 +6,7 @@ import { config } from "../config.js";
 import { authMiddleware, JwtPayload } from "../middleware/auth.js";
 import { validate } from "../middleware/validate.js";
 import { createCompanySchema, updateCompanySchema, registerInviteSchema } from "../schemas/company.js";
+import { seedEntityAccounts } from "../helpers/seedAccounts.js";
 
 const router = Router();
 
@@ -88,10 +89,16 @@ router.post("/register-invite", validate(registerInviteSchema), async (req: Requ
       include: { company: true },
     });
 
-    // Auto-create personal entity "ИП Фамилия" inside the invite's company
-    const lastName = name.trim().split(/\s+/)[0];
-    await prisma.entity.create({
+    // Auto-create entity "ИП Фамилия" inside the invite's company
+    const nameParts = name.trim().split(/\s+/);
+    const lastName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : nameParts[0];
+    const entity = await prisma.entity.create({
       data: { name: `ИП ${lastName}`, ownerId: user.id, companyId: invite.companyId },
+    });
+    await seedEntityAccounts(entity.id);
+    // Give user access to their own entity
+    await prisma.entityAccess.create({
+      data: { userId: user.id, entityId: entity.id },
     });
 
     const tokens = generateTokens(user.id, user.role);
@@ -168,6 +175,19 @@ router.post("/join", async (req: Request, res: Response) => {
       include: { company: true },
     });
 
+    // Auto-create entity "ИП Фамилия" in the new company
+    const nameParts = (user.name || "").trim().split(/\s+/);
+    const lastName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : nameParts[0];
+    if (lastName) {
+      const entity = await prisma.entity.create({
+        data: { name: `ИП ${lastName}`, ownerId: userId, companyId: invite.companyId },
+      });
+      await seedEntityAccounts(entity.id);
+      await prisma.entityAccess.create({
+        data: { userId, entityId: entity.id },
+      });
+    }
+
     res.json({
       id: updatedUser.id,
       email: updatedUser.email,
@@ -179,9 +199,11 @@ router.post("/join", async (req: Request, res: Response) => {
       company: updatedUser.company ? {
         id: updatedUser.company.id,
         name: updatedUser.company.name,
+        mode: (updatedUser.company as any).mode ?? "full",
         onboardingDone: updatedUser.company.onboardingDone,
         createdAt: updatedUser.company.createdAt.toISOString(),
       } : null,
+      disabledBanks: [],
       createdAt: updatedUser.createdAt.toISOString(),
     });
   } catch (error) {

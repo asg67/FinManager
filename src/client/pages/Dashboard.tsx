@@ -6,7 +6,7 @@ import {
   CreditCard, Banknote, PiggyBank, Calendar,
   BarChart3, LineChart as LineChartIcon, CircleDot,
   ArrowUpRight, ArrowDownLeft, ArrowRightLeft,
-  ChevronDown, ChevronRight,
+  ChevronDown, ChevronRight, Link2,
 } from "lucide-react";
 import {
   PieChart, Pie, Cell, ResponsiveContainer,
@@ -14,6 +14,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip,
 } from "recharts";
 import { analyticsApi, type SummaryData, type TimelinePoint, type AccountBalance, type RecentOperation } from "../api/analytics.js";
+import { reconciliationApi } from "../api/reconciliation.js";
 import { useAuthStore } from "../stores/auth.js";
 import { useThemeStore } from "../stores/theme.js";
 
@@ -157,6 +158,8 @@ export default function Dashboard() {
   const [recent, setRecent] = useState<RecentOperation[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const [matching, setMatching] = useState(false);
+  const [matchResult, setMatchResult] = useState<number | null>(null);
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -508,7 +511,35 @@ export default function Dashboard() {
 
             {/* Recent Operations */}
             <div className="glass-card dash-recent">
-              <h3 className="chart-title">{t("dashboard.recentOperations")}</h3>
+              <div className="dash-recent__header">
+                <h3 className="chart-title">{t("dashboard.recentOperations")}</h3>
+                <button
+                  type="button"
+                  className="dash-reconcile-btn"
+                  disabled={matching}
+                  onClick={async () => {
+                    setMatching(true);
+                    setMatchResult(null);
+                    try {
+                      const r = await reconciliationApi.autoMatch();
+                      setMatchResult(r.matched);
+                      if (r.matched > 0) {
+                        const [sum, rec] = await Promise.all([
+                          analyticsApi.summary({ from: dateFrom, to: dateTo, mine: "true" }),
+                          analyticsApi.recent(10, "true"),
+                        ]);
+                        setSummary(sum);
+                        setRecent(rec);
+                      }
+                    } catch { /* ignore */ }
+                    setMatching(false);
+                  }}
+                  title="Автосверка ДДС с выписками"
+                >
+                  <Link2 size={14} />
+                  {matching ? "..." : matchResult !== null ? `Сверено: ${matchResult}` : "Сверить"}
+                </button>
+              </div>
               <div className="recent-list">
                 {recent.map((op) => (
                   <div key={`${op.source}-${op.id}`} className="recent-item" onClick={() => op.source === "dds" && navigate("/dds")}>
@@ -516,7 +547,7 @@ export default function Dashboard() {
                       {opIcon(op.type)}
                       <div>
                         <div className="recent-item__desc">{op.description}</div>
-                        <div className="recent-item__meta">{op.account && <span>{op.account}</span>}{op.entity && <span> · {op.entity}</span>}</div>
+                        <div className="recent-item__meta">{op.account && <span>{op.account}</span>}{op.entity && <span> · {op.entity}</span>}{op.linked && <span className="recent-item__linked" title="Сверено"><Link2 size={12} /></span>}</div>
                       </div>
                     </div>
                     <div className="recent-item__right">

@@ -185,6 +185,7 @@ function OperationCard({ op, onEdit, onDelete, t, formatAmount, formatDate }: {
           <span key={cfv.id} className="op-card__meta">{cfv.customField?.name ?? ""}: {cfv.value}</span>
         ))}
         {op.comment && <span className="op-card__comment">{op.comment}</span>}
+        {op.linkedBankTxId && <span className="op-card__linked" title="Сверено с выпиской"><Link2 size={12} /> Сверено</span>}
       </div>
       <div className="op-card__actions">
         <button type="button" className="icon-btn" onClick={onEdit} title={t("common.edit")}>
@@ -393,6 +394,11 @@ function DdsTable({ companyName }: { companyName?: string }) {
       key: "comment",
       header: t("dds.comment"),
       render: (r: DdsOperation) => r.comment ?? "",
+    },
+    {
+      key: "linked",
+      header: "",
+      render: (r: DdsOperation) => r.linkedBankTxId ? <span className="op-card__linked" title="Сверено с выпиской"><Link2 size={14} /></span> : null,
     },
     {
       key: "actions",

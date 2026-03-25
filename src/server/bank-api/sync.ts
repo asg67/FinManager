@@ -80,7 +80,7 @@ export async function syncConnection(
           continue;
         }
 
-        await prisma.bankTransaction.create({
+        const newBt = await prisma.bankTransaction.create({
           data: {
             date: new Date(tx.date),
             time: tx.time ?? null,
@@ -95,6 +95,23 @@ export async function syncConnection(
           },
         });
         totalSaved++;
+
+        // Auto-match with unlinked DDS operations
+        try {
+          const btDate = new Date(tx.date); btDate.setHours(0, 0, 0, 0);
+          const matchDds = await prisma.ddsOperation.findFirst({
+            where: {
+              linkedBankTxId: null,
+              entityId: localAccount.entityId,
+              operationType: tx.direction,
+              amount: new Prisma.Decimal(tx.amount),
+              createdAt: { gte: new Date(btDate.getTime() - 86400000), lte: new Date(btDate.getTime() + 86400000 + 86399999) },
+            },
+          });
+          if (matchDds) {
+            await prisma.ddsOperation.update({ where: { id: matchDds.id }, data: { linkedBankTxId: newBt.id } });
+          }
+        } catch (e) { /* non-critical */ }
       }
     } catch (err) {
       const msg = `Account ${remoteAcc.accountNumber}: ${err instanceof Error ? err.message : String(err)}`;
