@@ -48,6 +48,7 @@ model User {
   language     String   @default("ru")
   theme        String   @default("light")
   role         String   @default("owner")
+  mode         String?
   companyId    String?
   company      Company? @relation(fields: [companyId], references: [id])
   invitedById  String?

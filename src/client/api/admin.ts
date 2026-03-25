@@ -5,6 +5,7 @@ export interface AdminUser {
   name: string;
   email: string;
   role: string;
+  mode: string | null;
   companyName: string | null;
   lastAction: { type: string; date: string } | null;
   createdAt: string;
@@ -120,6 +121,9 @@ export const adminApi = {
 
   listUsers: () =>
     api.get<AdminUser[]>("/admin/users"),
+
+  setUserMode: (userId: string, mode: string | null) =>
+    api.put<{ ok: boolean }>(`/admin/users/${userId}/mode`, { mode }),
 
   getCompany: (id: string) =>
     api.get<AdminCompanyDetail>(`/admin/companies/${id}`),

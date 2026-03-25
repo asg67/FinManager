@@ -65,6 +65,7 @@ router.get("/users", async (_req: Request, res: Response) => {
         name: true,
         email: true,
         role: true,
+        mode: true,
         companyId: true,
         company: { select: { name: true } },
         createdAt: true,
@@ -111,6 +112,7 @@ router.get("/users", async (_req: Request, res: Response) => {
         name: u.name,
         email: u.email,
         role: u.role,
+        mode: u.mode ?? null,
         companyName: u.company?.name || null,
         lastAction,
         createdAt: u.createdAt.toISOString(),
@@ -120,6 +122,25 @@ router.get("/users", async (_req: Request, res: Response) => {
     res.json(result);
   } catch (error) {
     console.error("Admin list users error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// PUT /api/admin/users/:id/mode — set user mode
+router.put("/users/:id/mode", async (req: Request, res: Response) => {
+  try {
+    const { mode } = req.body;
+    if (mode !== null && mode !== "full" && mode !== "dds_only") {
+      res.status(400).json({ message: "Mode must be 'full', 'dds_only', or null" });
+      return;
+    }
+    await prisma.user.update({
+      where: { id: req.params.id },
+      data: { mode },
+    });
+    res.json({ ok: true });
+  } catch (error) {
+    console.error("Admin set user mode error:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 });

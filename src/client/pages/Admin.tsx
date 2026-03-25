@@ -1233,6 +1233,12 @@ function UsersView({ onBack }: { onBack: () => void }) {
     adminApi.listUsers().then((d) => { setUsers(d); setLoading(false); });
   }, []);
 
+  async function handleModeChange(userId: string, mode: string) {
+    const newMode = mode === "" ? null : mode;
+    await adminApi.setUserMode(userId, newMode);
+    setUsers((prev) => prev.map((u) => u.id === userId ? { ...u, mode: newMode } : u));
+  }
+
   return (
     <div>
       <button className="admin-back" onClick={onBack}>
@@ -1250,6 +1256,7 @@ function UsersView({ onBack }: { onBack: () => void }) {
                 <th>Имя</th>
                 <th>Email</th>
                 <th>Роль</th>
+                <th>Режим</th>
                 <th>Компания</th>
                 <th>Последнее действие</th>
                 <th>Регистрация</th>
@@ -1264,6 +1271,17 @@ function UsersView({ onBack }: { onBack: () => void }) {
                     <span className={`admin-role admin-role--${u.role}`}>
                       {u.role === "owner" ? "Админ" : "Участник"}
                     </span>
+                  </td>
+                  <td>
+                    <select
+                      className="admin-mode-select"
+                      value={u.mode ?? ""}
+                      onChange={(e) => handleModeChange(u.id, e.target.value)}
+                    >
+                      <option value="">По компании</option>
+                      <option value="full">Полный</option>
+                      <option value="dds_only">Только ДДС</option>
+                    </select>
                   </td>
                   <td>{u.companyName || "—"}</td>
                   <td>

@@ -63,11 +63,14 @@ function sanitizeUser(user: {
   language: string;
   theme: string;
   role: string;
+  mode?: string | null;
   companyId: string | null;
   company?: { id: string; name: string; mode: string; onboardingDone: boolean; createdAt: Date } | null;
   avatar?: string | null;
   createdAt: Date;
 }) {
+  // Effective mode: user override > company mode > "full"
+  const effectiveMode = user.mode ?? user.company?.mode ?? "full";
   return {
     id: user.id,
     email: user.email,
@@ -79,7 +82,7 @@ function sanitizeUser(user: {
     company: user.company ? {
       id: user.company.id,
       name: user.company.name,
-      mode: user.company.mode,
+      mode: effectiveMode,
       onboardingDone: user.company.onboardingDone,
       createdAt: user.company.createdAt.toISOString(),
     } : null,

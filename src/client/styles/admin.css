@@ -278,6 +278,17 @@
   color: #60a5fa;
 }
 
+/* ===== Admin Mode Select ===== */
+.admin-mode-select {
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
 /* ===== Admin Activity ===== */
 
 .admin-activity {
