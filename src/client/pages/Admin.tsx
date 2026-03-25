@@ -4,7 +4,7 @@ import { Navigate } from "react-router-dom";
 import {
   Building2, Users, Bell, Plus, ChevronLeft, ChevronRight, ChevronDown,
   ArrowLeft, Send, CreditCard, FileText, LogOut, Trash2,
-  Pencil, Check, X, FolderOpen, Tag, Link, Copy,
+  Pencil, Check, X, FolderOpen, Tag, Link, Copy, Settings2, Sliders,
 } from "lucide-react";
 import { useAuthStore } from "../stores/auth.js";
 import { companyApi } from "../api/company.js";
@@ -252,6 +252,15 @@ function CompanyDetailView({
   const [cfOptions, setCfOptions] = useState("");
   const [cfShowWhen, setCfShowWhen] = useState<string>("always");
   const [cfRequired, setCfRequired] = useState(false);
+  const [editingCfId, setEditingCfId] = useState<string | null>(null);
+  const [editCfName, setEditCfName] = useState("");
+  const [editCfType, setEditCfType] = useState("select");
+  const [editCfOptions, setEditCfOptions] = useState("");
+  const [editCfShowWhen, setEditCfShowWhen] = useState("always");
+  const [editCfRequired, setEditCfRequired] = useState(false);
+
+  // Collapsible sections
+  const [openSections, setOpenSections] = useState<Set<string>>(new Set(["entities", "expense", "income", "fields"]));
 
   // Invite state
   const [inviteLoading, setInviteLoading] = useState(false);
@@ -462,6 +471,41 @@ function CompanyDetailView({
     await loadCustomFields();
   }
 
+  function startEditCf(cf: AdminCustomField) {
+    setEditingCfId(cf.id);
+    setEditCfName(cf.name);
+    setEditCfType(cf.fieldType);
+    setEditCfOptions(cf.options && Array.isArray(cf.options) ? (cf.options as string[]).join(", ") : "");
+    const sw = cf.showWhen as { operationType?: string } | null;
+    setEditCfShowWhen(sw?.operationType === "expense" ? "expense_only" : sw?.operationType === "income" ? "income_only" : "always");
+    setEditCfRequired(cf.required);
+  }
+
+  async function handleUpdateCf() {
+    if (!editingCfId || !editCfName.trim()) return;
+    const showWhen = editCfShowWhen === "always" ? null
+      : editCfShowWhen === "expense_only" ? { operationType: "expense" }
+      : editCfShowWhen === "income_only" ? { operationType: "income" }
+      : null;
+    await adminApi.updateCustomField(editingCfId, {
+      name: editCfName.trim(),
+      fieldType: editCfType,
+      options: editCfType === "select" ? editCfOptions.split(",").map(o => o.trim()).filter(Boolean) : undefined,
+      showWhen,
+      required: editCfRequired,
+    });
+    setEditingCfId(null);
+    await loadCustomFields();
+  }
+
+  function toggleSection(key: string) {
+    setOpenSections(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+  }
+
   async function handleToggleMode() {
     if (!company) return;
     const newMode = company.mode === "full" ? "dds_only" : "full";
@@ -486,397 +530,375 @@ function CompanyDetailView({
 
   if (loading || !company) return <div className="tab-loading">Загрузка...</div>;
 
+  const sectionOpen = (key: string) => openSections.has(key);
+
+  /* Reusable type/article tree renderer */
+  function renderTypeTree(
+    types: AdminExpenseType[] | AdminIncomeType[],
+    opts: {
+      expanded: string | null;
+      setExpanded: (id: string | null) => void;
+      editingTypeId: string | null;
+      editTypeName: string;
+      setEditTypeName: (v: string) => void;
+      onRenameType: (id: string) => void;
+      onStartEditType: (id: string, name: string) => void;
+      onCancelEditType: () => void;
+      onDeleteType: (id: string, name: string) => void;
+      addingArticleForType: string | null;
+      newArticleName: string;
+      setNewArticleName: (v: string) => void;
+      onStartAddArticle: (typeId: string) => void;
+      onCancelAddArticle: () => void;
+      onAddArticle: (typeId: string) => void;
+      editingArticleId: string | null;
+      editArticleName: string;
+      setEditArticleName: (v: string) => void;
+      onStartEditArticle: (id: string, name: string) => void;
+      onCancelEditArticle: () => void;
+      onRenameArticle: (id: string) => void;
+      onDeleteArticle: (id: string, name: string) => void;
+    },
+  ) {
+    return types.map((t) => (
+      <div key={t.id} className="admin-expense-type">
+        <div className="admin-expense-type__header">
+          {opts.editingTypeId === t.id ? (
+            <div className="admin-inline-edit">
+              <input className="admin-inline-input" value={opts.editTypeName} onChange={(ev) => opts.setEditTypeName(ev.target.value)} onKeyDown={(ev) => { if (ev.key === "Enter") opts.onRenameType(t.id); if (ev.key === "Escape") opts.onCancelEditType(); }} autoFocus />
+              <button className="btn btn--ghost btn--sm" onClick={() => opts.onRenameType(t.id)}><Check size={14} /></button>
+              <button className="btn btn--ghost btn--sm" onClick={opts.onCancelEditType}><X size={14} /></button>
+            </div>
+          ) : (
+            <>
+              <div className="admin-expense-type__name admin-expense-type__name--clickable" onClick={() => opts.setExpanded(opts.expanded === t.id ? null : t.id)}>
+                <ChevronRight size={14} className={`admin-chevron ${opts.expanded === t.id ? "admin-chevron--open" : ""}`} />
+                <FolderOpen size={14} />
+                {t.name}
+                <span className="admin-expense-type__count">({t.articles.length})</span>
+              </div>
+              <span className="admin-entity-actions">
+                <button className="btn btn--ghost btn--sm" onClick={() => { opts.onStartAddArticle(t.id); opts.setExpanded(t.id); }} title="Добавить статью"><Plus size={12} /></button>
+                <button className="btn btn--ghost btn--sm" onClick={() => opts.onStartEditType(t.id, t.name)} title="Переименовать"><Pencil size={12} /></button>
+                <button className="btn btn--ghost btn--sm" onClick={() => opts.onDeleteType(t.id, t.name)} title="Удалить"><Trash2 size={12} /></button>
+              </span>
+            </>
+          )}
+        </div>
+        {opts.expanded === t.id && (
+          <div className="admin-expense-articles">
+            {t.articles.map((a) => (
+              <div key={a.id} className="admin-expense-article">
+                {opts.editingArticleId === a.id ? (
+                  <div className="admin-inline-edit">
+                    <input className="admin-inline-input" value={opts.editArticleName} onChange={(ev) => opts.setEditArticleName(ev.target.value)} onKeyDown={(ev) => { if (ev.key === "Enter") opts.onRenameArticle(a.id); if (ev.key === "Escape") opts.onCancelEditArticle(); }} autoFocus />
+                    <button className="btn btn--ghost btn--sm" onClick={() => opts.onRenameArticle(a.id)}><Check size={14} /></button>
+                    <button className="btn btn--ghost btn--sm" onClick={opts.onCancelEditArticle}><X size={14} /></button>
+                  </div>
+                ) : (
+                  <>
+                    <span className="admin-expense-article__name"><Tag size={12} /> {a.name}</span>
+                    <span className="admin-entity-actions">
+                      <button className="btn btn--ghost btn--sm" onClick={() => opts.onStartEditArticle(a.id, a.name)}><Pencil size={12} /></button>
+                      <button className="btn btn--ghost btn--sm" onClick={() => opts.onDeleteArticle(a.id, a.name)}><Trash2 size={12} /></button>
+                    </span>
+                  </>
+                )}
+              </div>
+            ))}
+            {t.articles.length === 0 && opts.addingArticleForType !== t.id && (
+              <div className="admin-empty-hint">Нет статей</div>
+            )}
+            {opts.addingArticleForType === t.id && (
+              <div className="admin-inline-edit admin-inline-edit--indented">
+                <input className="admin-inline-input" placeholder="Название статьи" value={opts.newArticleName} onChange={(ev) => opts.setNewArticleName(ev.target.value)} onKeyDown={(ev) => { if (ev.key === "Enter") opts.onAddArticle(t.id); if (ev.key === "Escape") opts.onCancelAddArticle(); }} autoFocus />
+                <button className="btn btn--ghost btn--sm" onClick={() => opts.onAddArticle(t.id)} disabled={!opts.newArticleName.trim()}><Check size={14} /></button>
+                <button className="btn btn--ghost btn--sm" onClick={opts.onCancelAddArticle}><X size={14} /></button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    ));
+  }
+
+  /* Custom field form (reusable for add/edit) */
+  function renderCfForm(
+    name: string, setName: (v: string) => void,
+    type: string, setType: (v: string) => void,
+    options: string, setOptions: (v: string) => void,
+    showWhen: string, setShowWhen: (v: string) => void,
+    required: boolean, setRequired: (v: boolean) => void,
+    onSave: () => void, onCancel: () => void,
+    saveLabel = "Сохранить",
+  ) {
+    return (
+      <div className="admin-cf-form">
+        <input className="admin-inline-input" placeholder="Название поля" value={name} onChange={(e) => setName(e.target.value)} autoFocus />
+        <div className="admin-cf-form__row">
+          <select className="admin-inline-input admin-cf-form__select" value={type} onChange={(e) => setType(e.target.value)}>
+            <option value="select">Выбор из списка</option>
+            <option value="text">Текст</option>
+            <option value="number">Число</option>
+          </select>
+          <select className="admin-inline-input admin-cf-form__select" value={showWhen} onChange={(e) => setShowWhen(e.target.value)}>
+            <option value="always">Всегда</option>
+            <option value="expense_only">Только расход</option>
+            <option value="income_only">Только приход</option>
+          </select>
+          <label className="admin-cf-form__check">
+            <input type="checkbox" checked={required} onChange={(e) => setRequired(e.target.checked)} /> Обяз.
+          </label>
+        </div>
+        {type === "select" && (
+          <input className="admin-inline-input" placeholder="Варианты через запятую" value={options} onChange={(e) => setOptions(e.target.value)} />
+        )}
+        <div className="admin-cf-form__actions">
+          <button className="btn btn--primary btn--sm" onClick={onSave} disabled={!name.trim()}>
+            <Check size={14} /> {saveLabel}
+          </button>
+          <button className="btn btn--ghost btn--sm" onClick={onCancel}>
+            <X size={14} /> Отмена
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div>
       <button className="admin-back" onClick={onBack}>
         <ArrowLeft size={16} /> Компании
       </button>
-      <h2 className="admin-subtitle">{company.name}</h2>
 
-      <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "1rem", flexWrap: "wrap" }}>
-        <p style={{ fontSize: "0.8125rem", color: "var(--text-muted)", margin: 0 }}>
-          {company.members.length} пользователей &bull; {company.entities.length} юр.лиц
-        </p>
-        <button
-          className={`btn btn--sm ${company.mode === "dds_only" ? "btn--warning" : "btn--ghost"}`}
-          onClick={handleToggleMode}
-          title={company.mode === "full" ? "Переключить в режим Только ДДС" : "Переключить в Полный режим"}
-        >
-          {company.mode === "dds_only" ? "Только ДДС" : "Полный режим"}
-        </button>
-        <button
-          className={`btn btn--sm ${inviteCopied ? "btn--success" : "btn--primary"}`}
-          onClick={handleCopyInvite}
-          disabled={inviteLoading}
-        >
-          {inviteCopied ? <><Check size={14} /> Скопировано</> : <><Link size={14} /> Ссылка-приглашение</>}
-        </button>
-      </div>
-
-      {/* Entities grid */}
-      <h3 className="admin-subtitle" style={{ fontSize: "0.875rem" }}>Юридические лица</h3>
-      <div className="admin-entities-grid">
-        {company.entities.map((e) => (
-          <div key={e.id} className="admin-entity-card">
-            {editingEntityId === e.id ? (
-              <div className="admin-inline-edit">
-                <input
-                  className="admin-inline-input"
-                  value={editEntityName}
-                  onChange={(ev) => setEditEntityName(ev.target.value)}
-                  onKeyDown={(ev) => { if (ev.key === "Enter") handleRenameEntity(e.id); if (ev.key === "Escape") setEditingEntityId(null); }}
-                  autoFocus
-                />
-                <button className="btn btn--ghost btn--sm" onClick={() => handleRenameEntity(e.id)} title="Сохранить"><Check size={14} /></button>
-                <button className="btn btn--ghost btn--sm" onClick={() => setEditingEntityId(null)} title="Отмена"><X size={14} /></button>
-              </div>
-            ) : (
-              <>
-                <div className="admin-entity-card__name" onClick={() => onSelectEntity(e.id)} style={{ cursor: "pointer" }}>
-                  {e.name}
-                </div>
-                <div className="admin-entity-card__info" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                  <span onClick={() => onSelectEntity(e.id)} style={{ cursor: "pointer" }}>
-                    <CreditCard size={12} /> {e.accountsCount} счетов
-                  </span>
-                  <span className="admin-entity-actions">
-                    <button className="btn btn--ghost btn--sm" onClick={() => { setEditingEntityId(e.id); setEditEntityName(e.name); }} title="Переименовать"><Pencil size={12} /></button>
-                    <button className="btn btn--ghost btn--sm" onClick={() => handleDeleteEntity(e.id, e.name)} title="Удалить"><Trash2 size={12} /></button>
-                  </span>
-                </div>
-              </>
-            )}
-          </div>
-        ))}
-        {/* Add entity inline */}
-        <div className="admin-entity-card admin-entity-card--add">
-          <input
-            className="admin-inline-input"
-            placeholder="Новое ИП / юр.лицо"
-            value={newEntityName}
-            onChange={(e) => setNewEntityName(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") handleAddEntity(); }}
-          />
-          <button
-            className="btn btn--primary btn--sm"
-            onClick={handleAddEntity}
-            disabled={addingEntity || !newEntityName.trim()}
-            style={{ marginTop: "0.5rem", width: "100%" }}
-          >
-            <Plus size={14} /> Добавить
+      {/* Company header */}
+      <div className="admin-company-header">
+        <h2 className="admin-subtitle">{company.name}</h2>
+        <div className="admin-company-header__meta">
+          <span className="admin-company-header__stat">{company.members.length} пользователей</span>
+          <span className="admin-company-header__stat">{company.entities.length} юр.лиц</span>
+          <button className={`btn btn--sm ${company.mode === "dds_only" ? "btn--warning" : "btn--ghost"}`} onClick={handleToggleMode}>
+            {company.mode === "dds_only" ? "Только ДДС" : "Полный режим"}
+          </button>
+          <button className={`btn btn--sm ${inviteCopied ? "btn--success" : "btn--primary"}`} onClick={handleCopyInvite} disabled={inviteLoading}>
+            {inviteCopied ? <><Check size={14} /> Скопировано</> : <><Link size={14} /> Приглашение</>}
           </button>
         </div>
       </div>
 
-      {/* Expense types / articles (company-wide) */}
-      <h3 className="admin-subtitle" style={{ fontSize: "0.875rem" }}>Категории расходов и статьи</h3>
-
-      {company.entities.length === 0 ? (
-        <div style={{ color: "var(--text-muted)", fontSize: "0.8125rem", marginBottom: "1.5rem" }}>
-          Сначала добавьте юридическое лицо
+      {/* === Section: Entities === */}
+      <div className="admin-section">
+        <div className="admin-section__header" onClick={() => toggleSection("entities")}>
+          <div className="admin-section__title"><Building2 size={16} /> Юридические лица <span className="admin-section__count">{company.entities.length}</span></div>
+          <ChevronDown size={16} className={`admin-section__chevron ${sectionOpen("entities") ? "admin-section__chevron--open" : ""}`} />
         </div>
-      ) : expLoading ? (
-            <div className="tab-loading" style={{ padding: "1rem 0" }}>Загрузка...</div>
-          ) : (
-            <div className="admin-expense-list">
-              {expenseTypes.map((t) => (
-                <div key={t.id} className="admin-expense-type">
-                  <div className="admin-expense-type__header">
-                    {editingTypeId === t.id ? (
-                      <div className="admin-inline-edit">
-                        <input
-                          className="admin-inline-input"
-                          value={editTypeName}
-                          onChange={(ev) => setEditTypeName(ev.target.value)}
-                          onKeyDown={(ev) => { if (ev.key === "Enter") handleRenameType(t.id); if (ev.key === "Escape") setEditingTypeId(null); }}
-                          autoFocus
-                        />
-                        <button className="btn btn--ghost btn--sm" onClick={() => handleRenameType(t.id)}><Check size={14} /></button>
-                        <button className="btn btn--ghost btn--sm" onClick={() => setEditingTypeId(null)}><X size={14} /></button>
-                      </div>
-                    ) : (
-                      <>
-                        <div
-                          className="admin-expense-type__name"
-                          onClick={() => setExpandedType(expandedType === t.id ? null : t.id)}
-                          style={{ cursor: "pointer" }}
-                        >
-                          <FolderOpen size={14} />
-                          {t.name}
-                          <span className="admin-expense-type__count">({t.articles.length})</span>
-                        </div>
-                        <span className="admin-entity-actions">
-                          <button className="btn btn--ghost btn--sm" onClick={() => { setAddingArticleForType(t.id); setNewArticleName(""); setExpandedType(t.id); }} title="Добавить статью"><Plus size={12} /></button>
-                          <button className="btn btn--ghost btn--sm" onClick={() => { setEditingTypeId(t.id); setEditTypeName(t.name); }} title="Переименовать"><Pencil size={12} /></button>
-                          <button className="btn btn--ghost btn--sm" onClick={() => handleDeleteType(t.id, t.name)} title="Удалить"><Trash2 size={12} /></button>
-                        </span>
-                      </>
-                    )}
-                  </div>
-
-                  {expandedType === t.id && (
-                    <div className="admin-expense-articles">
-                      {t.articles.map((a) => (
-                        <div key={a.id} className="admin-expense-article">
-                          {editingArticleId === a.id ? (
-                            <div className="admin-inline-edit">
-                              <input
-                                className="admin-inline-input"
-                                value={editArticleName}
-                                onChange={(ev) => setEditArticleName(ev.target.value)}
-                                onKeyDown={(ev) => { if (ev.key === "Enter") handleRenameArticle(a.id); if (ev.key === "Escape") setEditingArticleId(null); }}
-                                autoFocus
-                              />
-                              <button className="btn btn--ghost btn--sm" onClick={() => handleRenameArticle(a.id)}><Check size={14} /></button>
-                              <button className="btn btn--ghost btn--sm" onClick={() => setEditingArticleId(null)}><X size={14} /></button>
-                            </div>
-                          ) : (
-                            <>
-                              <span className="admin-expense-article__name"><Tag size={12} /> {a.name}</span>
-                              <span className="admin-entity-actions">
-                                <button className="btn btn--ghost btn--sm" onClick={() => { setEditingArticleId(a.id); setEditArticleName(a.name); }}><Pencil size={12} /></button>
-                                <button className="btn btn--ghost btn--sm" onClick={() => handleDeleteArticle(a.id, a.name)}><Trash2 size={12} /></button>
-                              </span>
-                            </>
-                          )}
-                        </div>
-                      ))}
-                      {t.articles.length === 0 && addingArticleForType !== t.id && (
-                        <div style={{ color: "var(--text-muted)", fontSize: "0.75rem", padding: "0.25rem 0 0.25rem 1.5rem" }}>Нет статей</div>
-                      )}
-                      {addingArticleForType === t.id && (
-                        <div className="admin-inline-edit" style={{ paddingLeft: "1.5rem" }}>
-                          <input
-                            className="admin-inline-input"
-                            placeholder="Название статьи"
-                            value={newArticleName}
-                            onChange={(ev) => setNewArticleName(ev.target.value)}
-                            onKeyDown={(ev) => { if (ev.key === "Enter") handleAddArticle(t.id); if (ev.key === "Escape") setAddingArticleForType(null); }}
-                            autoFocus
-                          />
-                          <button className="btn btn--ghost btn--sm" onClick={() => handleAddArticle(t.id)} disabled={!newArticleName.trim()}><Check size={14} /></button>
-                          <button className="btn btn--ghost btn--sm" onClick={() => setAddingArticleForType(null)}><X size={14} /></button>
-                        </div>
-                      )}
+        {sectionOpen("entities") && (
+          <div className="admin-section__body">
+            <div className="admin-entities-grid">
+              {company.entities.map((e) => (
+                <div key={e.id} className="admin-entity-card">
+                  {editingEntityId === e.id ? (
+                    <div className="admin-inline-edit">
+                      <input className="admin-inline-input" value={editEntityName} onChange={(ev) => setEditEntityName(ev.target.value)} onKeyDown={(ev) => { if (ev.key === "Enter") handleRenameEntity(e.id); if (ev.key === "Escape") setEditingEntityId(null); }} autoFocus />
+                      <button className="btn btn--ghost btn--sm" onClick={() => handleRenameEntity(e.id)}><Check size={14} /></button>
+                      <button className="btn btn--ghost btn--sm" onClick={() => setEditingEntityId(null)}><X size={14} /></button>
                     </div>
+                  ) : (
+                    <>
+                      <div className="admin-entity-card__name" onClick={() => onSelectEntity(e.id)}>{e.name}</div>
+                      <div className="admin-entity-card__info">
+                        <span onClick={() => onSelectEntity(e.id)}><CreditCard size={12} /> {e.accountsCount} счетов</span>
+                        <span className="admin-entity-actions">
+                          <button className="btn btn--ghost btn--sm" onClick={() => { setEditingEntityId(e.id); setEditEntityName(e.name); }}><Pencil size={12} /></button>
+                          <button className="btn btn--ghost btn--sm" onClick={() => handleDeleteEntity(e.id, e.name)}><Trash2 size={12} /></button>
+                        </span>
+                      </div>
+                    </>
                   )}
                 </div>
               ))}
-
-              {expenseTypes.length === 0 && (
-                <div style={{ color: "var(--text-muted)", fontSize: "0.8125rem", marginBottom: "0.5rem" }}>Нет категорий</div>
-              )}
-
-              {/* Add new expense type */}
-              <div className="admin-inline-edit">
-                <input
-                  className="admin-inline-input"
-                  placeholder="Новая категория расходов"
-                  value={newTypeName}
-                  onChange={(e) => setNewTypeName(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter") handleAddType(); }}
-                />
-                <button className="btn btn--primary btn--sm" onClick={handleAddType} disabled={!newTypeName.trim()}>
+              <div className="admin-entity-card admin-entity-card--add">
+                <input className="admin-inline-input" placeholder="Новое ИП / юр.лицо" value={newEntityName} onChange={(e) => setNewEntityName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") handleAddEntity(); }} />
+                <button className="btn btn--primary btn--sm admin-entity-card--add-btn" onClick={handleAddEntity} disabled={addingEntity || !newEntityName.trim()}>
                   <Plus size={14} /> Добавить
                 </button>
               </div>
             </div>
-          )}
+          </div>
+        )}
+      </div>
 
-      {/* Income types section */}
-      <h3 className="admin-subtitle" style={{ fontSize: "0.875rem" }}>Категории приходов и статьи</h3>
-
-      {company.entities.length === 0 ? (
-        <div style={{ color: "var(--text-muted)", fontSize: "0.8125rem", marginBottom: "1.5rem" }}>
-          Сначала добавьте юридическое лицо
+      {/* === Section: Expense Types === */}
+      <div className="admin-section">
+        <div className="admin-section__header" onClick={() => toggleSection("expense")}>
+          <div className="admin-section__title"><FolderOpen size={16} /> Категории расходов <span className="admin-section__count">{expenseTypes.length}</span></div>
+          <ChevronDown size={16} className={`admin-section__chevron ${sectionOpen("expense") ? "admin-section__chevron--open" : ""}`} />
         </div>
-      ) : incLoading ? (
-            <div className="tab-loading" style={{ padding: "1rem 0" }}>Загрузка...</div>
-          ) : (
-            <div className="admin-expense-list">
-              {incomeTypes.map((t) => (
-                <div key={t.id} className="admin-expense-type">
-                  <div className="admin-expense-type__header">
-                    {editingIncTypeId === t.id ? (
-                      <div className="admin-inline-edit">
-                        <input
-                          className="admin-inline-input"
-                          value={editIncTypeName}
-                          onChange={(ev) => setEditIncTypeName(ev.target.value)}
-                          onKeyDown={(ev) => { if (ev.key === "Enter") handleRenameIncType(t.id); if (ev.key === "Escape") setEditingIncTypeId(null); }}
-                          autoFocus
-                        />
-                        <button className="btn btn--ghost btn--sm" onClick={() => handleRenameIncType(t.id)}><Check size={14} /></button>
-                        <button className="btn btn--ghost btn--sm" onClick={() => setEditingIncTypeId(null)}><X size={14} /></button>
+        {sectionOpen("expense") && (
+          <div className="admin-section__body">
+            {company.entities.length === 0 ? (
+              <div className="admin-empty-hint">Сначала добавьте юридическое лицо</div>
+            ) : expLoading ? (
+              <div className="tab-loading">Загрузка...</div>
+            ) : (
+              <div className="admin-expense-list">
+                {renderTypeTree(expenseTypes, {
+                  expanded: expandedType, setExpanded: setExpandedType,
+                  editingTypeId, editTypeName, setEditTypeName,
+                  onRenameType: handleRenameType,
+                  onStartEditType: (id, name) => { setEditingTypeId(id); setEditTypeName(name); },
+                  onCancelEditType: () => setEditingTypeId(null),
+                  onDeleteType: handleDeleteType,
+                  addingArticleForType, newArticleName, setNewArticleName,
+                  onStartAddArticle: (id) => { setAddingArticleForType(id); setNewArticleName(""); },
+                  onCancelAddArticle: () => setAddingArticleForType(null),
+                  onAddArticle: handleAddArticle,
+                  editingArticleId, editArticleName, setEditArticleName,
+                  onStartEditArticle: (id, name) => { setEditingArticleId(id); setEditArticleName(name); },
+                  onCancelEditArticle: () => setEditingArticleId(null),
+                  onRenameArticle: handleRenameArticle,
+                  onDeleteArticle: handleDeleteArticle,
+                })}
+                {expenseTypes.length === 0 && <div className="admin-empty-hint">Нет категорий</div>}
+                <div className="admin-inline-edit">
+                  <input className="admin-inline-input" placeholder="Новая категория расходов" value={newTypeName} onChange={(e) => setNewTypeName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") handleAddType(); }} />
+                  <button className="btn btn--primary btn--sm" onClick={handleAddType} disabled={!newTypeName.trim()}><Plus size={14} /> Добавить</button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* === Section: Income Types === */}
+      <div className="admin-section">
+        <div className="admin-section__header" onClick={() => toggleSection("income")}>
+          <div className="admin-section__title"><FolderOpen size={16} /> Категории приходов <span className="admin-section__count">{incomeTypes.length}</span></div>
+          <ChevronDown size={16} className={`admin-section__chevron ${sectionOpen("income") ? "admin-section__chevron--open" : ""}`} />
+        </div>
+        {sectionOpen("income") && (
+          <div className="admin-section__body">
+            {company.entities.length === 0 ? (
+              <div className="admin-empty-hint">Сначала добавьте юридическое лицо</div>
+            ) : incLoading ? (
+              <div className="tab-loading">Загрузка...</div>
+            ) : (
+              <div className="admin-expense-list">
+                {renderTypeTree(incomeTypes, {
+                  expanded: expandedIncType, setExpanded: setExpandedIncType,
+                  editingTypeId: editingIncTypeId, editTypeName: editIncTypeName, setEditTypeName: setEditIncTypeName,
+                  onRenameType: handleRenameIncType,
+                  onStartEditType: (id, name) => { setEditingIncTypeId(id); setEditIncTypeName(name); },
+                  onCancelEditType: () => setEditingIncTypeId(null),
+                  onDeleteType: handleDeleteIncType,
+                  addingArticleForType: addingIncArticleForType, newArticleName: newIncArticleName, setNewArticleName: setNewIncArticleName,
+                  onStartAddArticle: (id) => { setAddingIncArticleForType(id); setNewIncArticleName(""); },
+                  onCancelAddArticle: () => setAddingIncArticleForType(null),
+                  onAddArticle: handleAddIncArticle,
+                  editingArticleId: editingIncArticleId, editArticleName: editIncArticleName, setEditArticleName: setEditIncArticleName,
+                  onStartEditArticle: (id, name) => { setEditingIncArticleId(id); setEditIncArticleName(name); },
+                  onCancelEditArticle: () => setEditingIncArticleId(null),
+                  onRenameArticle: handleRenameIncArticle,
+                  onDeleteArticle: handleDeleteIncArticle,
+                })}
+                {incomeTypes.length === 0 && <div className="admin-empty-hint">Нет категорий</div>}
+                <div className="admin-inline-edit">
+                  <input className="admin-inline-input" placeholder="Новая категория приходов" value={newIncTypeName} onChange={(e) => setNewIncTypeName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") handleAddIncType(); }} />
+                  <button className="btn btn--primary btn--sm" onClick={handleAddIncType} disabled={!newIncTypeName.trim()}><Plus size={14} /> Добавить</button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* === Section: Custom Fields === */}
+      <div className="admin-section">
+        <div className="admin-section__header" onClick={() => toggleSection("fields")}>
+          <div className="admin-section__title"><Sliders size={16} /> Кастомные поля ДДС <span className="admin-section__count">{customFields.length}</span></div>
+          <ChevronDown size={16} className={`admin-section__chevron ${sectionOpen("fields") ? "admin-section__chevron--open" : ""}`} />
+        </div>
+        {sectionOpen("fields") && (
+          <div className="admin-section__body">
+            {cfLoading ? (
+              <div className="tab-loading">Загрузка...</div>
+            ) : (
+              <div className="admin-expense-list">
+                {customFields.map((cf) => (
+                  <div key={cf.id} className="admin-expense-type">
+                    {editingCfId === cf.id ? (
+                      <div className="admin-expense-type__header">
+                        {renderCfForm(
+                          editCfName, setEditCfName,
+                          editCfType, setEditCfType,
+                          editCfOptions, setEditCfOptions,
+                          editCfShowWhen, setEditCfShowWhen,
+                          editCfRequired, setEditCfRequired,
+                          handleUpdateCf, () => setEditingCfId(null),
+                          "Сохранить",
+                        )}
                       </div>
                     ) : (
                       <>
-                        <div
-                          className="admin-expense-type__name"
-                          onClick={() => setExpandedIncType(expandedIncType === t.id ? null : t.id)}
-                          style={{ cursor: "pointer" }}
-                        >
-                          <FolderOpen size={14} />
-                          {t.name}
-                          <span className="admin-expense-type__count">({t.articles.length})</span>
+                        <div className="admin-expense-type__header">
+                          <div className="admin-expense-type__name">
+                            <Tag size={14} />
+                            {cf.name}
+                            <span className="admin-cf-badge admin-cf-badge--type">{cf.fieldType === "select" ? "выбор" : cf.fieldType === "text" ? "текст" : "число"}</span>
+                            {cf.required && <span className="admin-cf-badge admin-cf-badge--req">обяз.</span>}
+                            {cf.showWhen && (
+                              <span className="admin-cf-badge admin-cf-badge--when">
+                                {(cf.showWhen as any).operationType === "expense" ? "расход" : "приход"}
+                              </span>
+                            )}
+                          </div>
+                          <span className="admin-entity-actions">
+                            <button className="btn btn--ghost btn--sm" onClick={() => startEditCf(cf)} title="Редактировать"><Pencil size={12} /></button>
+                            <button className="btn btn--ghost btn--sm" onClick={() => handleDeleteCustomField(cf.id, cf.name)} title="Удалить"><Trash2 size={12} /></button>
+                          </span>
                         </div>
-                        <span className="admin-entity-actions">
-                          <button className="btn btn--ghost btn--sm" onClick={() => { setAddingIncArticleForType(t.id); setNewIncArticleName(""); setExpandedIncType(t.id); }} title="Добавить статью"><Plus size={12} /></button>
-                          <button className="btn btn--ghost btn--sm" onClick={() => { setEditingIncTypeId(t.id); setEditIncTypeName(t.name); }} title="Переименовать"><Pencil size={12} /></button>
-                          <button className="btn btn--ghost btn--sm" onClick={() => handleDeleteIncType(t.id, t.name)} title="Удалить"><Trash2 size={12} /></button>
-                        </span>
+                        {cf.options && Array.isArray(cf.options) && (cf.options as string[]).length > 0 && (
+                          <div className="admin-cf-options">
+                            {(cf.options as string[]).map((opt, i) => <span key={i} className="admin-cf-option-tag">{opt}</span>)}
+                          </div>
+                        )}
                       </>
                     )}
                   </div>
+                ))}
 
-                  {expandedIncType === t.id && (
-                    <div className="admin-expense-articles">
-                      {t.articles.map((a) => (
-                        <div key={a.id} className="admin-expense-article">
-                          {editingIncArticleId === a.id ? (
-                            <div className="admin-inline-edit">
-                              <input
-                                className="admin-inline-input"
-                                value={editIncArticleName}
-                                onChange={(ev) => setEditIncArticleName(ev.target.value)}
-                                onKeyDown={(ev) => { if (ev.key === "Enter") handleRenameIncArticle(a.id); if (ev.key === "Escape") setEditingIncArticleId(null); }}
-                                autoFocus
-                              />
-                              <button className="btn btn--ghost btn--sm" onClick={() => handleRenameIncArticle(a.id)}><Check size={14} /></button>
-                              <button className="btn btn--ghost btn--sm" onClick={() => setEditingIncArticleId(null)}><X size={14} /></button>
-                            </div>
-                          ) : (
-                            <>
-                              <span className="admin-expense-article__name"><Tag size={12} /> {a.name}</span>
-                              <span className="admin-entity-actions">
-                                <button className="btn btn--ghost btn--sm" onClick={() => { setEditingIncArticleId(a.id); setEditIncArticleName(a.name); }}><Pencil size={12} /></button>
-                                <button className="btn btn--ghost btn--sm" onClick={() => handleDeleteIncArticle(a.id, a.name)}><Trash2 size={12} /></button>
-                              </span>
-                            </>
-                          )}
-                        </div>
-                      ))}
-                      {t.articles.length === 0 && addingIncArticleForType !== t.id && (
-                        <div style={{ color: "var(--text-muted)", fontSize: "0.75rem", padding: "0.25rem 0 0.25rem 1.5rem" }}>Нет статей</div>
-                      )}
-                      {addingIncArticleForType === t.id && (
-                        <div className="admin-inline-edit" style={{ paddingLeft: "1.5rem" }}>
-                          <input
-                            className="admin-inline-input"
-                            placeholder="Название статьи"
-                            value={newIncArticleName}
-                            onChange={(ev) => setNewIncArticleName(ev.target.value)}
-                            onKeyDown={(ev) => { if (ev.key === "Enter") handleAddIncArticle(t.id); if (ev.key === "Escape") setAddingIncArticleForType(null); }}
-                            autoFocus
-                          />
-                          <button className="btn btn--ghost btn--sm" onClick={() => handleAddIncArticle(t.id)} disabled={!newIncArticleName.trim()}><Check size={14} /></button>
-                          <button className="btn btn--ghost btn--sm" onClick={() => setAddingIncArticleForType(null)}><X size={14} /></button>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              ))}
+                {customFields.length === 0 && !showCfForm && (
+                  <div className="admin-empty-hint">Нет кастомных полей</div>
+                )}
 
-              {incomeTypes.length === 0 && (
-                <div style={{ color: "var(--text-muted)", fontSize: "0.8125rem", marginBottom: "0.5rem" }}>Нет категорий</div>
-              )}
-
-              <div className="admin-inline-edit">
-                <input
-                  className="admin-inline-input"
-                  placeholder="Новая категория приходов"
-                  value={newIncTypeName}
-                  onChange={(e) => setNewIncTypeName(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter") handleAddIncType(); }}
-                />
-                <button className="btn btn--primary btn--sm" onClick={handleAddIncType} disabled={!newIncTypeName.trim()}>
-                  <Plus size={14} /> Добавить
-                </button>
+                {showCfForm ? renderCfForm(
+                  cfName, setCfName,
+                  cfType, setCfType,
+                  cfOptions, setCfOptions,
+                  cfShowWhen, setCfShowWhen,
+                  cfRequired, setCfRequired,
+                  handleAddCustomField, () => setShowCfForm(false),
+                  "Создать",
+                ) : (
+                  <button className="btn btn--primary btn--sm" onClick={() => setShowCfForm(true)}>
+                    <Plus size={14} /> Добавить поле
+                  </button>
+                )}
               </div>
-            </div>
-          )}
+            )}
+          </div>
+        )}
+      </div>
 
-      {/* Custom fields section */}
-      <h3 className="admin-subtitle" style={{ fontSize: "0.875rem" }}>Кастомные поля ДДС</h3>
-
-      {cfLoading ? (
-        <div className="tab-loading" style={{ padding: "1rem 0" }}>Загрузка...</div>
-      ) : (
-        <div className="admin-expense-list">
-          {customFields.map((cf) => (
-            <div key={cf.id} className="admin-expense-type">
-              <div className="admin-expense-type__header">
-                <div className="admin-expense-type__name">
-                  <Tag size={14} />
-                  {cf.name}
-                  <span className="admin-expense-type__count" style={{ fontWeight: "normal" }}>
-                    ({cf.fieldType}{cf.required ? ", обяз." : ""})
-                  </span>
-                  {cf.showWhen && (
-                    <span style={{ fontSize: "0.7rem", color: "var(--text-muted)", marginLeft: "0.25rem" }}>
-                      — {cf.showWhen.operationType === "expense" ? "только расход" : cf.showWhen.operationType === "income" ? "только приход" : "условие"}
-                    </span>
-                  )}
-                </div>
-                <span className="admin-entity-actions">
-                  <button className="btn btn--ghost btn--sm" onClick={() => handleDeleteCustomField(cf.id, cf.name)} title="Удалить"><Trash2 size={12} /></button>
-                </span>
-              </div>
-              {cf.options && Array.isArray(cf.options) && (
-                <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", padding: "0.25rem 0 0.25rem 1.5rem" }}>
-                  Варианты: {(cf.options as string[]).join(", ")}
-                </div>
-              )}
-            </div>
-          ))}
-
-          {customFields.length === 0 && !showCfForm && (
-            <div style={{ color: "var(--text-muted)", fontSize: "0.8125rem", marginBottom: "0.5rem" }}>Нет кастомных полей</div>
-          )}
-
-          {showCfForm ? (
-            <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", padding: "0.5rem 0" }}>
-              <input className="admin-inline-input" placeholder="Название поля" value={cfName} onChange={(e) => setCfName(e.target.value)} autoFocus />
-              <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
-                <select className="admin-inline-input" value={cfType} onChange={(e) => setCfType(e.target.value)} style={{ width: "auto" }}>
-                  <option value="select">Выбор из списка</option>
-                  <option value="text">Текст</option>
-                  <option value="number">Число</option>
-                </select>
-                <select className="admin-inline-input" value={cfShowWhen} onChange={(e) => setCfShowWhen(e.target.value)} style={{ width: "auto" }}>
-                  <option value="always">Всегда</option>
-                  <option value="expense_only">Только расход</option>
-                  <option value="income_only">Только приход</option>
-                </select>
-                <label style={{ display: "flex", alignItems: "center", gap: "0.25rem", fontSize: "0.8125rem" }}>
-                  <input type="checkbox" checked={cfRequired} onChange={(e) => setCfRequired(e.target.checked)} /> Обязательное
-                </label>
-              </div>
-              {cfType === "select" && (
-                <input className="admin-inline-input" placeholder="Варианты через запятую" value={cfOptions} onChange={(e) => setCfOptions(e.target.value)} />
-              )}
-              <div style={{ display: "flex", gap: "0.5rem" }}>
-                <button className="btn btn--primary btn--sm" onClick={handleAddCustomField} disabled={!cfName.trim()}>
-                  <Check size={14} /> Сохранить
-                </button>
-                <button className="btn btn--ghost btn--sm" onClick={() => setShowCfForm(false)}>
-                  <X size={14} /> Отмена
-                </button>
-              </div>
-            </div>
-          ) : (
-            <button className="btn btn--primary btn--sm" onClick={() => setShowCfForm(true)} style={{ marginTop: "0.5rem" }}>
-              <Plus size={14} /> Добавить поле
-            </button>
-          )}
+      {/* === Section: Operations === */}
+      <div className="admin-section">
+        <div className="admin-section__header" onClick={() => toggleSection("ops")}>
+          <div className="admin-section__title"><FileText size={16} /> ДДС операции <span className="admin-section__count">{opsTotal}</span></div>
+          <ChevronDown size={16} className={`admin-section__chevron ${sectionOpen("ops") ? "admin-section__chevron--open" : ""}`} />
         </div>
-      )}
-
+        {sectionOpen("ops") && (
+          <div className="admin-section__body">
       {/* DDS operations table */}
-      <h3 className="admin-subtitle" style={{ fontSize: "0.875rem" }}>
-        ДДС операции ({opsTotal})
-      </h3>
 
       {operations.length === 0 ? (
         <div style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>Нет операций</div>
@@ -937,6 +959,9 @@ function CompanyDetailView({
           )}
         </>
       )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -1040,185 +1065,152 @@ function EntityDetailView({
       <h2 className="admin-subtitle">{entity.name}</h2>
 
       {/* Accounts */}
-      <h3 className="admin-subtitle" style={{ fontSize: "0.875rem" }}>Счета</h3>
-      {entity.accounts.length === 0 ? (
-        <div style={{ color: "var(--text-muted)", fontSize: "0.8125rem", marginBottom: "1.5rem" }}>
-          Нет счетов
+      <div className="admin-section">
+        <div className="admin-section__header">
+          <div className="admin-section__title"><CreditCard size={16} /> Счета <span className="admin-section__count">{entity.accounts.length}</span></div>
         </div>
-      ) : (
-        <div className="admin-account-list">
-          {entity.accounts.map((a) => (
-            <div key={a.id} className={`admin-account-item${!a.enabled ? " admin-account-item--disabled" : ""}`}>
-              <div>
-                <div className="admin-account-item__name">{a.name}</div>
-                <div className="admin-account-item__info">
-                  {a.bank || a.type}
-                  {a.accountNumber && ` \u2022 ${a.accountNumber}`}
+        <div className="admin-section__body">
+          {entity.accounts.length === 0 ? (
+            <div className="admin-empty-hint">Нет счетов</div>
+          ) : (
+            <div className="admin-account-list">
+              {entity.accounts.map((a) => (
+                <div key={a.id} className={`admin-account-item${!a.enabled ? " admin-account-item--disabled" : ""}`}>
+                  <div>
+                    <div className="admin-account-item__name">{a.name}</div>
+                    <div className="admin-account-item__info">
+                      {a.bank || a.type}
+                      {a.accountNumber && ` \u2022 ${a.accountNumber}`}
+                    </div>
+                  </div>
+                  <div className="admin-account-item__right">
+                    <div className="admin-account-item__info"><FileText size={12} /> {a.transactionCount}</div>
+                    <button type="button" className={`admin-toggle${a.enabled ? " admin-toggle--on" : ""}`} onClick={() => handleToggleAccount(a.id)} title={a.enabled ? "Отключить" : "Включить"}>
+                      <span className="admin-toggle__knob" />
+                    </button>
+                  </div>
                 </div>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-                <div className="admin-account-item__info">
-                  <FileText size={12} /> {a.transactionCount}
-                </div>
-                <button
-                  type="button"
-                  className={`admin-toggle${a.enabled ? " admin-toggle--on" : ""}`}
-                  onClick={() => handleToggleAccount(a.id)}
-                  title={a.enabled ? "Отключить" : "Включить"}
-                >
-                  <span className="admin-toggle__knob" />
-                </button>
-              </div>
+              ))}
             </div>
-          ))}
+          )}
         </div>
-      )}
+      </div>
 
       {/* Expense Types / Articles */}
-      <h3 className="admin-subtitle" style={{ fontSize: "0.875rem" }}>
-        Категории расходов
-      </h3>
-
-      {expLoading ? (
-        <div className="tab-loading">Загрузка...</div>
-      ) : (
-        <div className="admin-expense-list">
-          {expenseTypes.map((t) => (
-            <div key={t.id} className="admin-expense-type">
-              <div className="admin-expense-type__header">
-                {editingTypeId === t.id ? (
-                  <div className="admin-inline-edit">
-                    <input
-                      className="admin-inline-input"
-                      value={editTypeName}
-                      onChange={(ev) => setEditTypeName(ev.target.value)}
-                      onKeyDown={(ev) => { if (ev.key === "Enter") handleRenameType(t.id); if (ev.key === "Escape") setEditingTypeId(null); }}
-                      autoFocus
-                    />
-                    <button className="btn btn--ghost btn--sm" onClick={() => handleRenameType(t.id)}><Check size={14} /></button>
-                    <button className="btn btn--ghost btn--sm" onClick={() => setEditingTypeId(null)}><X size={14} /></button>
-                  </div>
-                ) : (
-                  <>
-                    <div
-                      className="admin-expense-type__name"
-                      onClick={() => setExpandedType(expandedType === t.id ? null : t.id)}
-                      style={{ cursor: "pointer" }}
-                    >
-                      <FolderOpen size={14} />
-                      {t.name}
-                      <span className="admin-expense-type__count">({t.articles.length})</span>
-                    </div>
-                    <span className="admin-entity-actions">
-                      <button className="btn btn--ghost btn--sm" onClick={() => { setAddingArticleForType(t.id); setNewArticleName(""); setExpandedType(t.id); }} title="Добавить статью"><Plus size={12} /></button>
-                      <button className="btn btn--ghost btn--sm" onClick={() => { setEditingTypeId(t.id); setEditTypeName(t.name); }} title="Переименовать"><Pencil size={12} /></button>
-                      <button className="btn btn--ghost btn--sm" onClick={() => handleDeleteType(t.id, t.name)} title="Удалить"><Trash2 size={12} /></button>
-                    </span>
-                  </>
-                )}
-              </div>
-
-              {expandedType === t.id && (
-                <div className="admin-expense-articles">
-                  {t.articles.map((a) => (
-                    <div key={a.id} className="admin-expense-article">
-                      {editingArticleId === a.id ? (
-                        <div className="admin-inline-edit">
-                          <input
-                            className="admin-inline-input"
-                            value={editArticleName}
-                            onChange={(ev) => setEditArticleName(ev.target.value)}
-                            onKeyDown={(ev) => { if (ev.key === "Enter") handleRenameArticle(a.id); if (ev.key === "Escape") setEditingArticleId(null); }}
-                            autoFocus
-                          />
-                          <button className="btn btn--ghost btn--sm" onClick={() => handleRenameArticle(a.id)}><Check size={14} /></button>
-                          <button className="btn btn--ghost btn--sm" onClick={() => setEditingArticleId(null)}><X size={14} /></button>
+      <div className="admin-section">
+        <div className="admin-section__header">
+          <div className="admin-section__title"><FolderOpen size={16} /> Категории расходов <span className="admin-section__count">{expenseTypes.length}</span></div>
+        </div>
+        <div className="admin-section__body">
+          {expLoading ? (
+            <div className="tab-loading">Загрузка...</div>
+          ) : (
+            <div className="admin-expense-list">
+              {expenseTypes.map((t) => (
+                <div key={t.id} className="admin-expense-type">
+                  <div className="admin-expense-type__header">
+                    {editingTypeId === t.id ? (
+                      <div className="admin-inline-edit">
+                        <input className="admin-inline-input" value={editTypeName} onChange={(ev) => setEditTypeName(ev.target.value)} onKeyDown={(ev) => { if (ev.key === "Enter") handleRenameType(t.id); if (ev.key === "Escape") setEditingTypeId(null); }} autoFocus />
+                        <button className="btn btn--ghost btn--sm" onClick={() => handleRenameType(t.id)}><Check size={14} /></button>
+                        <button className="btn btn--ghost btn--sm" onClick={() => setEditingTypeId(null)}><X size={14} /></button>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="admin-expense-type__name admin-expense-type__name--clickable" onClick={() => setExpandedType(expandedType === t.id ? null : t.id)}>
+                          <ChevronRight size={14} className={`admin-chevron ${expandedType === t.id ? "admin-chevron--open" : ""}`} />
+                          <FolderOpen size={14} />
+                          {t.name}
+                          <span className="admin-expense-type__count">({t.articles.length})</span>
                         </div>
-                      ) : (
-                        <>
-                          <span className="admin-expense-article__name"><Tag size={12} /> {a.name}</span>
-                          <span className="admin-entity-actions">
-                            <button className="btn btn--ghost btn--sm" onClick={() => { setEditingArticleId(a.id); setEditArticleName(a.name); }}><Pencil size={12} /></button>
-                            <button className="btn btn--ghost btn--sm" onClick={() => handleDeleteArticle(a.id, a.name)}><Trash2 size={12} /></button>
-                          </span>
-                        </>
+                        <span className="admin-entity-actions">
+                          <button className="btn btn--ghost btn--sm" onClick={() => { setAddingArticleForType(t.id); setNewArticleName(""); setExpandedType(t.id); }} title="Добавить статью"><Plus size={12} /></button>
+                          <button className="btn btn--ghost btn--sm" onClick={() => { setEditingTypeId(t.id); setEditTypeName(t.name); }} title="Переименовать"><Pencil size={12} /></button>
+                          <button className="btn btn--ghost btn--sm" onClick={() => handleDeleteType(t.id, t.name)} title="Удалить"><Trash2 size={12} /></button>
+                        </span>
+                      </>
+                    )}
+                  </div>
+                  {expandedType === t.id && (
+                    <div className="admin-expense-articles">
+                      {t.articles.map((a) => (
+                        <div key={a.id} className="admin-expense-article">
+                          {editingArticleId === a.id ? (
+                            <div className="admin-inline-edit">
+                              <input className="admin-inline-input" value={editArticleName} onChange={(ev) => setEditArticleName(ev.target.value)} onKeyDown={(ev) => { if (ev.key === "Enter") handleRenameArticle(a.id); if (ev.key === "Escape") setEditingArticleId(null); }} autoFocus />
+                              <button className="btn btn--ghost btn--sm" onClick={() => handleRenameArticle(a.id)}><Check size={14} /></button>
+                              <button className="btn btn--ghost btn--sm" onClick={() => setEditingArticleId(null)}><X size={14} /></button>
+                            </div>
+                          ) : (
+                            <>
+                              <span className="admin-expense-article__name"><Tag size={12} /> {a.name}</span>
+                              <span className="admin-entity-actions">
+                                <button className="btn btn--ghost btn--sm" onClick={() => { setEditingArticleId(a.id); setEditArticleName(a.name); }}><Pencil size={12} /></button>
+                                <button className="btn btn--ghost btn--sm" onClick={() => handleDeleteArticle(a.id, a.name)}><Trash2 size={12} /></button>
+                              </span>
+                            </>
+                          )}
+                        </div>
+                      ))}
+                      {t.articles.length === 0 && !addingArticleForType && <div className="admin-empty-hint" style={{ paddingLeft: "1.5rem" }}>Нет статей</div>}
+                      {addingArticleForType === t.id && (
+                        <div className="admin-inline-edit admin-inline-edit--indented">
+                          <input className="admin-inline-input" placeholder="Название статьи" value={newArticleName} onChange={(ev) => setNewArticleName(ev.target.value)} onKeyDown={(ev) => { if (ev.key === "Enter") handleAddArticle(t.id); if (ev.key === "Escape") setAddingArticleForType(null); }} autoFocus />
+                          <button className="btn btn--ghost btn--sm" onClick={() => handleAddArticle(t.id)} disabled={!newArticleName.trim()}><Check size={14} /></button>
+                          <button className="btn btn--ghost btn--sm" onClick={() => setAddingArticleForType(null)}><X size={14} /></button>
+                        </div>
                       )}
-                    </div>
-                  ))}
-                  {t.articles.length === 0 && !addingArticleForType && (
-                    <div style={{ color: "var(--text-muted)", fontSize: "0.75rem", padding: "0.25rem 0 0.25rem 1.5rem" }}>Нет статей</div>
-                  )}
-                  {addingArticleForType === t.id && (
-                    <div className="admin-inline-edit" style={{ paddingLeft: "1.5rem" }}>
-                      <input
-                        className="admin-inline-input"
-                        placeholder="Название статьи"
-                        value={newArticleName}
-                        onChange={(ev) => setNewArticleName(ev.target.value)}
-                        onKeyDown={(ev) => { if (ev.key === "Enter") handleAddArticle(t.id); if (ev.key === "Escape") setAddingArticleForType(null); }}
-                        autoFocus
-                      />
-                      <button className="btn btn--ghost btn--sm" onClick={() => handleAddArticle(t.id)} disabled={!newArticleName.trim()}><Check size={14} /></button>
-                      <button className="btn btn--ghost btn--sm" onClick={() => setAddingArticleForType(null)}><X size={14} /></button>
                     </div>
                   )}
                 </div>
-              )}
+              ))}
+              <div className="admin-inline-edit">
+                <input className="admin-inline-input" placeholder="Новая категория расходов" value={newTypeName} onChange={(e) => setNewTypeName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") handleAddType(); }} />
+                <button className="btn btn--primary btn--sm" onClick={handleAddType} disabled={!newTypeName.trim()}><Plus size={14} /> Добавить</button>
+              </div>
             </div>
-          ))}
-
-          {/* Add new expense type */}
-          <div className="admin-inline-edit" style={{ marginTop: "0.5rem" }}>
-            <input
-              className="admin-inline-input"
-              placeholder="Новая категория расходов"
-              value={newTypeName}
-              onChange={(e) => setNewTypeName(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") handleAddType(); }}
-            />
-            <button className="btn btn--primary btn--sm" onClick={handleAddType} disabled={!newTypeName.trim()}>
-              <Plus size={14} /> Добавить
-            </button>
-          </div>
+          )}
         </div>
-      )}
+      </div>
 
       {/* Recent transactions */}
-      <h3 className="admin-subtitle" style={{ fontSize: "0.875rem", marginTop: "1.5rem" }}>
-        Банковские транзакции (последние 50)
-      </h3>
-      {entity.recentTransactions.length === 0 ? (
-        <div style={{ color: "var(--text-muted)", fontSize: "0.8125rem" }}>Нет транзакций</div>
-      ) : (
-        <div className="admin-table-wrap">
-          <table className="admin-table">
-            <thead>
-              <tr>
-                <th>Дата</th>
-                <th>Счёт</th>
-                <th>Сумма</th>
-                <th>Контрагент</th>
-                <th>Назначение</th>
-              </tr>
-            </thead>
-            <tbody>
-              {entity.recentTransactions.map((t) => (
-                <tr key={t.id}>
-                  <td style={{ whiteSpace: "nowrap" }}>{formatDate(t.date)}</td>
-                  <td>{t.accountName}</td>
-                  <td className={`cell-amount cell-amount--${t.direction === "income" ? "income" : "expense"}`}>
-                    {t.direction === "income" ? "+" : "\u2212"}{formatAmount(t.amount)} ₽
-                  </td>
-                  <td>{t.counterparty || "—"}</td>
-                  <td style={{ maxWidth: 250, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {t.purpose || "—"}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      <div className="admin-section">
+        <div className="admin-section__header">
+          <div className="admin-section__title"><FileText size={16} /> Банковские транзакции <span className="admin-section__count">{entity.recentTransactions.length}</span></div>
         </div>
-      )}
+        <div className="admin-section__body">
+          {entity.recentTransactions.length === 0 ? (
+            <div className="admin-empty-hint">Нет транзакций</div>
+          ) : (
+            <div className="admin-table-wrap">
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th>Дата</th>
+                    <th>Счёт</th>
+                    <th>Сумма</th>
+                    <th>Контрагент</th>
+                    <th>Назначение</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {entity.recentTransactions.map((t) => (
+                    <tr key={t.id}>
+                      <td className="admin-table__nowrap">{formatDate(t.date)}</td>
+                      <td>{t.accountName}</td>
+                      <td className={`cell-amount cell-amount--${t.direction === "income" ? "income" : "expense"}`}>
+                        {t.direction === "income" ? "+" : "\u2212"}{formatAmount(t.amount)} ₽
+                      </td>
+                      <td>{t.counterparty || "—"}</td>
+                      <td className="admin-table__truncate">{t.purpose || "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
