@@ -677,9 +677,22 @@ function CompanyDetailView({
         <div className="admin-company-header__meta">
           <span className="admin-company-header__stat">{company.members.length} пользователей</span>
           <span className="admin-company-header__stat">{company.entities.length} юр.лиц</span>
-          <button className={`btn btn--sm ${company.mode === "dds_only" ? "btn--warning" : "btn--ghost"}`} onClick={handleToggleMode}>
-            {company.mode === "dds_only" ? "Только ДДС (без выписок)" : "Полный (ДДС + выписки)"}
-          </button>
+          <div className="admin-mode-switch">
+            <button
+              type="button"
+              className={`admin-mode-switch__btn ${company.mode === "full" ? "admin-mode-switch__btn--active" : ""}`}
+              onClick={() => company.mode !== "full" && handleToggleMode()}
+            >
+              ДДС + Выписки
+            </button>
+            <button
+              type="button"
+              className={`admin-mode-switch__btn ${company.mode === "dds_only" ? "admin-mode-switch__btn--active" : ""}`}
+              onClick={() => company.mode !== "dds_only" && handleToggleMode()}
+            >
+              Только ДДС
+            </button>
+          </div>
           <button className={`btn btn--sm ${inviteCopied ? "btn--success" : "btn--primary"}`} onClick={handleCopyInvite} disabled={inviteLoading}>
             {inviteCopied ? <><Check size={14} /> Скопировано</> : <><Link size={14} /> Приглашение</>}
           </button>

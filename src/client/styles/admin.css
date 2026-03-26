@@ -117,6 +117,42 @@
   gap: 0.5rem;
 }
 
+/* ===== Mode Switch ===== */
+
+.admin-mode-switch {
+  display: inline-flex;
+  background: var(--bg-base);
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  padding: 3px;
+  gap: 2px;
+}
+
+.admin-mode-switch__btn {
+  padding: 0.375rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.admin-mode-switch__btn:hover:not(.admin-mode-switch__btn--active) {
+  color: var(--text-secondary);
+  background: var(--bg-surface-hover);
+}
+
+.admin-mode-switch__btn--active {
+  background: var(--text-primary);
+  color: #fff;
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
 /* ===== Subtitle ===== */
 
 .admin-subtitle {
