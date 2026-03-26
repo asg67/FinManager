@@ -24,23 +24,12 @@ export const accountsApi = {
     return api.get<Account[]>(`/entities/${entityId}/accounts${qs ? `?${qs}` : ""}`);
   },
 
-  /** Load cash accounts from other entities (for cross-entity transfers) */
+  /** Load cash accounts from all other company entities (for cross-entity transfers) */
   listOtherCash: async (
-    entities: { id: string; name: string }[],
+    _entities: { id: string; name: string }[],
     excludeEntityId: string,
-    source?: string,
-    enabledOnly?: boolean,
   ): Promise<AccountWithEntity[]> => {
-    const others = entities.filter((e) => e.id !== excludeEntityId);
-    const results = await Promise.all(
-      others.map(async (ent) => {
-        const accounts = await accountsApi.list(ent.id, source, enabledOnly);
-        return accounts
-          .filter((a) => a.type === "cash")
-          .map((a) => ({ ...a, entityName: ent.name }));
-      }),
-    );
-    return results.flat();
+    return api.get<AccountWithEntity[]>(`/dds/company-cash?excludeEntityId=${excludeEntityId}`);
   },
 
   create: (entityId: string, data: CreateAccountPayload) =>

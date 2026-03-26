@@ -80,8 +80,8 @@ export default function QuickAddForm({ entities, onSaved }: Props) {
 
   // Load cash accounts from other entities for transfers
   useEffect(() => {
-    if (form.entityId && entities.length > 1) {
-      accountsApi.listOtherCash(entities, form.entityId, "manual", true).then(setOtherCash);
+    if (form.entityId) {
+      accountsApi.listOtherCash(entities, form.entityId).then(setOtherCash);
     } else {
       setOtherCash([]);
     }

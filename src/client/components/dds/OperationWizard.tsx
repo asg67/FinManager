@@ -103,8 +103,8 @@ export default function OperationWizard({ open, onClose, onDone, editOperation, 
 
   // Load cash accounts from other entities for transfers
   useEffect(() => {
-    if (open && form.entityId && entities.length > 1) {
-      accountsApi.listOtherCash(entities, form.entityId, "manual", true).then(setOtherCash);
+    if (open && form.entityId) {
+      accountsApi.listOtherCash(entities, form.entityId).then(setOtherCash);
     } else {
       setOtherCash([]);
     }

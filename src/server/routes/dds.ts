@@ -329,4 +329,42 @@ router.delete("/templates/:id", async (req: Request, res: Response) => {
   }
 });
 
+// GET /api/dds/company-cash?excludeEntityId=xxx — cash accounts from all company entities (for transfers)
+router.get("/company-cash", async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.userId;
+    const excludeEntityId = req.query.excludeEntityId as string;
+
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user?.companyId) {
+      res.json([]);
+      return;
+    }
+
+    // All cash accounts from all company entities (except the excluded one)
+    const accounts = await prisma.account.findMany({
+      where: {
+        entity: { companyId: user.companyId },
+        type: "cash",
+        enabled: true,
+        source: "manual",
+        ...(excludeEntityId ? { entityId: { not: excludeEntityId } } : {}),
+      },
+      include: { entity: { select: { name: true } } },
+      orderBy: { createdAt: "asc" },
+    });
+
+    res.json(accounts.map((a) => ({
+      id: a.id,
+      name: a.name,
+      type: a.type,
+      entityId: a.entityId,
+      entityName: a.entity.name,
+    })));
+  } catch (error) {
+    console.error("Company cash error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 export default router;
