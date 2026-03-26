@@ -20,23 +20,8 @@ export const createOperationSchema = z
     comment: z.string().max(1000).optional(),
     customFieldValues: z.array(customFieldValueSchema).optional(),
   })
-  .superRefine((data, ctx) => {
-    if (data.operationType === "income" && !data.toAccountId) {
-      ctx.addIssue({ code: "custom", path: ["toAccountId"], message: "Required for income" });
-    }
-    if (data.operationType === "expense") {
-      if (!data.fromAccountId)
-        ctx.addIssue({ code: "custom", path: ["fromAccountId"], message: "Required for expense" });
-      if (!data.expenseTypeId)
-        ctx.addIssue({ code: "custom", path: ["expenseTypeId"], message: "Required for expense" });
-    }
-    if (data.operationType === "transfer") {
-      if (!data.fromAccountId)
-        ctx.addIssue({ code: "custom", path: ["fromAccountId"], message: "Required for transfer" });
-      if (!data.toAccountId)
-        ctx.addIssue({ code: "custom", path: ["toAccountId"], message: "Required for transfer" });
-    }
-  });
+  // Note: account requirements are relaxed — dds_only companies don't use accounts.
+  // Server-side route handler checks company mode for stricter validation if needed.
 
 export const updateOperationSchema = z.object({
   amount: z.number().positive().optional(),
