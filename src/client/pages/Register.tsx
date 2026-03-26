@@ -13,6 +13,7 @@ export default function Register() {
 
   const inviteToken = searchParams.get("invite");
   const [companyName, setCompanyName] = useState<string | null>(null);
+  const [companyMode, setCompanyMode] = useState<string | null>(null);
   const [inviteError, setInviteError] = useState(false);
 
   const [lastName, setLastName] = useState("");
@@ -27,7 +28,10 @@ export default function Register() {
   useEffect(() => {
     if (inviteToken) {
       companyApi.checkInvite(inviteToken).then(
-        (res) => setCompanyName(res.companyName),
+        (res) => {
+          setCompanyName(res.companyName);
+          setCompanyMode(res.companyMode);
+        },
         () => setInviteError(true),
       );
     }
@@ -43,6 +47,7 @@ export default function Register() {
     }
 
     const name = `${lastName} ${firstName}`.trim();
+    const isDdsOnly = companyMode === "dds_only";
 
     try {
       if (inviteToken) {
@@ -51,7 +56,7 @@ export default function Register() {
         const res = await companyApi.registerInvite({
           email,
           password,
-          name,
+          ...(isDdsOnly ? (name ? { name } : {}) : { name }),
           token: inviteToken,
         });
         setAccessToken(res.accessToken);
@@ -117,31 +122,35 @@ export default function Register() {
         )}
 
         <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label htmlFor="lastName">{t("auth.lastName")}</label>
-            <input
-              id="lastName"
-              type="text"
-              value={lastName}
-              onChange={(e) => setLastName(e.target.value)}
-              required
-              autoComplete="family-name"
-              placeholder={t("auth.lastNamePlaceholder")}
-            />
-          </div>
+          {!(inviteToken && companyMode === "dds_only") && (
+            <>
+              <div className="form-group">
+                <label htmlFor="lastName">{t("auth.lastName")}</label>
+                <input
+                  id="lastName"
+                  type="text"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  required
+                  autoComplete="family-name"
+                  placeholder={t("auth.lastNamePlaceholder")}
+                />
+              </div>
 
-          <div className="form-group">
-            <label htmlFor="firstName">{t("auth.firstName")}</label>
-            <input
-              id="firstName"
-              type="text"
-              value={firstName}
-              onChange={(e) => setFirstName(e.target.value)}
-              required
-              autoComplete="given-name"
-              placeholder={t("auth.firstNamePlaceholder")}
-            />
-          </div>
+              <div className="form-group">
+                <label htmlFor="firstName">{t("auth.firstName")}</label>
+                <input
+                  id="firstName"
+                  type="text"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  required
+                  autoComplete="given-name"
+                  placeholder={t("auth.firstNamePlaceholder")}
+                />
+              </div>
+            </>
+          )}
 
           <div className="form-group">
             <label htmlFor="email">{t("common.email")}</label>

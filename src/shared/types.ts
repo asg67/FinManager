@@ -67,7 +67,7 @@ export interface UpdateProfilePayload {
 export interface RegisterInvitePayload {
   email: string;
   password: string;
-  name: string;
+  name?: string;
   token: string;
 }
 

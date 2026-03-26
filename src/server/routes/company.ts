@@ -31,7 +31,7 @@ router.get("/invite/:token", async (req: Request, res: Response) => {
   try {
     const invite = await prisma.invite.findUnique({
       where: { token: req.params.token },
-      include: { company: { select: { name: true } } },
+      include: { company: { select: { name: true, mode: true } } },
     });
 
     if (!invite || invite.expiresAt < new Date()) {
@@ -39,7 +39,7 @@ router.get("/invite/:token", async (req: Request, res: Response) => {
       return;
     }
 
-    res.json({ companyName: invite.company.name, companyId: invite.companyId });
+    res.json({ companyName: invite.company.name, companyId: invite.companyId, companyMode: invite.company.mode });
   } catch (error) {
     console.error("Check invite error:", error);
     res.status(500).json({ message: "Internal server error" });
@@ -69,11 +69,14 @@ router.post("/register-invite", validate(registerInviteSchema), async (req: Requ
 
     const passwordHash = await bcrypt.hash(password, 10);
 
+    // If name not provided, use email username
+    const displayName = name.trim() || email.split("@")[0];
+
     const user = await prisma.user.create({
       data: {
         email,
         passwordHash,
-        name,
+        name: displayName,
         role: "member",
         companyId: invite.companyId,
         invitedById: invite.createdById,
@@ -89,17 +92,18 @@ router.post("/register-invite", validate(registerInviteSchema), async (req: Requ
       include: { company: true },
     });
 
-    // Auto-create entity "ИП Фамилия" inside the invite's company
-    const nameParts = name.trim().split(/\s+/);
-    const lastName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : nameParts[0];
-    const entity = await prisma.entity.create({
-      data: { name: `ИП ${lastName}`, ownerId: user.id, companyId: invite.companyId },
-    });
-    await seedEntityAccounts(entity.id);
-    // Give user access to their own entity
-    await prisma.entityAccess.create({
-      data: { userId: user.id, entityId: entity.id },
-    });
+    // For dds_only companies, skip entity/account creation — managers don't need their own ИП
+    if (invite.company.mode !== "dds_only") {
+      const nameParts = displayName.trim().split(/\s+/);
+      const lastName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : nameParts[0];
+      const entity = await prisma.entity.create({
+        data: { name: `ИП ${lastName}`, ownerId: user.id, companyId: invite.companyId },
+      });
+      await seedEntityAccounts(entity.id);
+      await prisma.entityAccess.create({
+        data: { userId: user.id, entityId: entity.id },
+      });
+    }
 
     const tokens = generateTokens(user.id, user.role);
 

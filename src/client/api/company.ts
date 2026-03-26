@@ -35,7 +35,7 @@ export const companyApi = {
     api.delete<void>(`/company/invites/${id}`),
 
   checkInvite: (token: string) =>
-    api.get<{ companyName: string; companyId: string }>(`/company/invite/${token}`),
+    api.get<{ companyName: string; companyId: string; companyMode: string }>(`/company/invite/${token}`),
 
   join: (token: string) =>
     api.post<User>("/company/join", { token }),
