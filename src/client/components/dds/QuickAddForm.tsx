@@ -6,6 +6,7 @@ import { accountsApi, type AccountWithEntity } from "../../api/accounts.js";
 import { companyApi } from "../../api/company.js";
 import { incomesApi } from "../../api/incomes.js";
 import { Button, Input, Select } from "../ui/index.js";
+import { useAuthStore } from "../../stores/auth.js";
 import type { Entity, Account, ExpenseType, IncomeType, CustomField, DdsTemplate } from "@shared/types.js";
 
 const OP_TYPES = [
@@ -21,6 +22,8 @@ interface Props {
 
 export default function QuickAddForm({ entities, onSaved }: Props) {
   const { t } = useTranslation();
+  const user = useAuthStore((s) => s.user);
+  const isDdsOnly = user?.company?.mode === "dds_only";
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [otherCash, setOtherCash] = useState<AccountWithEntity[]>([]);
   const [expenseTypes, setExpenseTypes] = useState<ExpenseType[]>([]);
@@ -186,7 +189,9 @@ export default function QuickAddForm({ entities, onSaved }: Props) {
 
         {/* Operation type buttons */}
         <div className="quick-add__op-types">
-          {OP_TYPES.map((op) => (
+          {OP_TYPES
+            .filter((op) => !isDdsOnly || op.value !== "transfer")
+            .map((op) => (
             <button
               key={op.value}
               type="button"
@@ -200,8 +205,8 @@ export default function QuickAddForm({ entities, onSaved }: Props) {
       </div>
 
       <div className="quick-add__row">
-        {/* From Account (expense, transfer) */}
-        {(isExpense || isTransfer) && (
+        {/* From Account (expense, transfer) — hidden for dds_only */}
+        {!isDdsOnly && (isExpense || isTransfer) && (
           <Select
             placeholder={t("dds.fromAccount")}
             options={accounts.map((a) => ({ value: a.id, label: a.name }))}
@@ -210,8 +215,8 @@ export default function QuickAddForm({ entities, onSaved }: Props) {
           />
         )}
 
-        {/* To Account (income — same entity; transfer — own accounts + other entities' cash) */}
-        {(isIncome || isTransfer) && (
+        {/* To Account — hidden for dds_only */}
+        {!isDdsOnly && (isIncome || isTransfer) && (
           <Select
             placeholder={t("dds.toAccount")}
             options={[

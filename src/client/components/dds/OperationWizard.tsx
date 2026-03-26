@@ -5,6 +5,7 @@ import { accountsApi, type AccountWithEntity } from "../../api/accounts.js";
 import { companyApi } from "../../api/company.js";
 import { incomesApi } from "../../api/incomes.js";
 import { Button, Input, Select, Modal } from "../ui/index.js";
+import { useAuthStore } from "../../stores/auth.js";
 import type { Entity, Account, ExpenseType, IncomeType, CustomField, DdsOperation, DdsTemplate } from "@shared/types.js";
 
 const OP_TYPES = [
@@ -23,6 +24,8 @@ interface Props {
 
 export default function OperationWizard({ open, onClose, onDone, editOperation, entities }: Props) {
   const { t } = useTranslation();
+  const user = useAuthStore((s) => s.user);
+  const isDdsOnly = user?.company?.mode === "dds_only";
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [otherCash, setOtherCash] = useState<AccountWithEntity[]>([]);
   const [expenseTypes, setExpenseTypes] = useState<ExpenseType[]>([]);
@@ -240,7 +243,9 @@ export default function OperationWizard({ open, onClose, onDone, editOperation, 
           <div className="wizard-op-types">
             <label className="input-field__label">{t("dds.operationType")}</label>
             <div className="wizard-op-types__btns">
-              {OP_TYPES.map((op) => (
+              {OP_TYPES
+                .filter((op) => !isDdsOnly || op.value !== "transfer")
+                .map((op) => (
                 <button
                   key={op.value}
                   type="button"
@@ -254,8 +259,8 @@ export default function OperationWizard({ open, onClose, onDone, editOperation, 
           </div>
         )}
 
-        {/* From Account (expense, transfer) */}
-        {(isExpense || isTransfer) && (
+        {/* From Account (expense, transfer) — hidden for dds_only */}
+        {!isDdsOnly && (isExpense || isTransfer) && (
           <Select
             label={t("dds.fromAccount")}
             options={accounts.map((a) => ({ value: a.id, label: a.name }))}
@@ -265,8 +270,8 @@ export default function OperationWizard({ open, onClose, onDone, editOperation, 
           />
         )}
 
-        {/* To Account (income — same entity; transfer — own accounts + other entities' cash) */}
-        {(isIncome || isTransfer) && (
+        {/* To Account (income — same entity; transfer — own accounts + other entities' cash) — hidden for dds_only */}
+        {!isDdsOnly && (isIncome || isTransfer) && (
           <Select
             label={t("dds.toAccount")}
             options={[

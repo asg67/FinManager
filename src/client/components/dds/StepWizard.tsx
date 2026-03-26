@@ -6,6 +6,7 @@ import { accountsApi, type AccountWithEntity } from "../../api/accounts.js";
 import { companyApi } from "../../api/company.js";
 import { incomesApi } from "../../api/incomes.js";
 import { Button, Input, Modal } from "../ui/index.js";
+import { useAuthStore } from "../../stores/auth.js";
 import type { Entity, Account, ExpenseType, IncomeType, CustomField, DdsOperation, DdsTemplate } from "@shared/types.js";
 
 type Step = "entity" | "opType" | "fromAccount" | "category" | "article" | "incomeCategory" | "incomeArticle" | "details" | "review";
@@ -20,6 +21,8 @@ interface Props {
 
 export default function StepWizard({ open, onClose, onDone, editOperation, entities }: Props) {
   const { t } = useTranslation();
+  const user = useAuthStore((s) => s.user);
+  const isDdsOnly = user?.company?.mode === "dds_only";
   const [step, setStep] = useState<Step>("entity");
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [otherCash, setOtherCash] = useState<AccountWithEntity[]>([]);
@@ -128,7 +131,16 @@ export default function StepWizard({ open, onClose, onDone, editOperation, entit
 
   function selectOpType(opType: string) {
     setForm((prev) => ({ ...prev, operationType: opType, expenseTypeId: undefined, expenseArticleId: undefined, incomeTypeId: undefined, incomeArticleId: undefined }));
-    if (opType === "expense") {
+    if (isDdsOnly) {
+      // dds_only: skip account selection, go straight to category or details
+      if (opType === "expense" && expenseTypes.length > 0) {
+        setStep("category");
+      } else if (opType === "income" && incomeTypes.length > 0) {
+        setStep("incomeCategory");
+      } else {
+        setStep("details");
+      }
+    } else if (opType === "expense") {
       setStep("fromAccount");
     } else if (opType === "income" && incomeTypes.length > 0) {
       setStep("incomeCategory");
@@ -196,7 +208,7 @@ export default function StepWizard({ open, onClose, onDone, editOperation, entit
         setStep("opType");
         break;
       case "category":
-        setStep("fromAccount");
+        setStep(isDdsOnly ? "opType" : "fromAccount");
         break;
       case "article":
         setStep("category");
@@ -376,13 +388,15 @@ export default function StepWizard({ open, onClose, onDone, editOperation, entit
             >
               {t("dds.expense")}
             </button>
-            <button
-              type="button"
-              className="step-wizard__op-btn step-wizard__op-btn--transfer"
-              onClick={() => selectOpType("transfer")}
-            >
-              {t("dds.transfer")}
-            </button>
+            {!isDdsOnly && (
+              <button
+                type="button"
+                className="step-wizard__op-btn step-wizard__op-btn--transfer"
+                onClick={() => selectOpType("transfer")}
+              >
+                {t("dds.transfer")}
+              </button>
+            )}
           </div>
         )}
 
@@ -469,8 +483,8 @@ export default function StepWizard({ open, onClose, onDone, editOperation, entit
         {/* Step: Details */}
         {step === "details" && (
           <div className="step-wizard__details">
-            {/* From Account (transfer only — expense already selected in fromAccount step) */}
-            {isTransfer && (
+            {/* From Account (transfer only — expense already selected in fromAccount step) — hidden for dds_only */}
+            {!isDdsOnly && isTransfer && (
               <div className="step-wizard__field">
                 <label className="step-wizard__field-label">{t("dds.fromAccount")}</label>
                 <div className="step-wizard__grid step-wizard__grid--compact">
@@ -488,8 +502,8 @@ export default function StepWizard({ open, onClose, onDone, editOperation, entit
               </div>
             )}
 
-            {/* To Account (income — same entity; transfer — own accounts + other entities' cash) */}
-            {(isIncome || isTransfer) && (
+            {/* To Account — hidden for dds_only */}
+            {!isDdsOnly && (isIncome || isTransfer) && (
               <div className="step-wizard__field">
                 <label className="step-wizard__field-label">{t("dds.toAccount")}</label>
                 <div className="step-wizard__grid step-wizard__grid--compact">
@@ -575,7 +589,7 @@ export default function StepWizard({ open, onClose, onDone, editOperation, entit
               onChange={(e) => updateField("comment", e.target.value || undefined)}
             />
 
-            <Button onClick={() => setStep("review")} disabled={!form.amount || (isIncome && !form.toAccountId) || (isTransfer && (!form.fromAccountId || !form.toAccountId))}>
+            <Button onClick={() => setStep("review")} disabled={!form.amount || (!isDdsOnly && isIncome && !form.toAccountId) || (!isDdsOnly && isTransfer && (!form.fromAccountId || !form.toAccountId))}>
               {t("common.next")}
             </Button>
           </div>
