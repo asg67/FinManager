@@ -23,6 +23,8 @@ model Company {
   entities     Entity[]
   invites      Invite[]
   customFields CustomField[]
+  expenseTypes ExpenseType[]
+  incomeTypes  IncomeType[]
 }
 
 model Invite {
@@ -159,8 +161,10 @@ model Account {
 model ExpenseType {
   id        String   @id @default(uuid())
   name      String
-  entityId  String
-  entity    Entity   @relation(fields: [entityId], references: [id], onDelete: Cascade)
+  entityId  String?
+  entity    Entity?  @relation(fields: [entityId], references: [id], onDelete: Cascade)
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
   sortOrder Int      @default(0)
   createdAt DateTime @default(now())
 
@@ -185,8 +189,10 @@ model ExpenseArticle {
 model IncomeType {
   id        String   @id @default(uuid())
   name      String
-  entityId  String
-  entity    Entity   @relation(fields: [entityId], references: [id], onDelete: Cascade)
+  entityId  String?
+  entity    Entity?  @relation(fields: [entityId], references: [id], onDelete: Cascade)
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
   sortOrder Int      @default(0)
   createdAt DateTime @default(now())
 

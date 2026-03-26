@@ -345,7 +345,7 @@ router.get("/onboarding-status", async (req: Request, res: Response) => {
     const [entityCount, accountCount, expenseTypeCount] = await Promise.all([
       prisma.entity.count({ where: { companyId: user.companyId! } }),
       prisma.account.count({ where: { entity: { companyId: user.companyId! } } }),
-      prisma.expenseType.count({ where: { entity: { companyId: user.companyId! } } }),
+      prisma.expenseType.count({ where: { OR: [{ companyId: user.companyId! }, { entity: { companyId: user.companyId! } }] } }),
     ]);
 
     res.json({
@@ -377,7 +377,7 @@ router.post("/complete-onboarding", async (req: Request, res: Response) => {
     const [entityCount, accountCount, expenseTypeCount] = await Promise.all([
       prisma.entity.count({ where: { companyId: user.companyId } }),
       prisma.account.count({ where: { entity: { companyId: user.companyId } } }),
-      prisma.expenseType.count({ where: { entity: { companyId: user.companyId } } }),
+      prisma.expenseType.count({ where: { OR: [{ companyId: user.companyId! }, { entity: { companyId: user.companyId! } }] } }),
     ]);
 
     if (entityCount === 0 || accountCount === 0 || expenseTypeCount === 0) {
@@ -534,7 +534,7 @@ router.get("/expense-types", async (req: Request, res: Response) => {
     }
 
     const types = await prisma.expenseType.findMany({
-      where: { entity: { companyId: user.companyId } },
+      where: { OR: [{ companyId: user.companyId }, { entity: { companyId: user.companyId } }] },
       include: { articles: { orderBy: { name: "asc" } } },
       orderBy: { name: "asc" },
     });

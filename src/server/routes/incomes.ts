@@ -36,8 +36,15 @@ router.get("/", async (req: Request, res: Response) => {
       return;
     }
 
+    // Include both entity-level and company-level income types
+    const entity = await prisma.entity.findUnique({ where: { id: req.params.entityId }, select: { companyId: true } });
     const types = await prisma.incomeType.findMany({
-      where: { entityId: req.params.entityId },
+      where: {
+        OR: [
+          { entityId: req.params.entityId },
+          ...(entity?.companyId ? [{ companyId: entity.companyId }] : []),
+        ],
+      },
       include: { articles: { orderBy: { sortOrder: "asc" } } },
       orderBy: { sortOrder: "asc" },
     });

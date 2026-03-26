@@ -569,12 +569,12 @@ router.delete("/entities/:id", async (req: Request, res: Response) => {
 
 // ===== EXPENSE TYPES CRUD =====
 
-// GET /api/admin/companies/:id/expense-types — list ALL types across all entities in company
+// GET /api/admin/companies/:id/expense-types — list ALL types in company
 router.get("/companies/:id/expense-types", async (req: Request, res: Response) => {
   try {
     const companyId = req.params.id as string;
     const types = await prisma.expenseType.findMany({
-      where: { entity: { companyId } },
+      where: { OR: [{ companyId }, { entity: { companyId } }] },
       include: { articles: { orderBy: { sortOrder: "asc" } } },
       orderBy: { sortOrder: "asc" },
     });
@@ -585,7 +585,7 @@ router.get("/companies/:id/expense-types", async (req: Request, res: Response) =
   }
 });
 
-// POST /api/admin/companies/:id/expense-types — create type (assigns to first entity)
+// POST /api/admin/companies/:id/expense-types — create type
 router.post("/companies/:id/expense-types", async (req: Request, res: Response) => {
   try {
     const companyId = req.params.id as string;
@@ -595,21 +595,30 @@ router.post("/companies/:id/expense-types", async (req: Request, res: Response) 
       return;
     }
 
-    // Find first entity in the company to anchor the expense type
-    const entity = await prisma.entity.findFirst({
-      where: { companyId },
-      orderBy: { createdAt: "asc" },
-    });
-    if (!entity) {
-      res.status(400).json({ message: "Company has no entities" });
+    const company = await prisma.company.findUnique({ where: { id: companyId } });
+    if (!company) {
+      res.status(404).json({ message: "Company not found" });
       return;
     }
 
+    // dds_only: attach to company; full: attach to first entity
+    let data: { name: string; companyId?: string; entityId?: string };
+    if (company.mode === "dds_only") {
+      data = { name: name.trim(), companyId };
+    } else {
+      const entity = await prisma.entity.findFirst({
+        where: { companyId },
+        orderBy: { createdAt: "asc" },
+      });
+      if (!entity) {
+        res.status(400).json({ message: "Company has no entities" });
+        return;
+      }
+      data = { name: name.trim(), entityId: entity.id };
+    }
+
     const type = await prisma.expenseType.create({
-      data: {
-        name: name.trim(),
-        entityId: entity.id,
-      },
+      data,
       include: { articles: true },
     });
 
@@ -776,7 +785,7 @@ router.get("/companies/:id/income-types", async (req: Request, res: Response) =>
   try {
     const companyId = req.params.id as string;
     const types = await prisma.incomeType.findMany({
-      where: { entity: { companyId } },
+      where: { OR: [{ companyId }, { entity: { companyId } }] },
       include: { articles: { orderBy: { sortOrder: "asc" } } },
       orderBy: { sortOrder: "asc" },
     });
@@ -797,17 +806,29 @@ router.post("/companies/:id/income-types", async (req: Request, res: Response) =
       return;
     }
 
-    const entity = await prisma.entity.findFirst({
-      where: { companyId },
-      orderBy: { createdAt: "asc" },
-    });
-    if (!entity) {
-      res.status(400).json({ message: "Company has no entities" });
+    const company = await prisma.company.findUnique({ where: { id: companyId } });
+    if (!company) {
+      res.status(404).json({ message: "Company not found" });
       return;
     }
 
+    let data: { name: string; companyId?: string; entityId?: string };
+    if (company.mode === "dds_only") {
+      data = { name: name.trim(), companyId };
+    } else {
+      const entity = await prisma.entity.findFirst({
+        where: { companyId },
+        orderBy: { createdAt: "asc" },
+      });
+      if (!entity) {
+        res.status(400).json({ message: "Company has no entities" });
+        return;
+      }
+      data = { name: name.trim(), entityId: entity.id };
+    }
+
     const type = await prisma.incomeType.create({
-      data: { name: name.trim(), entityId: entity.id },
+      data,
       include: { articles: true },
     });
 
