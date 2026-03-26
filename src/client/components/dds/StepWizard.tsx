@@ -69,14 +69,15 @@ export default function StepWizard({ open, onClose, onDone, editOperation, entit
       }
       setStep("review");
     } else {
-      const autoEntity = entities.length === 1 ? entities[0].id : "";
+      const skipEntity = entities.length === 1 || isDdsOnly;
+      const autoEntity = skipEntity ? (entities[0]?.id ?? "") : "";
       setForm({
         operationType: "expense",
         amount: 0,
         entityId: autoEntity,
       });
       setCfValues({});
-      setStep(entities.length === 1 ? "opType" : "entity");
+      setStep(skipEntity ? "opType" : "entity");
       ddsApi.listTemplates().then(setTemplates);
     }
   }, [open, editOperation, entities]);
@@ -202,7 +203,7 @@ export default function StepWizard({ open, onClose, onDone, editOperation, entit
   function goBack() {
     switch (step) {
       case "opType":
-        if (entities.length > 1) setStep("entity");
+        if (entities.length > 1 && !isDdsOnly) setStep("entity");
         break;
       case "fromAccount":
         setStep("opType");
@@ -330,7 +331,7 @@ export default function StepWizard({ open, onClose, onDone, editOperation, entit
     review: t("dds.reviewTitle"),
   };
 
-  const canGoBack = step !== "entity" && !(step === "opType" && entities.length <= 1);
+  const canGoBack = step !== "entity" && !(step === "opType" && (entities.length <= 1 || isDdsOnly));
 
   return (
     <Modal
@@ -351,7 +352,7 @@ export default function StepWizard({ open, onClose, onDone, editOperation, entit
         </div>
 
         {/* Templates (on first step, create mode only) */}
-        {!editOperation && step === (entities.length === 1 ? "opType" : "entity") && templates.length > 0 && (
+        {!editOperation && step === ((entities.length === 1 || isDdsOnly) ? "opType" : "entity") && templates.length > 0 && (
           <div className="step-wizard__templates">
             <span className="step-wizard__templates-label">{t("dds.fromTemplate")}</span>
             <div className="step-wizard__templates-list">

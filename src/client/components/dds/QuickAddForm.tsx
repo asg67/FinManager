@@ -186,16 +186,18 @@ export default function QuickAddForm({ entities, onSaved }: Props) {
       )}
 
       <div className="quick-add__row">
-        {/* Entity */}
-        <Select
-          options={entities.map((e) => ({ value: e.id, label: e.name }))}
-          value={form.entityId}
-          onChange={(e) => {
-            updateField("entityId", e.target.value);
-            updateField("fromAccountId", undefined);
-            updateField("toAccountId", undefined);
-          }}
-        />
+        {/* Entity — hidden for dds_only */}
+        {!isDdsOnly && (
+          <Select
+            options={entities.map((e) => ({ value: e.id, label: e.name }))}
+            value={form.entityId}
+            onChange={(e) => {
+              updateField("entityId", e.target.value);
+              updateField("fromAccountId", undefined);
+              updateField("toAccountId", undefined);
+            }}
+          />
+        )}
 
         {/* Operation type buttons */}
         <div className="quick-add__op-types">

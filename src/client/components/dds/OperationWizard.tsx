@@ -237,8 +237,8 @@ export default function OperationWizard({ open, onClose, onDone, editOperation, 
           </div>
         )}
 
-        {/* Entity */}
-        {!editOperation && (
+        {/* Entity — hidden for dds_only */}
+        {!editOperation && !isDdsOnly && (
           <Select
             label={t("dds.entity")}
             options={entities.map((e) => ({ value: e.id, label: e.name }))}

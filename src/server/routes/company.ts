@@ -92,8 +92,18 @@ router.post("/register-invite", validate(registerInviteSchema), async (req: Requ
       include: { company: true },
     });
 
-    // For dds_only companies, skip entity/account creation — managers don't need their own ИП
-    if (invite.company.mode !== "dds_only") {
+    if (invite.company.mode === "dds_only") {
+      // For dds_only: give access to all existing company entities (no personal ИП needed)
+      const companyEntities = await prisma.entity.findMany({
+        where: { companyId: invite.companyId },
+        select: { id: true },
+      });
+      for (const ent of companyEntities) {
+        await prisma.entityAccess.create({
+          data: { userId: user.id, entityId: ent.id },
+        }).catch(() => {}); // ignore if already exists
+      }
+    } else {
       const nameParts = displayName.trim().split(/\s+/);
       const lastName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : nameParts[0];
       const entity = await prisma.entity.create({

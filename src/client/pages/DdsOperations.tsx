@@ -176,7 +176,7 @@ function OperationCard({ op, onEdit, onDelete, t, formatAmount, formatDate, isDd
         </span>
       </div>
       <div className="op-card__details">
-        <span className="op-card__entity">{op.entity.name}</span>
+        {!isDdsOnly && <span className="op-card__entity">{op.entity.name}</span>}
         {!isDdsOnly && op.fromAccount && <span className="op-card__meta">{t("dds.from")}: {op.fromAccount.name}</span>}
         {!isDdsOnly && op.toAccount && <span className="op-card__meta">{t("dds.to")}: {op.toAccount.name}</span>}
         {op.expenseType && <span className="op-card__meta">{op.expenseType.name}{op.expenseArticle ? ` / ${op.expenseArticle.name}` : ""}</span>}
@@ -363,11 +363,12 @@ function DdsTable({ companyName }: { companyName?: string }) {
       header: t("dds.userName"),
       render: (r: DdsOperation) => r.user.name,
     },
-    {
+    // Entity column — hidden for dds_only
+    ...(!isDdsOnly ? [{
       key: "entity",
       header: t("dds.entity"),
       render: (r: DdsOperation) => r.entity.name,
-    },
+    }] : []),
     {
       key: "operationType",
       header: t("dds.type"),
@@ -522,11 +523,13 @@ function DdsTable({ companyName }: { companyName?: string }) {
       {/* Filters (collapsible) */}
       {filtersOpen && (
         <div className="dds-filters">
-          <Select
-            options={[{ value: "", label: t("dds.allEntities") }, ...entities.map((e) => ({ value: e.id, label: e.name }))]}
-            value={filters.entityId ?? ""}
-            onChange={(e) => handleFilterChange("entityId", e.target.value)}
-          />
+          {!isDdsOnly && (
+            <Select
+              options={[{ value: "", label: t("dds.allEntities") }, ...entities.map((e) => ({ value: e.id, label: e.name }))]}
+              value={filters.entityId ?? ""}
+              onChange={(e) => handleFilterChange("entityId", e.target.value)}
+            />
+          )}
           <Select
             options={OP_TYPES
               .filter((o) => !isDdsOnly || o.value !== "transfer")
