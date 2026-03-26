@@ -109,9 +109,10 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
         </nav>
       </div>
 
-      {/* Balance Card + Logout */}
+      {/* Logout */}
       {!collapsed && (
         <>
+          {/* Balance Card — temporarily hidden
           <div className="sidebar__card sidebar__balance-card">
             <div className="sidebar__balance-header">
               <div className="sidebar__balance-header-left">
@@ -131,6 +132,7 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
               ))}
             </div>
           </div>
+          */}
 
           <button
             type="button"
