@@ -1230,10 +1230,26 @@ function UsersView({ onBack }: { onBack: () => void }) {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedUser, setExpandedUser] = useState<string | null>(null);
+  const [companyEntities, setCompanyEntities] = useState<Map<string, { id: string; name: string }[]>>(new Map());
 
   useEffect(() => {
     adminApi.listUsers().then((d) => { setUsers(d); setLoading(false); });
   }, []);
+
+  // Load company entities when expanding a user
+  async function loadCompanyEntities(companyId: string) {
+    if (companyEntities.has(companyId)) return;
+    try {
+      const detail = await adminApi.getCompany(companyId);
+      setCompanyEntities((prev) => new Map(prev).set(companyId, detail.entities.map((e) => ({ id: e.id, name: e.name }))));
+    } catch { /* ignore */ }
+  }
+
+  function handleExpand(userId: string, companyId: string | null) {
+    const next = expandedUser === userId ? null : userId;
+    setExpandedUser(next);
+    if (next && companyId) loadCompanyEntities(companyId);
+  }
 
   async function handleModeChange(userId: string, mode: string) {
     const newMode = mode === "" ? null : mode;
@@ -1250,6 +1266,17 @@ function UsersView({ onBack }: { onBack: () => void }) {
     setUsers((prev) => prev.map((u) => u.id === userId ? { ...u, disabledBanks: newDisabled } : u));
   }
 
+  async function handleEntityToggle(userId: string, entityId: string, currentAccess: { entityId: string; entityName: string }[]) {
+    const hasAccess = currentAccess.some((ea) => ea.entityId === entityId);
+    const newIds = hasAccess
+      ? currentAccess.filter((ea) => ea.entityId !== entityId).map((ea) => ea.entityId)
+      : [...currentAccess.map((ea) => ea.entityId), entityId];
+    try {
+      const updated = await adminApi.setUserEntityAccess(userId, newIds);
+      setUsers((prev) => prev.map((u) => u.id === userId ? { ...u, entityAccess: updated } : u));
+    } catch { /* ignore */ }
+  }
+
   return (
     <div>
       <button className="admin-back" onClick={onBack}>
@@ -1263,7 +1290,7 @@ function UsersView({ onBack }: { onBack: () => void }) {
         <div className="admin-users-list">
           {users.map((u) => (
             <div key={u.id} className="admin-user-card">
-              <div className="admin-user-card__header" onClick={() => setExpandedUser(expandedUser === u.id ? null : u.id)}>
+              <div className="admin-user-card__header" onClick={() => handleExpand(u.id, u.companyId)}>
                 <div className="admin-user-card__info">
                   <span className="admin-user-card__name">{u.name}</span>
                   <span className="admin-user-card__email">{u.email}</span>
@@ -1315,6 +1342,33 @@ function UsersView({ onBack }: { onBack: () => void }) {
                       })}
                     </div>
                   </div>
+
+                  {u.companyId && (
+                    <div className="admin-user-card__section">
+                      <label className="admin-user-card__label">Доступ к юр. лицам</label>
+                      <div className="admin-bank-toggles">
+                        {(companyEntities.get(u.companyId) || []).map((ent) => {
+                          const hasAccess = u.entityAccess.some((ea) => ea.entityId === ent.id);
+                          return (
+                            <button
+                              key={ent.id}
+                              type="button"
+                              className={`admin-bank-toggle ${hasAccess ? "admin-bank-toggle--on" : "admin-bank-toggle--off"}`}
+                              onClick={() => handleEntityToggle(u.id, ent.id, u.entityAccess)}
+                            >
+                              {ent.name}
+                            </button>
+                          );
+                        })}
+                        {!companyEntities.has(u.companyId) && (
+                          <span style={{ fontSize: "0.8125rem", color: "var(--text-muted)" }}>Загрузка...</span>
+                        )}
+                        {companyEntities.has(u.companyId) && companyEntities.get(u.companyId)!.length === 0 && (
+                          <span style={{ fontSize: "0.8125rem", color: "var(--text-muted)" }}>Нет юр. лиц</span>
+                        )}
+                      </div>
+                    </div>
+                  )}
 
                   <div className="admin-user-card__footer">
                     <span className="admin-user-card__date">Регистрация: {formatDate(u.createdAt)}</span>

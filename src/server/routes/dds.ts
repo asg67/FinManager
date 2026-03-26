@@ -9,6 +9,7 @@ import {
   updateTemplateSchema,
 } from "../schemas/dds.js";
 import { Prisma } from "@prisma/client";
+import { checkEntityAccess, buildEntityFilter } from "../helpers/entityAccess.js";
 
 const router = Router();
 router.use(authMiddleware);
@@ -21,15 +22,10 @@ router.post("/operations", validate(createOperationSchema), async (req: Request,
     const userId = req.user!.userId;
     const { operationType, amount, entityId, fromAccountId, toAccountId, expenseTypeId, expenseArticleId, incomeTypeId, incomeArticleId, orderNumber, comment, customFieldValues } = req.body;
 
-    // Verify entity belongs to user's company
-    const user = await prisma.user.findUnique({ where: { id: userId } });
-    const entity = await prisma.entity.findUnique({ where: { id: entityId } });
-    if (!entity) {
-      res.status(404).json({ message: "Entity not found" });
-      return;
-    }
-    if (!user?.companyId || entity.companyId !== user.companyId) {
-      res.status(403).json({ message: "Access denied" });
+    // Verify user has access to this entity
+    const check = await checkEntityAccess(entityId, userId);
+    if ("error" in check) {
+      res.status(check.error).json({ message: check.message });
       return;
     }
 
@@ -90,16 +86,9 @@ router.get("/operations", async (req: Request, res: Response) => {
     const limitNum = Math.min(100, Math.max(1, parseInt(limit) || 20));
     const skip = (pageNum - 1) * limitNum;
 
-    // Get user's company
-    const user = await prisma.user.findUnique({ where: { id: userId } });
-
-    // Build where clause — all company members see all operations
+    // Build where clause — filtered by entity access
     const where: Prisma.DdsOperationWhereInput = {};
-    if (user?.companyId) {
-      where.entity = { companyId: user.companyId };
-    } else {
-      where.entity = { ownerId: userId };
-    }
+    where.entity = await buildEntityFilter(userId);
 
     if (entityId) where.entityId = entityId;
     if (operationType) where.operationType = operationType;

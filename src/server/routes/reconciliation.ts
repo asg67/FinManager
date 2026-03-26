@@ -1,6 +1,7 @@
 import { Router, Request, Response } from "express";
 import { prisma } from "../prisma.js";
 import { authMiddleware } from "../middleware/auth.js";
+import { buildEntityFilter } from "../helpers/entityAccess.js";
 
 const router = Router();
 router.use(authMiddleware);
@@ -9,16 +10,7 @@ router.use(authMiddleware);
 router.post("/auto-match", async (req: Request, res: Response) => {
   try {
     const userId = req.user!.userId;
-    const user = await prisma.user.findUnique({ where: { id: userId } });
-    if (!user?.companyId && req.user!.role !== "owner") {
-      res.status(403).json({ message: "Access denied" });
-      return;
-    }
-
-    // Get entity filter
-    const entityWhere = user?.companyId
-      ? { companyId: user.companyId }
-      : { ownerId: userId };
+    const entityWhere = await buildEntityFilter(userId);
 
     // Find unlinked DDS operations (income/expense, not transfers)
     const unlinkedDds = await prisma.ddsOperation.findMany({
@@ -149,10 +141,7 @@ router.post("/unlink", async (req: Request, res: Response) => {
 router.get("/status", async (req: Request, res: Response) => {
   try {
     const userId = req.user!.userId;
-    const user = await prisma.user.findUnique({ where: { id: userId } });
-    const entityWhere = user?.companyId
-      ? { companyId: user.companyId }
-      : { ownerId: userId };
+    const entityWhere = await buildEntityFilter(userId);
 
     const [totalDds, linkedDds, totalBank, linkedBank] = await Promise.all([
       prisma.ddsOperation.count({

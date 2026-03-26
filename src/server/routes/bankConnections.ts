@@ -10,6 +10,7 @@ import {
 } from "../schemas/bankConnection.js";
 import { bankAdapters } from "../bank-api/index.js";
 import { syncConnection, BANK_NAMES } from "../bank-api/sync.js";
+import { checkEntityAccess as checkEntityAccessHelper } from "../helpers/entityAccess.js";
 
 const router = Router();
 router.use(authMiddleware);
@@ -45,16 +46,7 @@ function toClientConnection(conn: {
   };
 }
 
-async function checkEntityAccess(entityId: string, userId: string) {
-  const entity = await prisma.entity.findUnique({ where: { id: entityId } });
-  if (!entity) return { error: 404 as const, message: "Entity not found" };
-
-  const user = await prisma.user.findUnique({ where: { id: userId } });
-  if (!user?.companyId || entity.companyId !== user.companyId) {
-    return { error: 403 as const, message: "Access denied" };
-  }
-  return { entity };
-}
+const checkEntityAccess = checkEntityAccessHelper;
 
 async function loadConnection(id: string, userId: string) {
   const conn = await prisma.bankConnection.findUnique({
@@ -63,10 +55,8 @@ async function loadConnection(id: string, userId: string) {
   });
   if (!conn) return { error: 404 as const, message: "Connection not found" };
 
-  const user = await prisma.user.findUnique({ where: { id: userId } });
-  if (!user?.companyId || conn.entity.companyId !== user.companyId) {
-    return { error: 403 as const, message: "Access denied" };
-  }
+  const check = await checkEntityAccess(conn.entityId, userId);
+  if ("error" in check) return { error: check.error, message: check.message };
   return { conn };
 }
 

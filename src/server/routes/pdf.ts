@@ -6,6 +6,7 @@ import { validate } from "../middleware/validate.js";
 import { confirmSchema } from "../schemas/pdf.js";
 import { config } from "../config.js";
 import { Prisma } from "@prisma/client";
+import { buildEntityFilter } from "../helpers/entityAccess.js";
 
 const router = Router();
 router.use(authMiddleware);
@@ -259,23 +260,7 @@ router.get("/transactions", async (req: Request, res: Response) => {
     const limitNum = Math.min(100, Math.max(1, parseInt(limit) || 20));
     const skip = (pageNum - 1) * limitNum;
 
-    const user = await prisma.user.findUnique({ where: { id: userId } });
-    let entFilter: any;
-    if (!user?.companyId) {
-      entFilter = { ownerId: userId };
-    } else if (user.role === "owner") {
-      entFilter = { companyId: user.companyId };
-    } else {
-      const accessCount = await prisma.entityAccess.count({ where: { userId } });
-      if (accessCount > 0) {
-        entFilter = { companyId: user.companyId, OR: [{ ownerId: userId }, { entityAccess: { some: { userId } } }] };
-      } else {
-        const lastName = user.name?.split(" ")[0];
-        entFilter = lastName && lastName.length >= 2
-          ? { companyId: user.companyId, name: { contains: lastName, mode: "insensitive" } }
-          : { companyId: user.companyId, ownerId: userId };
-      }
-    }
+    const entFilter = await buildEntityFilter(userId);
 
     const where: Prisma.BankTransactionWhereInput = {
       account: { entity: entFilter },
@@ -378,29 +363,7 @@ router.delete("/transactions/all", async (req: Request, res: Response) => {
     const userId = req.user!.userId;
     const { bankCode: bc } = req.query as Record<string, string>;
 
-    const user = await prisma.user.findUnique({ where: { id: userId } });
-    if (!user) {
-      res.status(404).json({ message: "User not found" });
-      return;
-    }
-
-    // Build entity filter same as GET /transactions
-    let entFilter: any;
-    if (!user.companyId) {
-      entFilter = { ownerId: userId };
-    } else if (user.role === "owner") {
-      entFilter = { companyId: user.companyId };
-    } else {
-      const accessCount = await prisma.entityAccess.count({ where: { userId } });
-      if (accessCount > 0) {
-        entFilter = { companyId: user.companyId, OR: [{ ownerId: userId }, { entityAccess: { some: { userId } } }] };
-      } else {
-        const lastName = user.name?.split(" ")[0];
-        entFilter = lastName && lastName.length >= 2
-          ? { companyId: user.companyId, name: { contains: lastName, mode: "insensitive" } }
-          : { companyId: user.companyId, ownerId: userId };
-      }
-    }
+    const entFilter = await buildEntityFilter(userId);
 
     const where: Prisma.BankTransactionWhereInput = {
       account: { entity: entFilter },

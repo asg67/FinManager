@@ -69,6 +69,7 @@ router.get("/users", async (_req: Request, res: Response) => {
         companyId: true,
         company: { select: { name: true } },
         permission: { select: { disabledBanks: true } },
+        entityAccess: { select: { entityId: true, entity: { select: { name: true } } } },
         createdAt: true,
       },
       orderBy: { createdAt: "asc" },
@@ -114,8 +115,10 @@ router.get("/users", async (_req: Request, res: Response) => {
         email: u.email,
         role: u.role,
         mode: u.mode ?? null,
+        companyId: u.companyId,
         disabledBanks: u.permission?.disabledBanks ?? [],
         companyName: u.company?.name || null,
+        entityAccess: u.entityAccess.map((ea) => ({ entityId: ea.entityId, entityName: ea.entity.name })),
         lastAction,
         createdAt: u.createdAt.toISOString(),
       };
@@ -169,6 +172,57 @@ router.put("/users/:id/disabled-banks", async (req: Request, res: Response) => {
     res.json({ ok: true });
   } catch (error) {
     console.error("Admin set disabled banks error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// PUT /api/admin/users/:id/entity-access — set user's entity access
+router.put("/users/:id/entity-access", async (req: Request, res: Response) => {
+  try {
+    const targetUserId = req.params.id as string;
+    const { entityIds } = req.body;
+    if (!Array.isArray(entityIds)) {
+      res.status(400).json({ message: "entityIds must be an array" });
+      return;
+    }
+
+    const user = await prisma.user.findUnique({ where: { id: targetUserId } });
+    if (!user) {
+      res.status(404).json({ message: "User not found" });
+      return;
+    }
+
+    // Validate all entityIds belong to user's company
+    if (user.companyId && entityIds.length > 0) {
+      const validEntities = await prisma.entity.findMany({
+        where: { id: { in: entityIds }, companyId: user.companyId },
+        select: { id: true },
+      });
+      const validIds = new Set(validEntities.map((e) => e.id));
+      const invalid = entityIds.filter((id: string) => !validIds.has(id));
+      if (invalid.length > 0) {
+        res.status(400).json({ message: "Some entities don't belong to user's company" });
+        return;
+      }
+    }
+
+    // Replace all EntityAccess records for this user
+    await prisma.$transaction([
+      prisma.entityAccess.deleteMany({ where: { userId: targetUserId } }),
+      ...entityIds.map((entityId: string) =>
+        prisma.entityAccess.create({ data: { userId: targetUserId, entityId } }),
+      ),
+    ]);
+
+    // Return updated access list
+    const updated = await prisma.entityAccess.findMany({
+      where: { userId: targetUserId },
+      select: { entityId: true, entity: { select: { name: true } } },
+    });
+
+    res.json(updated.map((ea) => ({ entityId: ea.entityId, entityName: ea.entity.name })));
+  } catch (error) {
+    console.error("Admin set entity access error:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 });
@@ -394,6 +448,10 @@ router.post("/companies/:id/entities", async (req: Request, res: Response) => {
       },
     });
     await seedEntityAccounts(entity.id);
+    // Give the admin (owner) explicit EntityAccess
+    await prisma.entityAccess.create({
+      data: { userId: req.user!.userId, entityId: entity.id },
+    });
 
     res.status(201).json(entity);
   } catch (error) {

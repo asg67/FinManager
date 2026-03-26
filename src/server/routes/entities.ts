@@ -4,6 +4,7 @@ import { authMiddleware } from "../middleware/auth.js";
 import { validate } from "../middleware/validate.js";
 import { createEntitySchema, updateEntitySchema } from "../schemas/entity.js";
 import { seedEntityAccounts } from "../helpers/seedAccounts.js";
+import { buildEntityFilter, checkEntityAccess } from "../helpers/entityAccess.js";
 
 const router = Router();
 
@@ -14,45 +15,10 @@ router.use(authMiddleware);
 router.get("/", async (req: Request, res: Response) => {
   try {
     const userId = req.user!.userId;
-
-    // Get user's company
-    const user = await prisma.user.findUnique({ where: { id: userId } });
-    if (!user?.companyId) {
-      // No company — return user's personal entities
-      const entities = await prisma.entity.findMany({
-        where: { ownerId: userId, companyId: null },
-        include: { _count: { select: { accounts: true } } },
-        orderBy: { createdAt: "asc" },
-      });
-      res.json(entities);
-      return;
-    }
-
-    const mine = req.query.mine === "true";
-    const where: any = {};
-
-    if (mine && user.role !== "owner") {
-      // Member: entities they own, have explicit access to, or match by last name
-      const accessCount = await prisma.entityAccess.count({ where: { userId } });
-      const conditions: any[] = [
-        { companyId: user.companyId, ownerId: userId },
-        { companyId: user.companyId, entityAccess: { some: { userId } } },
-      ];
-      // Fallback: if member has no explicit access, also match by last name
-      if (accessCount === 0) {
-        const lastName = user.name?.split(" ")[0];
-        if (lastName && lastName.length >= 2) {
-          conditions.push({ companyId: user.companyId, name: { contains: lastName, mode: "insensitive" } });
-        }
-      }
-      where.OR = conditions;
-    } else {
-      // Owner or no mine filter: all company entities only
-      where.companyId = user.companyId;
-    }
+    const filter = await buildEntityFilter(userId);
 
     const entities = await prisma.entity.findMany({
-      where,
+      where: filter,
       include: { _count: { select: { accounts: true } } },
       orderBy: { createdAt: "asc" },
     });
@@ -67,7 +33,12 @@ router.get("/", async (req: Request, res: Response) => {
 // GET /api/entities/:id — get single entity
 router.get("/:id", async (req: Request, res: Response) => {
   try {
-    const user = await prisma.user.findUnique({ where: { id: req.user!.userId } });
+    const check = await checkEntityAccess(req.params.id, req.user!.userId);
+    if ("error" in check) {
+      res.status(check.error).json({ message: check.message });
+      return;
+    }
+
     const entity = await prisma.entity.findUnique({
       where: { id: req.params.id },
       include: {
@@ -78,19 +49,6 @@ router.get("/:id", async (req: Request, res: Response) => {
         },
       },
     });
-
-    if (!entity) {
-      res.status(404).json({ message: "Entity not found" });
-      return;
-    }
-
-    // Check company access or personal entity access
-    const isCompanyAccess = user?.companyId && entity.companyId === user.companyId;
-    const isPersonalAccess = entity.companyId === null && entity.ownerId === req.user!.userId;
-    if (!isCompanyAccess && !isPersonalAccess) {
-      res.status(403).json({ message: "Access denied" });
-      return;
-    }
 
     res.json(entity);
   } catch (error) {
@@ -118,6 +76,13 @@ router.post("/", validate(createEntitySchema), async (req: Request, res: Respons
       },
     });
     await seedEntityAccounts(entity.id);
+
+    // Auto-create EntityAccess for the creator
+    if (user?.companyId) {
+      await prisma.entityAccess.create({
+        data: { userId: req.user!.userId, entityId: entity.id },
+      });
+    }
 
     res.status(201).json(entity);
   } catch (error) {

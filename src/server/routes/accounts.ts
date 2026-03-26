@@ -5,30 +5,11 @@ import { authMiddleware } from "../middleware/auth.js";
 import { validate } from "../middleware/validate.js";
 import { createAccountSchema, updateAccountSchema } from "../schemas/account.js";
 import { seedEntityAccounts } from "../helpers/seedAccounts.js";
+import { checkEntityAccess } from "../helpers/entityAccess.js";
 
 const router = Router({ mergeParams: true });
 
 router.use(authMiddleware);
-
-// Helper: check entity access via company or personal ownership
-async function checkEntityAccess(entityId: string, userId: string) {
-  const entity = await prisma.entity.findUnique({ where: { id: entityId } });
-  if (!entity) return { error: 404 as const, message: "Entity not found" };
-
-  const user = await prisma.user.findUnique({ where: { id: userId } });
-
-  // Company access: user and entity in same company
-  if (user?.companyId && entity.companyId === user.companyId) {
-    return { entity };
-  }
-
-  // Personal access: entity has no company and user owns it
-  if (entity.companyId === null && entity.ownerId === userId) {
-    return { entity };
-  }
-
-  return { error: 403 as const, message: "Access denied" };
-}
 
 // GET /api/entities/:entityId/accounts
 router.get("/", async (req: Request, res: Response) => {

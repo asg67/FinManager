@@ -2,6 +2,7 @@ import { Router, Request, Response } from "express";
 import { prisma } from "../prisma.js";
 import { authMiddleware } from "../middleware/auth.js";
 import { createExcelResponse } from "../utils/excel.js";
+import { buildEntityFilter } from "../helpers/entityAccess.js";
 
 const router = Router();
 
@@ -24,26 +25,17 @@ router.get("/dds", async (req: Request, res: Response) => {
 
     const { entityId, from, to } = req.query;
 
-    // Build where clause
+    // Build where clause using unified entity access filter
     const where: Record<string, unknown> = {};
-
-    if (role === "owner") {
-      // Owner sees their own entities
-      const ownerEntities = await prisma.entity.findMany({
-        where: { ownerId: userId },
-        select: { id: true },
-      });
-      const entityIds = ownerEntities.map((e) => e.id);
-      where.entityId = entityId ? { in: [entityId as string].filter((id) => entityIds.includes(id)) } : { in: entityIds };
-    } else {
-      // Employee sees entities they have access to
-      const accessEntities = await prisma.entityAccess.findMany({
-        where: { userId },
-        select: { entityId: true },
-      });
-      const entityIds = accessEntities.map((ea) => ea.entityId);
-      where.entityId = entityId ? { in: [entityId as string].filter((id) => entityIds.includes(id)) } : { in: entityIds };
-    }
+    const entFilter = await buildEntityFilter(userId);
+    const accessibleEntities = await prisma.entity.findMany({
+      where: entFilter,
+      select: { id: true },
+    });
+    const accessibleIds = accessibleEntities.map((e) => e.id);
+    where.entityId = entityId
+      ? { in: [entityId as string].filter((id) => accessibleIds.includes(id)) }
+      : { in: accessibleIds };
 
     if (from || to) {
       where.createdAt = {};
@@ -94,19 +86,13 @@ router.get("/dds", async (req: Request, res: Response) => {
 });
 
 // Helper: get entity IDs for current user
-async function getUserEntityIds(userId: string, role: string, filterEntityId?: string): Promise<string[]> {
-  let entityIds: string[];
-  if (role === "owner") {
-    const user = await prisma.user.findUnique({ where: { id: userId } });
-    const entities = await prisma.entity.findMany({
-      where: user?.companyId ? { companyId: user.companyId } : { ownerId: userId },
-      select: { id: true },
-    });
-    entityIds = entities.map((e) => e.id);
-  } else {
-    const access = await prisma.entityAccess.findMany({ where: { userId }, select: { entityId: true } });
-    entityIds = access.map((a) => a.entityId);
-  }
+async function getUserEntityIds(userId: string, _role: string, filterEntityId?: string): Promise<string[]> {
+  const entFilter = await buildEntityFilter(userId);
+  const entities = await prisma.entity.findMany({
+    where: entFilter,
+    select: { id: true },
+  });
+  const entityIds = entities.map((e) => e.id);
   if (filterEntityId) return entityIds.filter((id) => id === filterEntityId);
   return entityIds;
 }
