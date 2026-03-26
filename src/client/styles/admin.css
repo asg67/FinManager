@@ -984,3 +984,104 @@
     opacity: 1;
   }
 }
+
+/* ===== Notifications Form ===== */
+
+.admin-notif__hint {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  margin-bottom: 1.5rem;
+}
+
+.admin-notif-form {
+  max-width: 560px;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  padding: 1.75rem;
+}
+
+.admin-notif-form__group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.admin-notif-form__label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.admin-notif-form__input {
+  width: 100%;
+  padding: 0.625rem 0.875rem;
+  font-size: 0.875rem;
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  background: var(--bg-base);
+  color: var(--text-primary);
+  transition: border-color 0.2s, box-shadow 0.2s;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.admin-notif-form__input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.06);
+}
+
+.admin-notif-form__input::placeholder {
+  color: var(--text-muted);
+}
+
+.admin-notif-form__textarea {
+  resize: vertical;
+  min-height: 80px;
+  font-family: inherit;
+  line-height: 1.5;
+}
+
+.admin-notif-form__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #fff;
+  background: var(--text-primary);
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.admin-notif-form__btn:hover:not(:disabled) {
+  opacity: 0.85;
+  transform: translateY(-1px);
+}
+
+.admin-notif-form__btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.admin-notif-form__success {
+  font-size: 0.8125rem;
+  color: #16a34a;
+  font-weight: 500;
+  padding: 0.5rem 0.75rem;
+  background: rgba(22, 163, 74, 0.08);
+  border-radius: 8px;
+}
+
+@media (max-width: 600px) {
+  .admin-notif-form {
+    padding: 1.25rem;
+  }
+}

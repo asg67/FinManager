@@ -1453,16 +1453,16 @@ function NotificationsView({ onBack }: { onBack: () => void }) {
         <ArrowLeft size={16} /> Назад
       </button>
       <h2 className="admin-subtitle">Уведомления</h2>
-      <p style={{ fontSize: "0.8125rem", color: "var(--text-muted)", marginBottom: "1rem" }}>
+      <p className="admin-notif__hint">
         Отправить уведомление всем пользователям компании
       </p>
 
-      <form onSubmit={handleBroadcast} style={{ maxWidth: 500, display: "flex", flexDirection: "column", gap: "1rem" }}>
-        <div className="form-group">
-          <label className="form-label">Заголовок</label>
+      <form onSubmit={handleBroadcast} className="admin-notif-form">
+        <div className="admin-notif-form__group">
+          <label className="admin-notif-form__label">Заголовок</label>
           <input
             type="text"
-            className="form-input"
+            className="admin-notif-form__input"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Заголовок уведомления"
@@ -1470,23 +1470,23 @@ function NotificationsView({ onBack }: { onBack: () => void }) {
             required
           />
         </div>
-        <div className="form-group">
-          <label className="form-label">Текст</label>
+        <div className="admin-notif-form__group">
+          <label className="admin-notif-form__label">Текст</label>
           <textarea
-            className="form-input"
+            className="admin-notif-form__input admin-notif-form__textarea"
             value={body}
             onChange={(e) => setBody(e.target.value)}
             placeholder="Текст сообщения"
-            rows={3}
+            rows={4}
             maxLength={500}
             required
           />
         </div>
-        <button type="submit" className="btn btn--primary" disabled={sending || !title.trim() || !body.trim()}>
+        <button type="submit" className="admin-notif-form__btn" disabled={sending || !title.trim() || !body.trim()}>
           <Send size={16} />
           {sending ? "Отправка..." : "Отправить"}
         </button>
-        {success && <div className="form-success">{t("notifications.broadcastSuccess")}</div>}
+        {success && <div className="admin-notif-form__success">{t("notifications.broadcastSuccess")}</div>}
       </form>
     </div>
   );
