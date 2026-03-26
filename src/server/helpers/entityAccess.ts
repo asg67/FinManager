@@ -31,6 +31,23 @@ export async function buildEntityFilter(userId: string) {
 }
 
 /**
+ * Build a company-wide entity filter (all company entities, no EntityAccess restriction).
+ * Used for DDS operations list where all company operations should be visible.
+ */
+export async function buildCompanyEntityFilter(userId: string) {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { companyId: true },
+  });
+
+  if (!user?.companyId) {
+    return { ownerId: userId, companyId: null };
+  }
+
+  return { companyId: user.companyId };
+}
+
+/**
  * Check if user has access to a specific entity.
  * Returns { entity } on success, { error, message } on failure.
  */

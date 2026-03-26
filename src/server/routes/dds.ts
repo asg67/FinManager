@@ -9,7 +9,7 @@ import {
   updateTemplateSchema,
 } from "../schemas/dds.js";
 import { Prisma } from "@prisma/client";
-import { checkEntityAccess, buildEntityFilter } from "../helpers/entityAccess.js";
+import { checkEntityAccess, buildCompanyEntityFilter } from "../helpers/entityAccess.js";
 
 const router = Router();
 router.use(authMiddleware);
@@ -86,9 +86,9 @@ router.get("/operations", async (req: Request, res: Response) => {
     const limitNum = Math.min(100, Math.max(1, parseInt(limit) || 20));
     const skip = (pageNum - 1) * limitNum;
 
-    // Build where clause — filtered by entity access
+    // Build where clause — show all company operations (not restricted by EntityAccess)
     const where: Prisma.DdsOperationWhereInput = {};
-    where.entity = await buildEntityFilter(userId);
+    where.entity = await buildCompanyEntityFilter(userId);
 
     if (entityId) where.entityId = entityId;
     if (operationType) where.operationType = operationType;
