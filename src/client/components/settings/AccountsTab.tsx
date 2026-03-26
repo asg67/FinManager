@@ -283,12 +283,14 @@ export default function AccountsTab() {
   return (
     <div>
       <div className="tab-header">
-        <Select
-          options={entities.map((e) => ({ value: e.id, label: e.name }))}
-          value={selectedEntity}
-          onChange={(e) => setSelectedEntity(e.target.value)}
-          label={t("settings.selectEntity")}
-        />
+        {entities.length > 1 && (
+          <Select
+            options={entities.map((e) => ({ value: e.id, label: e.name }))}
+            value={selectedEntity}
+            onChange={(e) => setSelectedEntity(e.target.value)}
+            label={t("settings.selectEntity")}
+          />
+        )}
         <Button size="sm" onClick={openCreate} disabled={!selectedEntity}>
           <Plus size={16} />
           {t("settings.addAccount")}
