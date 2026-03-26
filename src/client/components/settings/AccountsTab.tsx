@@ -36,6 +36,7 @@ export default function AccountsTab() {
   const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
   const isOwner = user?.role === "owner";
+  const isDdsOnly = user?.company?.mode === "dds_only";
 
   const [entities, setEntities] = useState<Entity[]>([]);
   const [selectedEntity, setSelectedEntity] = useState("");
@@ -325,7 +326,7 @@ export default function AccountsTab() {
             />
           </div>
         )}
-        {loading ? (
+        {isDdsOnly ? null : loading ? (
           <div className="tab-loading">{t("common.loading")}</div>
         ) : accounts.length > 0 ? (
           renderBalancesList()
@@ -359,7 +360,7 @@ export default function AccountsTab() {
       ) : (
         <>
           <Table columns={columns} data={accounts} rowKey={(r) => r.id} emptyMessage={t("settings.noAccounts")} />
-          {renderBalancesList()}
+          {!isDdsOnly && renderBalancesList()}
         </>
       )}
 
