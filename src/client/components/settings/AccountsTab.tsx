@@ -47,6 +47,8 @@ export default function AccountsTab() {
   const [saving, setSaving] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [balanceRows, setBalanceRows] = useState<Record<string, BalanceRow>>({});
+  const [shownBalanceIds, setShownBalanceIds] = useState<Set<string>>(new Set());
+  const [balancePickerOpen, setBalancePickerOpen] = useState(false);
 
   useEffect(() => {
     entitiesApi.list({ mine: true }).then((data) => {
@@ -62,6 +64,7 @@ export default function AccountsTab() {
       accountsApi.list(selectedEntity).then((data) => {
         setAccounts(data);
         const rows: Record<string, BalanceRow> = {};
+        const shown = new Set<string>();
         for (const acc of data) {
           rows[acc.id] = {
             date: acc.initialBalanceDate ? acc.initialBalanceDate.slice(0, 10) : "",
@@ -70,8 +73,15 @@ export default function AccountsTab() {
             saved: false,
             error: false,
           };
+          // Show by default: cash accounts OR accounts that already have a balance set
+          const hasBalance = acc.initialBalance && parseFloat(acc.initialBalance) !== 0;
+          if (acc.type === "cash" || hasBalance) {
+            shown.add(acc.id);
+          }
         }
         setBalanceRows(rows);
+        setShownBalanceIds(shown);
+        setBalancePickerOpen(false);
         setLoading(false);
       });
     }
@@ -188,17 +198,58 @@ export default function AccountsTab() {
   }
 
   function renderBalancesList() {
-    // Only show standard bank accounts (not manual DDS ones), excluding disabled banks
+    // All eligible accounts: standard bank accounts (excluding disabled) + cash
     const disabledBanks = user?.disabledBanks ?? [];
-    const bankAccounts = accounts.filter((a) => a.bank && STANDARD_BANK_CODES.includes(a.bank) && !disabledBanks.includes(a.bank));
-    if (bankAccounts.length === 0) return null;
+    const allEligible = accounts.filter(
+      (a) =>
+        a.type === "cash" ||
+        (a.bank && STANDARD_BANK_CODES.includes(a.bank) && !disabledBanks.includes(a.bank)),
+    );
+    if (allEligible.length === 0) return null;
 
-    const checkingAccounts = bankAccounts.filter((a) => a.type === "checking");
-    const cardAccounts = bankAccounts.filter((a) => a.type !== "checking");
+    // Only show accounts that are in the shown set
+    const visibleAccounts = allEligible.filter((a) => shownBalanceIds.has(a.id));
+    const hiddenAccounts = allEligible.filter((a) => !shownBalanceIds.has(a.id));
+
+    const checkingAccounts = visibleAccounts.filter((a) => a.type === "checking");
+    const otherAccounts = visibleAccounts.filter((a) => a.type !== "checking");
+
+    function addBalanceAccount(accId: string) {
+      setShownBalanceIds((prev) => new Set([...prev, accId]));
+      setBalancePickerOpen(false);
+    }
 
     return (
       <div className="initial-balances">
-        <h3 className="initial-balances__title">{t("settings.initialBalances")}</h3>
+        <div className="initial-balances__header">
+          <h3 className="initial-balances__title">{t("settings.initialBalances")}</h3>
+          {hiddenAccounts.length > 0 && (
+            <div style={{ position: "relative" }}>
+              <button
+                type="button"
+                className="btn btn--sm btn--outline"
+                onClick={() => setBalancePickerOpen(!balancePickerOpen)}
+              >
+                <Plus size={14} />
+                {t("settings.addBalanceAccount")}
+              </button>
+              {balancePickerOpen && (
+                <div className="initial-balances__picker">
+                  {hiddenAccounts.map((acc) => (
+                    <button
+                      key={acc.id}
+                      type="button"
+                      className="initial-balances__picker-item"
+                      onClick={() => addBalanceAccount(acc.id)}
+                    >
+                      {acc.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
 
         {checkingAccounts.length > 0 && (
           <div className="initial-balances__group">
@@ -209,13 +260,19 @@ export default function AccountsTab() {
           </div>
         )}
 
-        {cardAccounts.length > 0 && (
+        {otherAccounts.length > 0 && (
           <div className="initial-balances__group">
             <h4 className="initial-balances__group-title">{t("settings.balanceCards")}</h4>
             <div className="initial-balances__list">
-              {cardAccounts.map(renderBalanceRow)}
+              {otherAccounts.map(renderBalanceRow)}
             </div>
           </div>
+        )}
+
+        {visibleAccounts.length === 0 && (
+          <p style={{ fontSize: "0.8125rem", color: "var(--text-muted)", marginTop: "0.5rem" }}>
+            {t("settings.noBalanceAccountsYet")}
+          </p>
         )}
       </div>
     );

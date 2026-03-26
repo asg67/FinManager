@@ -113,6 +113,8 @@ export default {
     balanceDate: "Дата",
     balanceAmount: "Остаток",
     balanceSaved: "Сохранено",
+    addBalanceAccount: "Добавить счёт",
+    noBalanceAccountsYet: "Нажмите «Добавить счёт», чтобы указать остатки",
     selectEntity: "ИП",
     selectBank: "Выберите банк",
     typeChecking: "Расчётный",

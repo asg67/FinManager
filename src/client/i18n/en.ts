@@ -113,6 +113,8 @@ export default {
     balanceDate: "Date",
     balanceAmount: "Balance",
     balanceSaved: "Saved",
+    addBalanceAccount: "Add account",
+    noBalanceAccountsYet: "Click \"Add account\" to set balances",
     selectEntity: "Entity",
     selectBank: "Select bank",
     typeChecking: "Checking",
