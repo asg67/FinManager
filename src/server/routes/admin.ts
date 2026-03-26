@@ -479,6 +479,50 @@ router.put("/accounts/:id/toggle", async (req: Request, res: Response) => {
   }
 });
 
+// POST /api/admin/entities/:entityId/accounts — create account for entity
+router.post("/entities/:entityId/accounts", async (req: Request, res: Response) => {
+  try {
+    const { name, type, bank } = req.body;
+    if (!name?.trim()) {
+      res.status(400).json({ message: "Name is required" });
+      return;
+    }
+    const entity = await prisma.entity.findUnique({ where: { id: req.params.entityId } });
+    if (!entity) {
+      res.status(404).json({ message: "Entity not found" });
+      return;
+    }
+    const account = await prisma.account.create({
+      data: {
+        name: name.trim(),
+        type: type || "cash",
+        bank: bank || null,
+        entityId: entity.id,
+      },
+    });
+    res.status(201).json(account);
+  } catch (error) {
+    console.error("Admin create account error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// DELETE /api/admin/accounts/:id — delete account
+router.delete("/accounts/:id", async (req: Request, res: Response) => {
+  try {
+    const account = await prisma.account.findUnique({ where: { id: req.params.id } });
+    if (!account) {
+      res.status(404).json({ message: "Account not found" });
+      return;
+    }
+    await prisma.account.delete({ where: { id: req.params.id } });
+    res.status(204).send();
+  } catch (error) {
+    console.error("Admin delete account error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 // PUT /api/admin/entities/:id — rename entity
 router.put("/entities/:id", async (req: Request, res: Response) => {
   try {

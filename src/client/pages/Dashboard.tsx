@@ -4,22 +4,17 @@ import { useNavigate } from "react-router-dom";
 import {
   Wallet, TrendingUp, TrendingDown, Activity,
   CreditCard, Banknote, PiggyBank, Calendar,
-  BarChart3, LineChart as LineChartIcon, CircleDot,
   ArrowUpRight, ArrowDownLeft, ArrowRightLeft,
   ChevronDown, ChevronRight, Link2,
 } from "lucide-react";
 import {
   PieChart, Pie, Cell, ResponsiveContainer,
-  AreaChart, Area, BarChart, Bar,
-  XAxis, YAxis, CartesianGrid, Tooltip,
 } from "recharts";
-import { analyticsApi, type SummaryData, type TimelinePoint, type AccountBalance, type RecentOperation } from "../api/analytics.js";
+import { analyticsApi, type SummaryData, type AccountBalance, type RecentOperation } from "../api/analytics.js";
+import { entitiesApi } from "../api/entities.js";
 import { reconciliationApi } from "../api/reconciliation.js";
 import { useAuthStore } from "../stores/auth.js";
 import { useThemeStore } from "../stores/theme.js";
-
-type CategoryFilter = "all" | "checking" | "card" | "cash" | "deposit";
-type ChartType = "bar" | "line" | "pie";
 
 const CATEGORY_COLORS: Record<string, string> = {
   checking: "#F5A623",
@@ -34,53 +29,6 @@ const CATEGORY_COLORS_DARK: Record<string, string> = {
   cash: "#4b5563",
   deposit: "#d1d5db",
 };
-
-type PeriodKey = "week" | "1m" | "3m" | "6m" | "1y";
-
-const TIMELINE_PERIODS: { key: PeriodKey; label: string }[] = [
-  { key: "week", label: "Неделя" },
-  { key: "1m", label: "1мес" },
-  { key: "3m", label: "3мес" },
-  { key: "6m", label: "6мес" },
-  { key: "1y", label: "1г" },
-];
-
-function periodFrom(key: PeriodKey): string {
-  const now = new Date();
-  let d: Date;
-  switch (key) {
-    case "week": {
-      const day = now.getDay();
-      const diff = day === 0 ? 6 : day - 1;
-      d = new Date(now);
-      d.setDate(now.getDate() - diff);
-      break;
-    }
-    case "1m":
-      d = new Date(now.getFullYear(), now.getMonth(), 1);
-      break;
-    case "3m":
-      d = new Date(now.getFullYear(), now.getMonth() - 2, 1);
-      break;
-    case "6m":
-      d = new Date(now.getFullYear(), now.getMonth() - 5, 1);
-      break;
-    case "1y":
-      d = new Date(now.getFullYear(), now.getMonth() - 11, 1);
-      break;
-  }
-  return d.toISOString().slice(0, 10);
-}
-
-function periodDaysHint(key: PeriodKey): number {
-  switch (key) {
-    case "week": return 7;
-    case "1m": return 30;
-    case "3m": return 90;
-    case "6m": return 180;
-    case "1y": return 365;
-  }
-}
 
 function defaultFrom() {
   const d = new Date();
@@ -109,30 +57,6 @@ function formatMoney(n: number) {
   return n.toLocaleString("ru-RU", { maximumFractionDigits: 0 });
 }
 
-function formatYTick(v: number): string {
-  const abs = Math.abs(v);
-  if (abs >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
-  if (abs >= 1_000) return `${(v / 1_000).toFixed(0)}k`;
-  return String(Math.round(v));
-}
-
-const SHORT_WEEKDAYS = ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
-const SHORT_MONTHS = ["Янв", "Фев", "Мар", "Апр", "Май", "Июн", "Июл", "Авг", "Сен", "Окт", "Ноя", "Дек"];
-
-function formatXTick(dateStr: string, days: number): string {
-  const d = new Date(dateStr);
-  if (days <= 7) return `${SHORT_WEEKDAYS[d.getDay()]} ${d.getDate()}`;
-  if (days <= 30) return String(d.getDate());
-  if (days <= 90) return `${d.getDate()}.${String(d.getMonth() + 1).padStart(2, "0")}`;
-  if (days <= 180) return `${d.getDate()} ${SHORT_MONTHS[d.getMonth()]}`;
-  return SHORT_MONTHS[d.getMonth()];
-}
-
-function formatTooltipDate(dateStr: string): string {
-  const d = new Date(dateStr);
-  return `${d.getDate()} ${SHORT_MONTHS[d.getMonth()]} ${d.getFullYear()}`;
-}
-
 export default function Dashboard() {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -148,12 +72,9 @@ export default function Dashboard() {
   const [tmpTo, setTmpTo] = useState(today);
   const pickerRef = useRef<HTMLDivElement>(null);
 
-  const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
-  const [chartType, setChartType] = useState<ChartType>("bar");
-  const [timelinePeriod, setTimelinePeriod] = useState<PeriodKey>("1m");
+  const [myEntityId, setMyEntityId] = useState<string | undefined>(undefined);
 
   const [summary, setSummary] = useState<SummaryData | null>(null);
-  const [timeline, setTimeline] = useState<TimelinePoint[]>([]);
   const [balances, setBalances] = useState<AccountBalance[]>([]);
   const [recent, setRecent] = useState<RecentOperation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -175,30 +96,28 @@ export default function Dashboard() {
     setPickerOpen(false);
   }
 
+  // Load user's own entity
+  useEffect(() => {
+    entitiesApi.list().then((entities) => {
+      const own = entities.find((e) => e.ownerId === user?.id);
+      if (own) setMyEntityId(own.id);
+    });
+  }, [user?.id]);
+
   useEffect(() => {
     setLoading(true);
-    const filters = { from: dateFrom, to: dateTo, mine: "true" };
-    const accountType = categoryFilter === "all" ? undefined : categoryFilter;
+    const filters = { from: dateFrom, to: dateTo, entityId: myEntityId };
     Promise.all([
       analyticsApi.summary(filters),
-      analyticsApi.timeline({ from: periodFrom(timelinePeriod), mine: "true", accountType }),
-      analyticsApi.accountBalances(undefined, "true"),
-      analyticsApi.recent(10, "true"),
-    ]).then(([sum, tl, bal, rec]) => {
+      analyticsApi.accountBalances(myEntityId),
+      analyticsApi.recent(10, myEntityId),
+    ]).then(([sum, bal, rec]) => {
       setSummary(sum);
-      setTimeline(tl);
       setBalances(bal);
       setRecent(rec);
       setLoading(false);
     });
-  }, [dateFrom, dateTo]);
-
-  const isInitialMount = useRef(true);
-  useEffect(() => {
-    if (isInitialMount.current) { isInitialMount.current = false; return; }
-    const accountType = categoryFilter === "all" ? undefined : categoryFilter;
-    analyticsApi.timeline({ from: periodFrom(timelinePeriod), mine: "true", accountType }).then(setTimeline);
-  }, [timelinePeriod, categoryFilter]);
+  }, [dateFrom, dateTo, myEntityId]);
 
   /* Computed */
   const grouped = useMemo(() => {
@@ -248,21 +167,6 @@ export default function Dashboard() {
   const hasDonutData = donutData.length > 0;
   const donutDisplay = hasDonutData ? donutData : [{ name: "—", value: 1, color: theme === "light" ? "#E0E0E0" : "#374151" }];
 
-  // Bar chart: daily income & expense (both positive, side by side); Line chart: running balance
-  const barChartData = useMemo(() => timeline.map((t) => ({ date: t.date, income: t.income, expense: t.expense })), [timeline]);
-  const lineChartData = useMemo(() => timeline.map((t) => ({ date: t.date, value: t.balance })), [timeline]);
-
-  const daysHint = periodDaysHint(timelinePeriod);
-  const xTickInterval = useMemo(() => {
-    const len = lineChartData.length;
-    if (len === 0) return 0;
-    if (daysHint <= 7) return 0;
-    if (daysHint <= 31) return Math.max(0, Math.ceil(len / 15) - 1);
-    if (daysHint <= 90) return Math.max(0, Math.ceil(len / 12) - 1);
-    if (daysHint <= 180) return Math.max(0, Math.ceil(len / 10) - 1);
-    return Math.max(0, Math.ceil(len / 12) - 1);
-  }, [lineChartData.length, daysHint]);
-
   const calcBalance = summary?.balance ?? balances.reduce((s, a) => s + a.balance, 0);
   const calcIncome = summary?.totalIncome ?? 0;
   const calcExpense = summary?.totalExpense ?? 0;
@@ -284,19 +188,6 @@ export default function Dashboard() {
     { type: "cash", title: t("settings.typeCash"), iconClass: "dash-account-section__icon--cash", icon: <Banknote size={18} /> },
     { type: "deposit", title: t("settings.typeDeposit"), iconClass: "dash-account-section__icon--deposits", icon: <PiggyBank size={18} /> },
   ];
-
-  const catTabs: { value: CategoryFilter; label: string }[] = [
-    { value: "all", label: t("dds.allTypes") },
-    { value: "checking", label: t("settings.typeChecking") },
-    { value: "card", label: t("settings.typeCard") },
-    { value: "cash", label: t("settings.typeCash") },
-    { value: "deposit", label: t("settings.typeDeposit") },
-  ];
-
-  const ttStyle = theme === "light"
-    ? { background: "rgba(255,255,255,0.9)", backdropFilter: "blur(10px)", border: "1px solid rgba(255,255,255,0.6)", borderRadius: 12, fontSize: 13 }
-    : { background: "var(--bg-surface-solid)", border: "1px solid var(--glass-border)", borderRadius: 12, fontSize: 13 };
-  const accentColor = theme === "light" ? "#F5A623" : "#8994a7";
 
   const opIcon = (type: string) => {
     if (type === "income") return <ArrowUpRight className="recent-icon recent-icon--income" size={16} />;
@@ -455,57 +346,6 @@ export default function Dashboard() {
                   </div>
                 </div>
 
-                {/* Chart */}
-                <div className="glass-card chart-card chart-card--wide">
-                  <div className="chart-card__header">
-                    <h3 className="chart-title">{t("dashboard.balanceTimeline")}</h3>
-                    <div className="chart-filter-tabs">
-                      {catTabs.map((tab) => (
-                        <button key={tab.value} type="button" className={`chart-filter-tab${categoryFilter === tab.value ? " chart-filter-tab--active" : ""}`} onClick={() => setCategoryFilter(tab.value)}>{tab.label}</button>
-                      ))}
-                    </div>
-                    <div className="chart-type-switcher">
-                      <button type="button" className={`chart-type-btn${chartType === "bar" ? " chart-type-btn--active" : ""}`} onClick={() => setChartType("bar")}><BarChart3 size={18} /></button>
-                      <button type="button" className={`chart-type-btn${chartType === "line" ? " chart-type-btn--active" : ""}`} onClick={() => setChartType("line")}><LineChartIcon size={18} /></button>
-                      <button type="button" className={`chart-type-btn${chartType === "pie" ? " chart-type-btn--active" : ""}`} onClick={() => setChartType("pie")}><CircleDot size={18} /></button>
-                    </div>
-                    <div className="timeline-periods">
-                      {TIMELINE_PERIODS.map((p) => (
-                        <button key={p.key} type="button" className={`timeline-period-btn${timelinePeriod === p.key ? " timeline-period-btn--active" : ""}`} onClick={() => setTimelinePeriod(p.key)}>{p.label}</button>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="chart-card__chart-area">
-                    <ResponsiveContainer width="100%" height="100%">
-                      {chartType === "bar" ? (
-                        <BarChart data={barChartData} barGap={2}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="var(--glass-border)" />
-                          <XAxis dataKey="date" tick={{ fontSize: 11, fill: "#999" }} stroke="#999" interval={xTickInterval} tickFormatter={(v) => formatXTick(v, daysHint)} />
-                          <YAxis tick={{ fontSize: 11, fill: "#999" }} stroke="#999" tickFormatter={formatYTick} />
-                          <Tooltip cursor={{ fill: "transparent" }} contentStyle={ttStyle} formatter={(value: number) => [`${formatMoney(value)} ₽`]} labelFormatter={formatTooltipDate} />
-                          <Bar dataKey="income" fill={theme === "light" ? "#F5A623" : "var(--color-income)"} radius={[6, 6, 0, 0]} maxBarSize={24} name={t("dashboard.income")} />
-                          <Bar dataKey="expense" fill={theme === "light" ? "#DC503C" : "var(--color-expense)"} radius={[6, 6, 0, 0]} maxBarSize={24} name={t("dashboard.expense")} />
-                        </BarChart>
-                      ) : chartType === "line" ? (
-                        <AreaChart data={lineChartData}>
-                          <defs><linearGradient id="balanceGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor={accentColor} stopOpacity={0.15} /><stop offset="95%" stopColor={accentColor} stopOpacity={0} /></linearGradient></defs>
-                          <CartesianGrid strokeDasharray="3 3" stroke="var(--glass-border)" />
-                          <XAxis dataKey="date" tick={{ fontSize: 11, fill: "#999" }} stroke="#999" interval={xTickInterval} tickFormatter={(v) => formatXTick(v, daysHint)} />
-                          <YAxis tick={{ fontSize: 11, fill: "#999" }} stroke="#999" tickFormatter={formatYTick} />
-                          <Tooltip contentStyle={ttStyle} formatter={(value: number) => [`${formatMoney(value)} ₽`]} labelFormatter={formatTooltipDate} />
-                          <Area type="monotone" dataKey="value" stroke={accentColor} strokeWidth={2.5} fill="url(#balanceGrad)" fillOpacity={0.6} />
-                        </AreaChart>
-                      ) : (
-                        <PieChart>
-                          <Pie data={donutDisplay} dataKey="value" cx="50%" cy="50%" innerRadius={50} outerRadius={90} paddingAngle={3} stroke="none" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
-                            {donutDisplay.map((entry, i) => <Cell key={i} fill={entry.color} />)}
-                          </Pie>
-                          <Tooltip contentStyle={ttStyle} formatter={(value: number) => [`${formatMoney(value)} ₽`]} />
-                        </PieChart>
-                      )}
-                    </ResponsiveContainer>
-                  </div>
-                </div>
               </div>
             </div>
 
@@ -525,8 +365,8 @@ export default function Dashboard() {
                       setMatchResult(r.matched);
                       if (r.matched > 0) {
                         const [sum, rec] = await Promise.all([
-                          analyticsApi.summary({ from: dateFrom, to: dateTo, mine: "true" }),
-                          analyticsApi.recent(10, "true"),
+                          analyticsApi.summary({ from: dateFrom, to: dateTo, entityId: myEntityId }),
+                          analyticsApi.recent(10, myEntityId),
                         ]);
                         setSummary(sum);
                         setRecent(rec);

@@ -1046,11 +1046,36 @@ function EntityDetailView({
     await loadExpenseTypes();
   }
 
+  const [newAccName, setNewAccName] = useState("");
+  const [newAccType, setNewAccType] = useState("cash");
+
   async function handleToggleAccount(accountId: string) {
     const result = await adminApi.toggleAccount(accountId);
     setEntity((prev) =>
       prev
         ? { ...prev, accounts: prev.accounts.map((a) => (a.id === accountId ? { ...a, enabled: result.enabled } : a)) }
+        : prev,
+    );
+  }
+
+  async function handleAddAccount() {
+    if (!newAccName.trim()) return;
+    const acc = await adminApi.createAccount(entityId, { name: newAccName.trim(), type: newAccType });
+    setEntity((prev) =>
+      prev
+        ? { ...prev, accounts: [...prev.accounts, { ...acc, accountNumber: null, enabled: true, transactionCount: 0 }] }
+        : prev,
+    );
+    setNewAccName("");
+    setNewAccType("cash");
+  }
+
+  async function handleDeleteAccount(accountId: string, name: string) {
+    if (!confirm(`Удалить счёт "${name}"?`)) return;
+    await adminApi.deleteAccount(accountId);
+    setEntity((prev) =>
+      prev
+        ? { ...prev, accounts: prev.accounts.filter((a) => a.id !== accountId) }
         : prev,
     );
   }
@@ -1070,11 +1095,11 @@ function EntityDetailView({
           <div className="admin-section__title"><CreditCard size={16} /> Счета <span className="admin-section__count">{entity.accounts.length}</span></div>
         </div>
         <div className="admin-section__body">
-          {entity.accounts.length === 0 ? (
-            <div className="admin-empty-hint">Нет счетов</div>
-          ) : (
-            <div className="admin-account-list">
-              {entity.accounts.map((a) => (
+          <div className="admin-account-list">
+            {entity.accounts.length === 0 && (
+              <div className="admin-empty-hint">Нет счетов</div>
+            )}
+            {entity.accounts.map((a) => (
                 <div key={a.id} className={`admin-account-item${!a.enabled ? " admin-account-item--disabled" : ""}`}>
                   <div>
                     <div className="admin-account-item__name">{a.name}</div>
@@ -1088,11 +1113,23 @@ function EntityDetailView({
                     <button type="button" className={`admin-toggle${a.enabled ? " admin-toggle--on" : ""}`} onClick={() => handleToggleAccount(a.id)} title={a.enabled ? "Отключить" : "Включить"}>
                       <span className="admin-toggle__knob" />
                     </button>
+                    {a.transactionCount === 0 && (
+                      <button className="btn btn--ghost btn--sm" onClick={() => handleDeleteAccount(a.id, a.name)} title="Удалить"><Trash2 size={12} /></button>
+                    )}
                   </div>
                 </div>
               ))}
+            <div className="admin-inline-edit" style={{ marginTop: "0.5rem" }}>
+              <select className="admin-inline-input" value={newAccType} onChange={(e) => setNewAccType(e.target.value)} style={{ maxWidth: 120 }}>
+                <option value="cash">Наличные</option>
+                <option value="card">Карт��</option>
+                <option value="checking">Расчётный</option>
+                <option value="deposit">Депозит</option>
+              </select>
+              <input className="admin-inline-input" placeholder="Название сч��та" value={newAccName} onChange={(e) => setNewAccName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") handleAddAccount(); }} />
+              <button className="btn btn--primary btn--sm" onClick={handleAddAccount} disabled={!newAccName.trim()}><Plus size={14} /> Добавить</button>
             </div>
-          )}
+          </div>
         </div>
       </div>
 

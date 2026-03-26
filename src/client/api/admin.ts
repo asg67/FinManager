@@ -164,6 +164,12 @@ export const adminApi = {
   toggleAccount: (accountId: string) =>
     api.put<{ id: string; enabled: boolean }>(`/admin/accounts/${accountId}/toggle`),
 
+  createAccount: (entityId: string, data: { name: string; type: string; bank?: string }) =>
+    api.post<{ id: string; name: string; type: string; bank: string | null }>(`/admin/entities/${entityId}/accounts`, data),
+
+  deleteAccount: (accountId: string) =>
+    api.delete<void>(`/admin/accounts/${accountId}`),
+
   // Entity CRUD
   createEntity: (companyId: string, name: string) =>
     api.post<{ id: string; name: string }>(`/admin/companies/${companyId}/entities`, { name }),

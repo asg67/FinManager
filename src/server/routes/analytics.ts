@@ -297,7 +297,8 @@ router.get("/recent", async (req: Request, res: Response) => {
   try {
     const userId = req.user!.userId;
     const limitNum = Math.min(20, parseInt(req.query.limit as string) || 10);
-    const entFilter = await buildEntityFilter(userId);
+    const { entityId } = req.query as Record<string, string>;
+    const entFilter = entityId ? { id: entityId } : await buildEntityFilter(userId);
 
     const [ddsOps, bankTxs] = await Promise.all([
       prisma.ddsOperation.findMany({

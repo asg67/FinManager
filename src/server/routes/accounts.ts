@@ -30,7 +30,10 @@ router.get("/", async (req: Request, res: Response) => {
     // Filter out accounts from banks disabled for this user
     const perm = await prisma.permission.findUnique({ where: { userId: req.user!.userId } });
     if (perm?.disabledBanks && perm.disabledBanks.length > 0) {
-      where.bankCode = { notIn: perm.disabledBanks };
+      where.OR = [
+        { bank: { notIn: perm.disabledBanks } },
+        { bank: null },
+      ];
     }
 
     const accounts = await prisma.account.findMany({

@@ -46,7 +46,6 @@ export interface AnalyticsFilters {
   entityId?: string;
   from?: string;
   to?: string;
-  mine?: string;
   [key: string]: string | undefined;
 }
 
@@ -66,12 +65,12 @@ export const analyticsApi = {
   byCategory: (filters: AnalyticsFilters = {}) =>
     api.get<CategoryData[]>(`/analytics/by-category${qs(filters)}`),
 
-  timeline: (opts: { days?: number; from?: string; entityId?: string; mine?: string; accountType?: string } = {}) =>
-    api.get<TimelinePoint[]>(`/analytics/timeline${qs({ days: opts.days != null ? String(opts.days) : undefined, from: opts.from, entityId: opts.entityId, mine: opts.mine, accountType: opts.accountType })}`),
+  timeline: (opts: { days?: number; from?: string; entityId?: string; accountType?: string } = {}) =>
+    api.get<TimelinePoint[]>(`/analytics/timeline${qs({ days: opts.days != null ? String(opts.days) : undefined, from: opts.from, entityId: opts.entityId, accountType: opts.accountType })}`),
 
-  accountBalances: (entityId?: string, mine?: string) =>
-    api.get<AccountBalance[]>(`/analytics/account-balances${qs({ entityId, mine })}`),
+  accountBalances: (entityId?: string) =>
+    api.get<AccountBalance[]>(`/analytics/account-balances${qs({ entityId })}`),
 
-  recent: (limit: number = 10, mine?: string) =>
-    api.get<RecentOperation[]>(`/analytics/recent${qs({ limit: String(limit), mine })}`),
+  recent: (limit: number = 10, entityId?: string) =>
+    api.get<RecentOperation[]>(`/analytics/recent${qs({ limit: String(limit), entityId })}`),
 };
