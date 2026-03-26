@@ -13,7 +13,7 @@ import StepWizard from "../components/dds/StepWizard.js";
 import DeleteConfirm from "../components/dds/DeleteConfirm.js";
 import CompanySetup from "../components/dds/CompanySetup.js";
 import ExportModal from "../components/ExportModal.js";
-import type { DdsOperation, Entity, Account, PaginatedResponse, InviteInfo } from "@shared/types.js";
+import type { DdsOperation, Entity, Account, PaginatedResponse, InviteInfo, CustomField } from "@shared/types.js";
 import { Pencil, Trash2 } from "lucide-react";
 
 const OP_TYPES = [
@@ -153,13 +153,14 @@ function CompanyInfoPanel({ entities }: { entities: Entity[] }) {
 
 /* --- Operation Card (mobile view) --- */
 
-function OperationCard({ op, onEdit, onDelete, t, formatAmount, formatDate }: {
+function OperationCard({ op, onEdit, onDelete, t, formatAmount, formatDate, isDdsOnly }: {
   op: DdsOperation;
   onEdit: () => void;
   onDelete: () => void;
   t: (key: string) => string;
   formatAmount: (amount: string, opType: string) => string;
   formatDate: (dateStr: string) => string;
+  isDdsOnly?: boolean;
 }) {
   return (
     <div className="op-card">
@@ -176,8 +177,8 @@ function OperationCard({ op, onEdit, onDelete, t, formatAmount, formatDate }: {
       </div>
       <div className="op-card__details">
         <span className="op-card__entity">{op.entity.name}</span>
-        {op.fromAccount && <span className="op-card__meta">{t("dds.from")}: {op.fromAccount.name}</span>}
-        {op.toAccount && <span className="op-card__meta">{t("dds.to")}: {op.toAccount.name}</span>}
+        {!isDdsOnly && op.fromAccount && <span className="op-card__meta">{t("dds.from")}: {op.fromAccount.name}</span>}
+        {!isDdsOnly && op.toAccount && <span className="op-card__meta">{t("dds.to")}: {op.toAccount.name}</span>}
         {op.expenseType && <span className="op-card__meta">{op.expenseType.name}{op.expenseArticle ? ` / ${op.expenseArticle.name}` : ""}</span>}
         {op.incomeType && <span className="op-card__meta">{op.incomeType.name}{op.incomeArticle ? ` / ${op.incomeArticle.name}` : ""}</span>}
         {op.orderNumber && <span className="op-card__meta">#{op.orderNumber}</span>}
@@ -185,7 +186,7 @@ function OperationCard({ op, onEdit, onDelete, t, formatAmount, formatDate }: {
           <span key={cfv.id} className="op-card__meta">{cfv.customField?.name ?? ""}: {cfv.value}</span>
         ))}
         {op.comment && <span className="op-card__comment">{op.comment}</span>}
-        {op.linkedBankTxId && <span className="op-card__linked" title="Сверено с выпиской"><Link2 size={12} /> Сверено</span>}
+        {!isDdsOnly && op.linkedBankTxId && <span className="op-card__linked" title="Сверено с выпиской"><Link2 size={12} /> Сверено</span>}
       </div>
       <div className="op-card__actions">
         <button type="button" className="icon-btn" onClick={onEdit} title={t("common.edit")}>
@@ -204,6 +205,7 @@ function OperationCard({ op, onEdit, onDelete, t, formatAmount, formatDate }: {
 function DdsTable({ companyName }: { companyName?: string }) {
   const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
+  const isDdsOnly = user?.company?.mode === "dds_only";
   const [data, setData] = useState<PaginatedResponse<DdsOperation>>({
     data: [],
     total: 0,
@@ -213,6 +215,7 @@ function DdsTable({ companyName }: { companyName?: string }) {
   });
   const [entities, setEntities] = useState<Entity[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
+  const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Filters
@@ -266,6 +269,13 @@ function DdsTable({ companyName }: { companyName?: string }) {
   useEffect(() => {
     entitiesApi.list().then(setEntities);
   }, []);
+
+  // Load custom fields for dds_only (used as dynamic table columns)
+  useEffect(() => {
+    if (isDdsOnly) {
+      ddsApi.getCustomFields().then(setCustomFields).catch(() => setCustomFields([]));
+    }
+  }, [isDdsOnly]);
 
   // Refresh when operation added from global FAB button
   useEffect(() => {
@@ -330,6 +340,18 @@ function DdsTable({ companyName }: { companyName?: string }) {
     });
   }
 
+  // Build dynamic custom field columns for dds_only
+  const customFieldColumns = isDdsOnly
+    ? customFields.map((cf) => ({
+        key: `cf_${cf.id}`,
+        header: cf.name,
+        render: (r: DdsOperation) => {
+          const cfv = r.customFieldValues?.find((v) => v.customFieldId === cf.id);
+          return cfv?.value ?? "\u2014";
+        },
+      }))
+    : [];
+
   const columns = [
     {
       key: "createdAt",
@@ -355,16 +377,19 @@ function DdsTable({ companyName }: { companyName?: string }) {
         </span>
       ),
     },
-    {
-      key: "fromAccount",
-      header: t("dds.from"),
-      render: (r: DdsOperation) => r.fromAccount?.name ?? "\u2014",
-    },
-    {
-      key: "toAccount",
-      header: t("dds.to"),
-      render: (r: DdsOperation) => r.toAccount?.name ?? "\u2014",
-    },
+    // Account columns — hidden for dds_only
+    ...(!isDdsOnly ? [
+      {
+        key: "fromAccount",
+        header: t("dds.from"),
+        render: (r: DdsOperation) => r.fromAccount?.name ?? "\u2014",
+      },
+      {
+        key: "toAccount",
+        header: t("dds.to"),
+        render: (r: DdsOperation) => r.toAccount?.name ?? "\u2014",
+      },
+    ] : []),
     {
       key: "amount",
       header: t("dds.amount"),
@@ -385,6 +410,8 @@ function DdsTable({ companyName }: { companyName?: string }) {
       header: t("dds.expenseArticle"),
       render: (r: DdsOperation) => r.expenseArticle?.name ?? r.incomeArticle?.name ?? "\u2014",
     },
+    // Custom field columns — only for dds_only
+    ...customFieldColumns,
     {
       key: "orderNumber",
       header: t("dds.orderNumber"),
@@ -395,11 +422,14 @@ function DdsTable({ companyName }: { companyName?: string }) {
       header: t("dds.comment"),
       render: (r: DdsOperation) => r.comment ?? "",
     },
-    {
-      key: "linked",
-      header: "",
-      render: (r: DdsOperation) => r.linkedBankTxId ? <span className="op-card__linked" title="Сверено с выпиской"><Link2 size={14} /></span> : null,
-    },
+    // Linked column — hidden for dds_only
+    ...(!isDdsOnly ? [
+      {
+        key: "linked",
+        header: "",
+        render: (r: DdsOperation) => r.linkedBankTxId ? <span className="op-card__linked" title="Сверено с выпиской"><Link2 size={14} /></span> : null,
+      },
+    ] : []),
     {
       key: "actions",
       header: "",
@@ -498,11 +528,13 @@ function DdsTable({ companyName }: { companyName?: string }) {
             onChange={(e) => handleFilterChange("entityId", e.target.value)}
           />
           <Select
-            options={OP_TYPES.map((o) => ({ value: o.value, label: t(o.labelKey) }))}
+            options={OP_TYPES
+              .filter((o) => !isDdsOnly || o.value !== "transfer")
+              .map((o) => ({ value: o.value, label: t(o.labelKey) }))}
             value={filters.operationType ?? ""}
             onChange={(e) => handleFilterChange("operationType", e.target.value)}
           />
-          {accounts.length > 0 && (
+          {!isDdsOnly && accounts.length > 0 && (
             <Select
               options={[{ value: "", label: t("dds.allAccounts") }, ...accounts.map((a) => ({ value: a.id, label: a.name }))]}
               value={filters.accountId ?? ""}
@@ -549,6 +581,7 @@ function DdsTable({ companyName }: { companyName?: string }) {
                     t={t}
                     formatAmount={formatAmount}
                     formatDate={formatDate}
+                    isDdsOnly={isDdsOnly}
                   />
                 ))
               )}
