@@ -1,0 +1,301 @@
+{
+  "project": "FinManager",
+  "tagline": "Единая платформа управления финансами для бизнеса",
+  "description": "Веб-приложение, заменяющее 4 Telegram-бота (3 парсера банковских выписок + 1 трекер ДДС) единой системой с автоматической загрузкой данных из банков",
+  "url_production": "https://fin.asg67.ru (VPS Beget, 155.212.225.7)",
+  "status": "production, активно используется",
+  "pwa": true,
+
+  "tech_stack": {
+    "frontend": {
+      "framework": "React 19 + TypeScript",
+      "bundler": "Vite 6",
+      "state": "Zustand",
+      "routing": "react-router-dom 7",
+      "charts": "Recharts",
+      "i18n": "react-i18next (русский, английский)",
+      "icons": "lucide-react",
+      "design": "Glassmorphism, темная и светлая темы, кастомные CSS"
+    },
+    "backend": {
+      "runtime": "Node.js + tsx (TypeScript без компиляции)",
+      "framework": "Express 4",
+      "orm": "Prisma 6",
+      "validation": "Zod",
+      "auth": "JWT (access 15 мин + refresh 7 дней, bcryptjs)"
+    },
+    "database": "PostgreSQL 16",
+    "pdf_service": {
+      "runtime": "Python + FastAPI + uvicorn",
+      "parser": "pdfplumber",
+      "port": 8080
+    },
+    "deployment": {
+      "server": "VPS Beget (Ubuntu)",
+      "process_manager": "PM2 (cluster для API, fork для PDF)",
+      "api_port": 3000,
+      "reverse_proxy": "Nginx"
+    },
+    "testing": "Vitest + Supertest (152 теста, 15 файлов)"
+  },
+
+  "features": {
+    "dds": {
+      "name": "ДДС (Движение денежных средств)",
+      "description": "Ручной учёт доходов, расходов и переводов между счетами",
+      "capabilities": [
+        "Создание операций: доход, расход, перевод",
+        "Привязка к юрлицу, счёту, статье расхода",
+        "Шаблоны операций для быстрого ввода",
+        "Фильтрация по типу, юрлицу, счёту, дате, поиск по тексту",
+        "Пагинация с настраиваемым количеством на странице",
+        "Редактирование и удаление операций",
+        "Экспорт в CSV с фильтрами"
+      ],
+      "ui_modes": [
+        "Полная форма (StepWizard) — пошаговый мастер на странице ДДС",
+        "Быстрая форма (QuickAddForm) — компактная инлайн-форма",
+        "FAB-кнопка (+) — модальный мастер (OperationWizard) с любого экрана на мобильном"
+      ]
+    },
+
+    "pdf_statements": {
+      "name": "Банковские выписки (PDF)",
+      "description": "Загрузка PDF-выписок из банков, автопарсинг транзакций",
+      "supported_banks": [
+        {"bank": "Сбербанк", "code": "sber", "method": "Гибрид: таблицы + текстовый fallback для личных выписок"},
+        {"bank": "Т-Банк", "code": "tbank", "method": "Гибрид: заголовки таблиц + текстовый fallback"},
+        {"bank": "Т-Банк Депозит", "code": "tbank_deposit", "method": "Таблицы (простой формат)"},
+        {"bank": "Озон Банк", "code": "ozon", "method": "Таблицы + lines→text fallback"}
+      ],
+      "capabilities": [
+        "Drag & drop загрузка PDF",
+        "Автоматическое определение банка",
+        "Парсинг транзакций с дедупликацией",
+        "Превью распознанных операций перед сохранением",
+        "История загрузок",
+        "Просмотр сохранённых банковских транзакций"
+      ]
+    },
+
+    "bank_api": {
+      "name": "API-подключения банков",
+      "description": "Автоматическая синхронизация операций по API банков",
+      "connected_banks": [
+        {"bank": "Т-Банк", "code": "tbank", "auth": "Bearer token", "base_url": "https://business.tbank.ru/openapi"},
+        {"bank": "Модульбанк", "code": "modulbank", "auth": "Bearer token", "base_url": "https://api.modulbank.ru/v1"},
+        {"bank": "Точка", "code": "tochka", "auth": "Bearer token", "base_url": "https://enter.tochka.com/uapi/open-banking/v1.0"}
+      ],
+      "planned": [
+        {"bank": "Сбербанк", "code": "sber", "auth": "OAuth 2.0", "status": "исследование завершено, ожидает реализации"}
+      ],
+      "capabilities": [
+        "Подключение банка по токену из ЛК",
+        "Тест соединения (показывает кол-во найденных счетов)",
+        "Ручная синхронизация за произвольный период",
+        "Автосинхронизация при подключении (последние 2 месяца)",
+        "Ежедневная автосинхронизация (крон 10:00 МСК) за вчера",
+        "Дедупликация транзакций",
+        "Автосоздание счетов (source: bank_sync)",
+        "Статус синхронизации (success / partial / error)",
+        "Детальный просмотр транзакций с фильтрами и пагинацией",
+        "Экспорт в Excel"
+      ]
+    },
+
+    "dashboard": {
+      "name": "Дашборд",
+      "description": "Главная страница с обзором финансов",
+      "widgets": [
+        "Суммарные карточки: баланс, доходы, расходы",
+        "График баланса по времени (timeline)",
+        "Расходы по категориям (bar chart + pie chart)",
+        "Балансы по счетам",
+        "Последние операции"
+      ]
+    },
+
+    "entities_and_accounts": {
+      "name": "Юрлица и счета",
+      "description": "Управление юридическими лицами (ИП/ООО) и их банковскими счетами",
+      "capabilities": [
+        "CRUD юрлиц (ИП, ООО и т.д.)",
+        "Автосоздание ИП при регистрации",
+        "Автосоздание стандартных счетов при создании юрлица",
+        "Расчётные счета (API): tbank, module, tochka",
+        "Карты и депозиты (PDF): sber, tbank, tbank_deposit, ozon",
+        "Включение/выключение счетов (admin toggle)",
+        "Начальные остатки с датой",
+        "Формула баланса: начальный остаток + доходы − расходы (по банковским транзакциям)"
+      ]
+    },
+
+    "expense_management": {
+      "name": "Статьи расходов",
+      "description": "Двухуровневая система категоризации расходов",
+      "structure": {
+        "expense_type": "Категория расхода (например: Аренда, Зарплата, Маркетинг)",
+        "expense_article": "Статья внутри категории (например: Аренда офиса, Аренда склада)"
+      },
+      "scope": "Общие на компанию + индивидуальные для юрлица"
+    },
+
+    "employees": {
+      "name": "Сотрудники и права",
+      "description": "Приглашение сотрудников с гранулярными правами доступа",
+      "capabilities": [
+        "Приглашение по ссылке (invite token)",
+        "Роли: owner (владелец), member (сотрудник)",
+        "Гранулярные права: ДДС, загрузка PDF, аналитика, экспорт",
+        "Привязка к конкретным юрлицам (EntityAccess)",
+        "Автосоздание ИП при регистрации по приглашению"
+      ]
+    },
+
+    "notifications": {
+      "name": "Уведомления",
+      "description": "Внутренняя система уведомлений",
+      "capabilities": [
+        "In-app уведомления",
+        "Счётчик непрочитанных (badge)",
+        "Пометить прочитанным / прочитать все",
+        "Пагинация"
+      ]
+    },
+
+    "settings": {
+      "name": "Настройки",
+      "description": "Управление профилем, юрлицами, счетами, категориями",
+      "tabs": [
+        "Профиль (имя, email, пароль)",
+        "Юрлица (CRUD)",
+        "Счета (настройка по юрлицу)",
+        "Статьи расходов",
+        "Остатки на счетах (сгруппированы: расчётные + карты/депозиты)",
+        "Шаблоны ДДС"
+      ]
+    },
+
+    "admin_panel": {
+      "name": "Админ-панель",
+      "description": "Управление всеми компаниями и пользователями (только для суперадмина)",
+      "views": [
+        "Dashboard — обзор системы",
+        "Companies — список компаний, создание, приглашения",
+        "CompanyDetail — юрлица, счета, статьи расходов компании",
+        "EntityDetail — детали юрлица, toggle счетов",
+        "Users — список пользователей",
+        "Notifications — управление уведомлениями"
+      ]
+    },
+
+    "export": {
+      "name": "Экспорт",
+      "description": "Выгрузка данных",
+      "formats": ["CSV (ДДС операции с фильтрами)", "Excel (банковские транзакции)"]
+    },
+
+    "pwa": {
+      "name": "PWA",
+      "description": "Прогрессивное веб-приложение — установка на экран телефона",
+      "capabilities": [
+        "display: standalone (как нативное приложение)",
+        "Оффлайн-кэширование оболочки (service worker)",
+        "Safe area support для iOS",
+        "Адаптивная мобильная навигация (bottom nav + FAB)"
+      ]
+    },
+
+    "i18n": {
+      "name": "Мультиязычность",
+      "languages": ["Русский (основной)", "English"],
+      "library": "react-i18next"
+    },
+
+    "themes": {
+      "name": "Темы оформления",
+      "options": ["Тёмная тема", "Светлая тема"],
+      "design": "Glassmorphism (стекло-эффект, blur, полупрозрачность)"
+    }
+  },
+
+  "mobile_ux": {
+    "navigation": "Bottom nav: Главная, ДДС, [+], Выписки, Настройки",
+    "fab_button": "Чёрный круг 48px по центру, белый Plus — открывает модальную форму добавления ДДС-операции с любого экрана",
+    "responsive": "Адаптивный дизайн, мобильные карточки вместо таблиц",
+    "safe_area": "Поддержка iOS safe area (notch, dynamic island)"
+  },
+
+  "database_schema": {
+    "models_count": 12,
+    "models": [
+      "User — пользователи (owner/member)",
+      "Permission — гранулярные права (dds, pdf, analytics, export)",
+      "Entity — юрлица (ИП, ООО)",
+      "EntityAccess — привязка сотрудников к юрлицам",
+      "Account — банковские счета (manual / bank_sync)",
+      "ExpenseType — категории расходов",
+      "ExpenseArticle — статьи расходов",
+      "DdsOperation — операции ДДС (доход/расход/перевод)",
+      "DdsTemplate — шаблоны операций ДДС",
+      "PdfUpload — загруженные PDF-файлы",
+      "BankTransaction — транзакции из банков (PDF + API)",
+      "Notification — уведомления",
+      "BankConnection — API-подключения банков (token, sync status)"
+    ]
+  },
+
+  "api_endpoints_summary": {
+    "auth": ["POST /register", "POST /login", "POST /refresh", "GET /me", "PUT /me"],
+    "entities": ["CRUD /api/entities", "CRUD /api/entities/:id/accounts", "CRUD /api/entities/:id/expense-types"],
+    "dds": ["GET/POST /api/dds/operations", "PUT/DELETE /api/dds/operations/:id", "CRUD /api/dds/templates"],
+    "pdf": ["POST /api/pdf/upload", "POST /api/pdf/confirm", "GET /api/pdf/uploads", "GET /api/pdf/transactions"],
+    "analytics": ["GET /summary", "GET /by-category", "GET /timeline", "GET /account-balances", "GET /recent"],
+    "employees": ["POST /invite", "GET list", "PUT /:id", "DELETE /:id"],
+    "bank_connections": ["CRUD", "POST /test", "GET /accounts", "POST /sync", "GET /transactions"],
+    "notifications": ["GET list", "GET /count", "PUT /read", "PUT /read-all"],
+    "export": ["GET /api/export/dds (CSV)"],
+    "admin": ["Companies CRUD", "Entity CRUD", "Account toggle", "Invite management"]
+  },
+
+  "security": {
+    "auth": "JWT access (15 мин) + refresh (7 дней), bcryptjs хэширование",
+    "validation": "Zod на всех входных данных",
+    "access_control": "Проверка принадлежности к компании на каждом эндпоинте",
+    "entity_isolation": "Сотрудники видят только сущности своей компании",
+    "token_masking": "API банков: токены возвращаются замаскированными (последние 4 символа)"
+  },
+
+  "testing": {
+    "framework": "Vitest + Supertest",
+    "total_tests": 152,
+    "test_files": 15,
+    "coverage": "Unit + Integration (API endpoints)"
+  },
+
+  "project_structure": {
+    "src_server": "Express API — routes, schemas, middleware, bank-api adapters",
+    "src_client": "React SPA — pages, components, api modules, stores, styles, i18n",
+    "src_shared": "Общие TypeScript типы",
+    "pdf_service": "Python FastAPI микросервис для парсинга PDF",
+    "prisma": "Схема БД, миграции, seed"
+  },
+
+  "competitive_advantages": [
+    "Замена 4-х отдельных ботов одной платформой",
+    "Автоматическая синхронизация с 3 банками по API + 4 банка по PDF",
+    "PWA — работает как нативное приложение на телефоне",
+    "Гранулярные права для сотрудников",
+    "Двухуровневая система статей расходов",
+    "Ежедневная автосинхронизация банковских данных",
+    "Бесплатные API банков"
+  ],
+
+  "roadmap": [
+    "Подключение Сбер API (OAuth 2.0) — 4-й банк по API",
+    "Расширение парсеров PDF (новые банки по запросу)",
+    "Уведомления по email/Telegram",
+    "Бюджетирование (план vs факт)",
+    "Мобильное приложение (React Native или продолжение PWA)"
+  ]
+}

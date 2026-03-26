@@ -1,0 +1,74 @@
+From https://github.com/asg67/FinManager
+ * branch            master     -> FETCH_HEAD
+   677d109..91c9980  master     -> origin/master
+Updating 677d109..91c9980
+Fast-forward
+ pdf-service/app/parsers/sber.py  | 23 ++++++++++++++++++++---
+ pdf-service/app/parsers/utils.py | 12 +++++++++++-
+ src/server/routes/pdf.ts         | 11 +++++++++--
+ 3 files changed, 40 insertions(+), 6 deletions(-)
+
+> fin-manager@0.1.0 build
+> npm run build:client && npm run db:generate
+
+
+> fin-manager@0.1.0 build:client
+> vite build --config src/client/vite.config.ts
+
+vite v6.4.1 building for production...
+transforming...
+✓ 2462 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                            1.57 kB │ gzip:   0.70 kB
+dist/assets/index-D0KBD6C5.css            65.06 kB │ gzip:  10.97 kB
+dist/assets/chevron-down-DpYkvIp2.js       0.30 kB │ gzip:   0.25 kB
+dist/assets/arrow-left-DUUpQj8s.js         0.34 kB │ gzip:   0.27 kB
+dist/assets/credit-card-DE_acv8X.js        0.38 kB │ gzip:   0.30 kB
+dist/assets/landmark-CTu0FDM1.js           0.57 kB │ gzip:   0.37 kB
+dist/assets/expenses-P3OC9qLj.js           1.09 kB │ gzip:   0.53 kB
+dist/assets/ShareTarget-CFSY2eLl.js        1.38 kB │ gzip:   0.75 kB
+dist/assets/layout-grid-B2m7PWM_.js        1.38 kB │ gzip:   0.49 kB
+dist/assets/Table-BjON3K1q.js              1.56 kB │ gzip:   0.81 kB
+dist/assets/users-7wMqMFPD.js              1.66 kB │ gzip:   0.61 kB
+dist/assets/Modal-BAZnT-RG.js              2.68 kB │ gzip:   1.04 kB
+dist/assets/CompanySetup-odGxlGx1.js       4.88 kB │ gzip:   1.60 kB
+dist/assets/Statements-_3SKYVj_.js         5.85 kB │ gzip:   1.92 kB
+dist/assets/StatementWizard-DE6QiYXq.js    7.88 kB │ gzip:   2.98 kB
+dist/assets/Admin-DX0gVj_E.js             13.31 kB │ gzip:   3.57 kB
+dist/assets/DdsOperations-j6YdteGc.js     23.31 kB │ gzip:   5.81 kB
+dist/assets/Settings-D1nicNSI.js          29.25 kB │ gzip:   7.00 kB
+dist/assets/index-B8HVZDHA.js            336.96 kB │ gzip: 106.16 kB
+dist/assets/Dashboard-C7jrPmma.js        399.14 kB │ gzip: 116.78 kB
+✓ built in 8.82s
+
+> fin-manager@0.1.0 db:generate
+> prisma generate
+
+Environment variables loaded from .env
+Prisma schema loaded from prisma/schema.prisma
+
+✔ Generated Prisma Client (v6.19.2) to ./node_modules/@prisma/client in 340ms
+
+Start by importing your Prisma Client (See: https://pris.ly/d/importing-client)
+
+Tip: Want to turn off tips and other hints? https://pris.ly/tip-4-nohints
+
+Use --update-env to update environment variables
+[PM2] Applying action restartProcessId on app [finmanager-api](ids: [ 0 ])
+[PM2] [finmanager-api](0) ✓
+┌────┬───────────────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┬──────────┬──────────┐
+│ id │ name              │ namespace   │ version │ mode    │ pid      │ uptime │ ↺    │ status    │ cpu      │ mem      │ user     │ watching │
+├────┼───────────────────┼─────────────┼─────────┼─────────┼──────────┼────────┼──────┼───────────┼──────────┼──────────┼──────────┼──────────┤
+│ 0  │ finmanager-api    │ default     │ 0.1.0   │ cluster │ 102800   │ 0s     │ 38   │ online    │ 0%       │ 39.8mb   │ root     │ disabled │
+│ 1  │ finmanager-pdf    │ default     │ 0.1.0   │ fork    │ 98532    │ 2h     │ 8    │ online    │ 0%       │ 69.4mb   │ root     │ disabled │
+└────┴───────────────────┴─────────────┴─────────┴─────────┴──────────┴────────┴──────┴───────────┴──────────┴──────────┴──────────┴──────────┘
+Use --update-env to update environment variables
+[PM2] Applying action restartProcessId on app [finmanager-pdf](ids: [ 1 ])
+[PM2] [finmanager-pdf](1) ✓
+┌────┬───────────────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┬──────────┬──────────┐
+│ id │ name              │ namespace   │ version │ mode    │ pid      │ uptime │ ↺    │ status    │ cpu      │ mem      │ user     │ watching │
+├────┼───────────────────┼─────────────┼─────────┼─────────┼──────────┼────────┼──────┼───────────┼──────────┼──────────┼──────────┼──────────┤
+│ 0  │ finmanager-api    │ default     │ 0.1.0   │ cluster │ 102800   │ 0s     │ 38   │ online    │ 3.7%     │ 61.7mb   │ root     │ disabled │
+│ 1  │ finmanager-pdf    │ default     │ 0.1.0   │ fork    │ 102836   │ 0s     │ 9    │ online    │ 0%       │ 5.9mb    │ root     │ disabled │
+└────┴───────────────────┴─────────────┴─────────┴─────────┴──────────┴────────┴──────┴───────────┴──────────┴──────────┴──────────┴──────────┘

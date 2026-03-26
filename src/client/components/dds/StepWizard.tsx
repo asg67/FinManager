@@ -252,6 +252,15 @@ export default function StepWizard({ open, onClose, onDone, editOperation, entit
       if (sw.operationType && sw.operationType !== form.operationType) return false;
       if (sw.expenseTypeId && sw.expenseTypeId !== form.expenseTypeId) return false;
       if (sw.expenseArticleId && sw.expenseArticleId !== form.expenseArticleId) return false;
+      if (sw.expenseTypeName) {
+        const selType = expenseTypes.find((et) => et.id === form.expenseTypeId);
+        if (!selType || selType.name !== sw.expenseTypeName) return false;
+      }
+      if (sw.expenseArticleName) {
+        const selType = expenseTypes.find((et) => et.id === form.expenseTypeId);
+        const selArt = selType?.articles.find((a) => a.id === form.expenseArticleId);
+        if (!selArt || selArt.name !== sw.expenseArticleName) return false;
+      }
       return true;
     });
   }

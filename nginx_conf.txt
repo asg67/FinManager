@@ -1,0 +1,60 @@
+server {
+    server_name fm.zinchukfinance.ru 155.212.225.7;
+
+    client_max_body_size 10M;
+
+    gzip on;
+    gzip_types text/plain text/css application/json application/javascript text/xml application/xml image/svg+xml;
+    gzip_min_length 1000;
+
+    # API proxy
+    location /api/ {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 30s;
+    }
+
+    # Static assets — long cache
+    location /assets/ {
+        root /root/finmanager/src/client/dist;
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+        try_files $uri =404;
+    }
+
+    # Service worker — no cache
+    location = /sw.js {
+        root /root/finmanager/src/client/dist;
+        expires off;
+        add_header Cache-Control "no-cache, no-store, must-revalidate";
+    }
+
+    # SPA fallback
+    location / {
+        root /root/finmanager/src/client/dist;
+        try_files $uri $uri/ /index.html;
+    }
+
+    listen 443 ssl; # managed by Certbot
+    ssl_certificate /etc/letsencrypt/live/fm.zinchukfinance.ru/fullchain.pem; # managed by Certbot
+    ssl_certificate_key /etc/letsencrypt/live/fm.zinchukfinance.ru/privkey.pem; # managed by Certbot
+    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
+
+}
+server {
+    if ($host = fm.zinchukfinance.ru) {
+        return 301 https://$host$request_uri;
+    } # managed by Certbot
+
+
+    listen 80 default_server;
+    server_name fm.zinchukfinance.ru 155.212.225.7;
+    return 404; # managed by Certbot
+
+
+}

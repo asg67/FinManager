@@ -149,7 +149,7 @@ export interface CustomField {
   name: string;
   fieldType: "select" | "text" | "number";
   options: string[] | null;
-  showWhen: { operationType?: string; expenseTypeId?: string; expenseArticleId?: string } | null;
+  showWhen: { operationType?: string; expenseTypeId?: string; expenseArticleId?: string; expenseTypeName?: string; expenseArticleName?: string } | null;
   required: boolean;
   sortOrder: number;
   createdAt: string;

@@ -1,0 +1,4 @@
+  avatar               String?
+  sberAccountNumber    String?
+  tbankCardCode        String?
+  tbankDepositContract String?
