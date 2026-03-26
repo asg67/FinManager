@@ -1,3 +1,0 @@
-USER: {"id":"87642371-ecf6-4dc1-87d5-8954302c295b","name":"Скобелев Никита","companyId":"8cb079c0-19c4-42d8-8631-03ecdefee214","role":"member"}
-LAST_NAME: Скобелев
-ENTITIES: [{"id":"75399ebd-32ea-4953-a210-625760985ab2","name":"ИП Скобелев"}]

@@ -42,3 +42,8 @@ __pycache__/
 
 # Misc
 *.tsbuildinfo
+*_out.txt
+*_overview.json
+*_integration.json
+*_check.txt
+*_conf.txt
