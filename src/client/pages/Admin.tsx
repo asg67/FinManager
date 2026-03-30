@@ -794,6 +794,32 @@ function CompanyDetailView({
         </div>
       </div>
 
+      {/* === Hidden Fields === */}
+      <div className="admin-hidden-fields">
+        <span className="admin-hidden-fields__label">Скрытые поля:</span>
+        {[
+          { key: "orderNumber", label: "Номер заказа" },
+          { key: "comment", label: "Комментарий" },
+        ].map((f) => {
+          const hidden = (company.hiddenFields ?? []) as string[];
+          const isHidden = hidden.includes(f.key);
+          return (
+            <label key={f.key} className="admin-hidden-fields__toggle">
+              <input
+                type="checkbox"
+                checked={isHidden}
+                onChange={async () => {
+                  const next = isHidden ? hidden.filter((h) => h !== f.key) : [...hidden, f.key];
+                  await adminApi.setCompanyHiddenFields(companyId, next);
+                  setCompany((prev) => prev ? { ...prev, hiddenFields: next } : prev);
+                }}
+              />
+              {f.label}
+            </label>
+          );
+        })}
+      </div>
+
       {/* === Section: Entities === */}
       <div className="admin-section">
         <div className="admin-section__header" onClick={() => toggleSection("entities")}>

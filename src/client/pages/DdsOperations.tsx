@@ -418,7 +418,7 @@ function DdsTable({ companyName }: { companyName?: string }) {
     },
     // Custom field columns — only for dds_only
     ...customFieldColumns,
-    ...(!isDdsOnly ? [{
+    ...(!user?.company?.hiddenFields?.includes("orderNumber") ? [{
       key: "orderNumber",
       header: t("dds.orderNumber"),
       render: (r: DdsOperation) => r.orderNumber ?? "\u2014",

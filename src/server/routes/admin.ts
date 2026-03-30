@@ -257,6 +257,7 @@ router.get("/companies/:id", async (req: Request, res: Response) => {
       id: company.id,
       name: company.name,
       mode: company.mode,
+      hiddenFields: Array.isArray(company.hiddenFields) ? company.hiddenFields : [],
       onboardingDone: company.onboardingDone,
       createdAt: company.createdAt.toISOString(),
       members: members.map((u) => ({
@@ -849,6 +850,33 @@ router.put("/companies/:id/mode", async (req: Request, res: Response) => {
     res.json({ id: updated.id, mode: updated.mode });
   } catch (error) {
     console.error("Admin set company mode error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// PUT /api/admin/companies/:id/hidden-fields — set company hidden fields
+router.put("/companies/:id/hidden-fields", async (req: Request, res: Response) => {
+  try {
+    const { hiddenFields } = req.body;
+    if (!Array.isArray(hiddenFields)) {
+      res.status(400).json({ message: "hiddenFields must be an array" });
+      return;
+    }
+
+    const company = await prisma.company.findUnique({ where: { id: req.params.id as string } });
+    if (!company) {
+      res.status(404).json({ message: "Company not found" });
+      return;
+    }
+
+    const updated = await prisma.company.update({
+      where: { id: company.id },
+      data: { hiddenFields },
+    });
+
+    res.json({ id: updated.id, hiddenFields: updated.hiddenFields });
+  } catch (error) {
+    console.error("Admin set hidden fields error:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 });

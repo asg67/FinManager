@@ -332,7 +332,7 @@ export default function OperationWizard({ open, onClose, onDone, editOperation, 
                 />
               ) : null;
             })()}
-            {!isDdsOnly && (
+            {!user?.company?.hiddenFields?.includes("orderNumber") && (
               <Input
                 label={t("dds.orderNumber")}
                 value={form.orderNumber ?? ""}

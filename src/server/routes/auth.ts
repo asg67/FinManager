@@ -65,7 +65,7 @@ function sanitizeUser(user: {
   role: string;
   mode?: string | null;
   companyId: string | null;
-  company?: { id: string; name: string; mode: string; onboardingDone: boolean; createdAt: Date } | null;
+  company?: { id: string; name: string; mode: string; hiddenFields: any; onboardingDone: boolean; createdAt: Date } | null;
   permission?: { disabledBanks: string[] } | null;
   avatar?: string | null;
   createdAt: Date;
@@ -84,6 +84,7 @@ function sanitizeUser(user: {
       id: user.company.id,
       name: user.company.name,
       mode: effectiveMode,
+      hiddenFields: Array.isArray(user.company.hiddenFields) ? user.company.hiddenFields : [],
       onboardingDone: user.company.onboardingDone,
       createdAt: user.company.createdAt.toISOString(),
     } : null,

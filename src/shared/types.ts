@@ -4,6 +4,7 @@ export interface Company {
   id: string;
   name: string;
   mode: "full" | "dds_only";
+  hiddenFields: string[];
   onboardingDone: boolean;
   createdAt: string;
 }

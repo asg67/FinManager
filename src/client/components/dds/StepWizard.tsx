@@ -595,8 +595,8 @@ export default function StepWizard({ open, onClose, onDone, editOperation, entit
               autoFocus
             />
 
-            {/* Order number (expense only, hidden for dds_only) */}
-            {isExpense && !isDdsOnly && (
+            {/* Order number (expense only, hideable per company) */}
+            {isExpense && !user?.company?.hiddenFields?.includes("orderNumber") && (
               <Input
                 label={t("dds.orderNumber")}
                 value={form.orderNumber ?? ""}
@@ -708,7 +708,7 @@ export default function StepWizard({ open, onClose, onDone, editOperation, entit
                 {form.amount.toLocaleString("ru-RU")}
               </span>
             </div>
-            {form.orderNumber && !isDdsOnly && (
+            {form.orderNumber && !user?.company?.hiddenFields?.includes("orderNumber") && (
               <div className="step-wizard__review-row">
                 <span className="step-wizard__review-label">{t("dds.orderNumber")}</span>
                 <span className="step-wizard__review-value">{form.orderNumber}</span>
