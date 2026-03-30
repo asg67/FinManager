@@ -73,11 +73,19 @@ export interface AdminCompanyListItem {
   createdAt: string;
 }
 
+export interface AdminArticleDirection {
+  id: string;
+  name: string;
+  expenseArticleId: string;
+  sortOrder: number;
+}
+
 export interface AdminExpenseArticle {
   id: string;
   name: string;
   expenseTypeId: string;
   sortOrder: number;
+  directions: AdminArticleDirection[];
 }
 
 export interface AdminExpenseType {
@@ -209,6 +217,16 @@ export const adminApi = {
 
   deleteArticle: (id: string) =>
     api.delete<void>(`/admin/articles/${id}`),
+
+  // Article Directions CRUD
+  createDirection: (articleId: string, name: string) =>
+    api.post<AdminArticleDirection>(`/admin/articles/${articleId}/directions`, { name }),
+
+  updateDirection: (id: string, name: string) =>
+    api.put<AdminArticleDirection>(`/admin/directions/${id}`, { name }),
+
+  deleteDirection: (id: string) =>
+    api.delete<void>(`/admin/directions/${id}`),
 
   // Company mode
   setCompanyMode: (companyId: string, mode: string) =>

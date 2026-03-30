@@ -230,6 +230,12 @@ function CompanyDetailView({
   const [newArticleName, setNewArticleName] = useState("");
   const [editingArticleId, setEditingArticleId] = useState<string | null>(null);
   const [editArticleName, setEditArticleName] = useState("");
+  // Directions state
+  const [expandedArticle, setExpandedArticle] = useState<string | null>(null);
+  const [addingDirForArticle, setAddingDirForArticle] = useState<string | null>(null);
+  const [newDirName, setNewDirName] = useState("");
+  const [editingDirId, setEditingDirId] = useState<string | null>(null);
+  const [editDirName, setEditDirName] = useState("");
 
   // Income types/articles state (company-wide)
   const [incomeTypes, setIncomeTypes] = useState<AdminIncomeType[]>([]);
@@ -383,6 +389,28 @@ function CompanyDetailView({
   async function handleDeleteArticle(id: string, name: string) {
     if (!confirm(`Удалить статью "${name}"?`)) return;
     await adminApi.deleteArticle(id);
+    await loadExpenseTypes();
+  }
+
+  // Direction handlers
+  async function handleAddDirection(articleId: string) {
+    if (!newDirName.trim()) return;
+    await adminApi.createDirection(articleId, newDirName.trim());
+    setNewDirName("");
+    setAddingDirForArticle(null);
+    await loadExpenseTypes();
+  }
+
+  async function handleRenameDirection(id: string) {
+    if (!editDirName.trim()) return;
+    await adminApi.updateDirection(id, editDirName.trim());
+    setEditingDirId(null);
+    await loadExpenseTypes();
+  }
+
+  async function handleDeleteDirection(id: string, name: string) {
+    if (!confirm(`Удалить направление "${name}"?`)) return;
+    await adminApi.deleteDirection(id);
     await loadExpenseTypes();
   }
 
@@ -558,8 +586,27 @@ function CompanyDetailView({
       onCancelEditArticle: () => void;
       onRenameArticle: (id: string) => void;
       onDeleteArticle: (id: string, name: string) => void;
+      // Direction support (optional, only for expense types)
+      dirOpts?: {
+        expandedArticle: string | null;
+        setExpandedArticle: (id: string | null) => void;
+        addingDirForArticle: string | null;
+        newDirName: string;
+        setNewDirName: (v: string) => void;
+        onStartAddDir: (articleId: string) => void;
+        onCancelAddDir: () => void;
+        onAddDir: (articleId: string) => void;
+        editingDirId: string | null;
+        editDirName: string;
+        setEditDirName: (v: string) => void;
+        onStartEditDir: (id: string, name: string) => void;
+        onCancelEditDir: () => void;
+        onRenameDir: (id: string) => void;
+        onDeleteDir: (id: string, name: string) => void;
+      };
     },
   ) {
+    const d = opts.dirOpts;
     return types.map((t) => (
       <div key={t.id} className="admin-expense-type">
         <div className="admin-expense-type__header">
@@ -587,7 +634,10 @@ function CompanyDetailView({
         </div>
         {opts.expanded === t.id && (
           <div className="admin-expense-articles">
-            {t.articles.map((a) => (
+            {t.articles.map((a) => {
+              const dirs = (a as any).directions as { id: string; name: string; expenseArticleId: string; sortOrder: number }[] | undefined;
+              const hasDirs = d && dirs;
+              return (
               <div key={a.id} className="admin-expense-article">
                 {opts.editingArticleId === a.id ? (
                   <div className="admin-inline-edit">
@@ -597,15 +647,60 @@ function CompanyDetailView({
                   </div>
                 ) : (
                   <>
-                    <span className="admin-expense-article__name"><Tag size={12} /> {a.name}</span>
-                    <span className="admin-entity-actions">
-                      <button className="btn btn--ghost btn--sm" onClick={() => opts.onStartEditArticle(a.id, a.name)}><Pencil size={12} /></button>
-                      <button className="btn btn--ghost btn--sm" onClick={() => opts.onDeleteArticle(a.id, a.name)}><Trash2 size={12} /></button>
-                    </span>
+                    <div className="admin-expense-article__row">
+                      {d ? (
+                        <span className="admin-expense-article__name admin-expense-article__name--clickable" onClick={() => d.setExpandedArticle(d.expandedArticle === a.id ? null : a.id)}>
+                          <ChevronRight size={12} className={`admin-chevron ${d.expandedArticle === a.id ? "admin-chevron--open" : ""}`} />
+                          <Tag size={12} /> {a.name}
+                          {dirs && dirs.length > 0 && <span className="admin-expense-type__count">({dirs.length})</span>}
+                        </span>
+                      ) : (
+                        <span className="admin-expense-article__name"><Tag size={12} /> {a.name}</span>
+                      )}
+                      <span className="admin-entity-actions">
+                        {d && <button className="btn btn--ghost btn--sm" onClick={() => { d.onStartAddDir(a.id); d.setExpandedArticle(a.id); }} title="Добавить направление"><Plus size={12} /></button>}
+                        <button className="btn btn--ghost btn--sm" onClick={() => opts.onStartEditArticle(a.id, a.name)}><Pencil size={12} /></button>
+                        <button className="btn btn--ghost btn--sm" onClick={() => opts.onDeleteArticle(a.id, a.name)}><Trash2 size={12} /></button>
+                      </span>
+                    </div>
+                    {hasDirs && d.expandedArticle === a.id && (
+                      <div className="admin-directions">
+                        {dirs.map((dir) => (
+                          <div key={dir.id} className="admin-direction">
+                            {d.editingDirId === dir.id ? (
+                              <div className="admin-inline-edit">
+                                <input className="admin-inline-input" value={d.editDirName} onChange={(ev) => d.setEditDirName(ev.target.value)} onKeyDown={(ev) => { if (ev.key === "Enter") d.onRenameDir(dir.id); if (ev.key === "Escape") d.onCancelEditDir(); }} autoFocus />
+                                <button className="btn btn--ghost btn--sm" onClick={() => d.onRenameDir(dir.id)}><Check size={14} /></button>
+                                <button className="btn btn--ghost btn--sm" onClick={d.onCancelEditDir}><X size={14} /></button>
+                              </div>
+                            ) : (
+                              <>
+                                <span className="admin-direction__name">{dir.name}</span>
+                                <span className="admin-entity-actions">
+                                  <button className="btn btn--ghost btn--sm" onClick={() => d.onStartEditDir(dir.id, dir.name)}><Pencil size={12} /></button>
+                                  <button className="btn btn--ghost btn--sm" onClick={() => d.onDeleteDir(dir.id, dir.name)}><Trash2 size={12} /></button>
+                                </span>
+                              </>
+                            )}
+                          </div>
+                        ))}
+                        {dirs.length === 0 && d.addingDirForArticle !== a.id && (
+                          <div className="admin-empty-hint">Нет направлений</div>
+                        )}
+                        {d.addingDirForArticle === a.id && (
+                          <div className="admin-inline-edit admin-inline-edit--indented">
+                            <input className="admin-inline-input" placeholder="Название направления" value={d.newDirName} onChange={(ev) => d.setNewDirName(ev.target.value)} onKeyDown={(ev) => { if (ev.key === "Enter") d.onAddDir(a.id); if (ev.key === "Escape") d.onCancelAddDir(); }} autoFocus />
+                            <button className="btn btn--ghost btn--sm" onClick={() => d.onAddDir(a.id)} disabled={!d.newDirName.trim()}><Check size={14} /></button>
+                            <button className="btn btn--ghost btn--sm" onClick={d.onCancelAddDir}><X size={14} /></button>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </>
                 )}
               </div>
-            ))}
+              );
+            })}
             {t.articles.length === 0 && opts.addingArticleForType !== t.id && (
               <div className="admin-empty-hint">Нет статей</div>
             )}
@@ -771,6 +866,18 @@ function CompanyDetailView({
                   onCancelEditArticle: () => setEditingArticleId(null),
                   onRenameArticle: handleRenameArticle,
                   onDeleteArticle: handleDeleteArticle,
+                  dirOpts: {
+                    expandedArticle, setExpandedArticle,
+                    addingDirForArticle, newDirName, setNewDirName,
+                    onStartAddDir: (id) => { setAddingDirForArticle(id); setNewDirName(""); },
+                    onCancelAddDir: () => setAddingDirForArticle(null),
+                    onAddDir: handleAddDirection,
+                    editingDirId, editDirName, setEditDirName,
+                    onStartEditDir: (id, name) => { setEditingDirId(id); setEditDirName(name); },
+                    onCancelEditDir: () => setEditingDirId(null),
+                    onRenameDir: handleRenameDirection,
+                    onDeleteDir: handleDeleteDirection,
+                  },
                 })}
                 {expenseTypes.length === 0 && <div className="admin-empty-hint">Нет категорий</div>}
                 <div className="admin-inline-edit">

@@ -20,7 +20,7 @@ router.use(authMiddleware);
 router.post("/operations", validate(createOperationSchema), async (req: Request, res: Response) => {
   try {
     const userId = req.user!.userId;
-    const { operationType, amount, entityId, fromAccountId, toAccountId, expenseTypeId, expenseArticleId, incomeTypeId, incomeArticleId, orderNumber, comment, customFieldValues } = req.body;
+    const { operationType, amount, entityId, fromAccountId, toAccountId, expenseTypeId, expenseArticleId, incomeTypeId, incomeArticleId, directionId, orderNumber, comment, customFieldValues } = req.body;
 
     // Verify user has access to this entity
     const check = await checkEntityAccess(entityId, userId);
@@ -40,6 +40,7 @@ router.post("/operations", validate(createOperationSchema), async (req: Request,
         expenseArticleId: expenseArticleId ?? null,
         incomeTypeId: incomeTypeId ?? null,
         incomeArticleId: incomeArticleId ?? null,
+        directionId: directionId ?? null,
         orderNumber: orderNumber ?? null,
         comment: comment ?? null,
         userId,
@@ -62,6 +63,7 @@ router.post("/operations", validate(createOperationSchema), async (req: Request,
         expenseArticle: { select: { name: true } },
         incomeType: { select: { name: true } },
         incomeArticle: { select: { name: true } },
+        direction: { select: { name: true } },
         user: { select: { name: true } },
         customFieldValues: { include: { customField: { select: { name: true, fieldType: true } } } },
       },
@@ -118,6 +120,7 @@ router.get("/operations", async (req: Request, res: Response) => {
           expenseArticle: { select: { name: true } },
           incomeType: { select: { name: true } },
           incomeArticle: { select: { name: true } },
+          direction: { select: { name: true } },
           user: { select: { name: true } },
           customFieldValues: { include: { customField: { select: { name: true, fieldType: true } } } },
         },
@@ -173,6 +176,7 @@ router.put("/operations/:id", validate(updateOperationSchema), async (req: Reque
         expenseArticle: { select: { name: true } },
         incomeType: { select: { name: true } },
         incomeArticle: { select: { name: true } },
+        direction: { select: { name: true } },
         user: { select: { name: true } },
         customFieldValues: { include: { customField: { select: { name: true, fieldType: true } } } },
       },
@@ -200,6 +204,7 @@ router.put("/operations/:id", validate(updateOperationSchema), async (req: Reque
           expenseArticle: { select: { name: true } },
           incomeType: { select: { name: true } },
           incomeArticle: { select: { name: true } },
+          direction: { select: { name: true } },
           user: { select: { name: true } },
           customFieldValues: { include: { customField: { select: { name: true, fieldType: true } } } },
         },
@@ -255,6 +260,7 @@ router.get("/templates", async (req: Request, res: Response) => {
         expenseArticle: { select: { name: true } },
         incomeType: { select: { name: true } },
         incomeArticle: { select: { name: true } },
+        direction: { select: { name: true } },
       },
       orderBy: { createdAt: "desc" },
     });
@@ -280,6 +286,7 @@ router.post("/templates", validate(createTemplateSchema), async (req: Request, r
         expenseArticleId: req.body.expenseArticleId ?? null,
         incomeTypeId: req.body.incomeTypeId ?? null,
         incomeArticleId: req.body.incomeArticleId ?? null,
+        directionId: req.body.directionId ?? null,
         userId: req.user!.userId,
       },
     });

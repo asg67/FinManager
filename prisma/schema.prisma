@@ -180,6 +180,18 @@ model ExpenseArticle {
   expenseType   ExpenseType @relation(fields: [expenseTypeId], references: [id], onDelete: Cascade)
   sortOrder     Int         @default(0)
 
+  directions    ArticleDirection[]
+  ddsOperations DdsOperation[]
+  ddsTemplates  DdsTemplate[]
+}
+
+model ArticleDirection {
+  id               String         @id @default(uuid())
+  name             String
+  expenseArticleId String
+  expenseArticle   ExpenseArticle @relation(fields: [expenseArticleId], references: [id], onDelete: Cascade)
+  sortOrder        Int            @default(0)
+
   ddsOperations DdsOperation[]
   ddsTemplates  DdsTemplate[]
 }
@@ -256,18 +268,20 @@ model DdsOperation {
   expenseArticle   ExpenseArticle? @relation(fields: [expenseArticleId], references: [id])
   incomeTypeId     String?
   incomeType       IncomeType?     @relation(fields: [incomeTypeId], references: [id])
-  incomeArticleId  String?
-  incomeArticle    IncomeArticle?  @relation(fields: [incomeArticleId], references: [id])
-  orderNumber      String?
-  comment          String?
-  entityId         String
-  entity           Entity          @relation(fields: [entityId], references: [id])
-  userId           String
-  user             User            @relation(fields: [userId], references: [id])
-  linkedBankTxId   String?         @unique
-  linkedBankTx     BankTransaction? @relation(fields: [linkedBankTxId], references: [id], onDelete: SetNull)
-  createdAt        DateTime        @default(now())
-  updatedAt        DateTime        @updatedAt
+  incomeArticleId    String?
+  incomeArticle      IncomeArticle?    @relation(fields: [incomeArticleId], references: [id])
+  directionId        String?
+  direction          ArticleDirection? @relation(fields: [directionId], references: [id])
+  orderNumber        String?
+  comment            String?
+  entityId           String
+  entity             Entity            @relation(fields: [entityId], references: [id])
+  userId             String
+  user               User              @relation(fields: [userId], references: [id])
+  linkedBankTxId     String?           @unique
+  linkedBankTx       BankTransaction?  @relation(fields: [linkedBankTxId], references: [id], onDelete: SetNull)
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
 
   customFieldValues CustomFieldValue[]
 }
@@ -290,6 +304,8 @@ model DdsTemplate {
   incomeType       IncomeType?     @relation(fields: [incomeTypeId], references: [id])
   incomeArticleId  String?
   incomeArticle    IncomeArticle?  @relation(fields: [incomeArticleId], references: [id])
+  directionId      String?
+  direction        ArticleDirection? @relation(fields: [directionId], references: [id])
   userId           String
   user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt        DateTime        @default(now())

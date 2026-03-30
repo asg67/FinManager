@@ -45,7 +45,7 @@ router.get("/:id", async (req: Request, res: Response) => {
         accounts: { orderBy: { createdAt: "asc" } },
         expenseTypes: {
           orderBy: { sortOrder: "asc" },
-          include: { articles: { orderBy: { sortOrder: "asc" } } },
+          include: { articles: { orderBy: { sortOrder: "asc" }, include: { directions: { orderBy: { sortOrder: "asc" } } } } },
         },
       },
     });

@@ -16,6 +16,7 @@ export const createOperationSchema = z
     expenseArticleId: z.string().uuid().optional(),
     incomeTypeId: z.string().uuid().optional(),
     incomeArticleId: z.string().uuid().optional(),
+    directionId: z.string().uuid().optional(),
     orderNumber: z.string().max(255).optional(),
     comment: z.string().max(1000).optional(),
     customFieldValues: z.array(customFieldValueSchema).optional(),
@@ -31,6 +32,7 @@ export const updateOperationSchema = z.object({
   expenseArticleId: z.string().uuid().optional().nullable(),
   incomeTypeId: z.string().uuid().optional().nullable(),
   incomeArticleId: z.string().uuid().optional().nullable(),
+  directionId: z.string().uuid().optional().nullable(),
   orderNumber: z.string().max(255).optional().nullable(),
   comment: z.string().max(1000).optional().nullable(),
   customFieldValues: z.array(customFieldValueSchema).optional(),
@@ -57,6 +59,7 @@ export const createTemplateSchema = z.object({
   expenseArticleId: z.string().uuid().optional(),
   incomeTypeId: z.string().uuid().optional(),
   incomeArticleId: z.string().uuid().optional(),
+  directionId: z.string().uuid().optional(),
 });
 
 export const updateTemplateSchema = z.object({
@@ -67,4 +70,5 @@ export const updateTemplateSchema = z.object({
   expenseArticleId: z.string().uuid().optional().nullable(),
   incomeTypeId: z.string().uuid().optional().nullable(),
   incomeArticleId: z.string().uuid().optional().nullable(),
+  directionId: z.string().uuid().optional().nullable(),
 });

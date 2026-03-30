@@ -38,7 +38,7 @@ router.get("/", async (req: Request, res: Response) => {
 
     const types = await prisma.expenseType.findMany({
       where: { entityId: req.params.entityId },
-      include: { articles: { orderBy: { sortOrder: "asc" } } },
+      include: { articles: { orderBy: { sortOrder: "asc" }, include: { directions: { orderBy: { sortOrder: "asc" } } } } },
       orderBy: { sortOrder: "asc" },
     });
 
@@ -64,7 +64,7 @@ router.post("/", validate(createExpenseTypeSchema), async (req: Request, res: Re
         sortOrder: req.body.sortOrder ?? 0,
         entityId: req.params.entityId,
       },
-      include: { articles: true },
+      include: { articles: { include: { directions: true } } },
     });
 
     res.status(201).json(type);
@@ -94,7 +94,7 @@ router.put("/:typeId", validate(updateExpenseTypeSchema), async (req: Request, r
     const updated = await prisma.expenseType.update({
       where: { id: req.params.typeId },
       data: req.body,
-      include: { articles: { orderBy: { sortOrder: "asc" } } },
+      include: { articles: { orderBy: { sortOrder: "asc" }, include: { directions: { orderBy: { sortOrder: "asc" } } } } },
     });
 
     res.json(updated);

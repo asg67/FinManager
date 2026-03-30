@@ -11,6 +11,7 @@ export interface CreateOperationPayload {
   expenseArticleId?: string;
   incomeTypeId?: string;
   incomeArticleId?: string;
+  directionId?: string;
   orderNumber?: string;
   comment?: string;
   customFieldValues?: { customFieldId: string; value: string }[];
@@ -24,6 +25,7 @@ export interface UpdateOperationPayload {
   expenseArticleId?: string | null;
   incomeTypeId?: string | null;
   incomeArticleId?: string | null;
+  directionId?: string | null;
   orderNumber?: string | null;
   comment?: string | null;
   customFieldValues?: { customFieldId: string; value: string }[];

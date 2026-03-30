@@ -9,7 +9,7 @@ import { Button, Input, Modal } from "../ui/index.js";
 import { useAuthStore } from "../../stores/auth.js";
 import type { Entity, Account, ExpenseType, IncomeType, CustomField, DdsOperation, DdsTemplate } from "@shared/types.js";
 
-type Step = "entity" | "opType" | "fromAccount" | "category" | "article" | "incomeCategory" | "incomeArticle" | "details" | "review";
+type Step = "entity" | "opType" | "fromAccount" | "category" | "article" | "direction" | "incomeCategory" | "incomeArticle" | "details" | "review";
 
 interface Props {
   open: boolean;
@@ -56,6 +56,7 @@ export default function StepWizard({ open, onClose, onDone, editOperation, entit
         toAccountId: editOperation.toAccountId ?? undefined,
         expenseTypeId: editOperation.expenseTypeId ?? undefined,
         expenseArticleId: editOperation.expenseArticleId ?? undefined,
+        directionId: editOperation.directionId ?? undefined,
         incomeTypeId: editOperation.incomeTypeId ?? undefined,
         incomeArticleId: editOperation.incomeArticleId ?? undefined,
         orderNumber: editOperation.orderNumber ?? undefined,
@@ -166,7 +167,18 @@ export default function StepWizard({ open, onClose, onDone, editOperation, entit
   }
 
   function selectArticle(articleId: string) {
-    setForm((prev) => ({ ...prev, expenseArticleId: articleId }));
+    setForm((prev) => ({ ...prev, expenseArticleId: articleId, directionId: undefined }));
+    const selType = expenseTypes.find((et) => et.id === form.expenseTypeId);
+    const selArt = selType?.articles.find((a) => a.id === articleId);
+    if (selArt && selArt.directions && selArt.directions.length > 0) {
+      setStep("direction");
+    } else {
+      setStep("details");
+    }
+  }
+
+  function selectDirection(dirId: string) {
+    setForm((prev) => ({ ...prev, directionId: dirId }));
     setStep("details");
   }
 
@@ -214,6 +226,9 @@ export default function StepWizard({ open, onClose, onDone, editOperation, entit
       case "article":
         setStep("category");
         break;
+      case "direction":
+        setStep("article");
+        break;
       case "incomeCategory":
         setStep("opType");
         break;
@@ -223,7 +238,10 @@ export default function StepWizard({ open, onClose, onDone, editOperation, entit
       case "details":
         if (form.operationType === "expense") {
           const cat = expenseTypes.find((et) => et.id === form.expenseTypeId);
-          if (cat && cat.articles.length > 0) {
+          const art = cat?.articles.find((a) => a.id === form.expenseArticleId);
+          if (art && art.directions && art.directions.length > 0) {
+            setStep("direction");
+          } else if (cat && cat.articles.length > 0) {
             setStep("article");
           } else {
             setStep("category");
@@ -312,7 +330,9 @@ export default function StepWizard({ open, onClose, onDone, editOperation, entit
   const toAccountName = toAccOther ? `${toAccOther.entityName} — ${toAccOther.name}` : toAccOwn?.name;
   const expenseTypeName = expenseTypes.find((et) => et.id === form.expenseTypeId)?.name;
   const selectedExpenseType = expenseTypes.find((et) => et.id === form.expenseTypeId);
-  const expenseArticleName = selectedExpenseType?.articles.find((a) => a.id === form.expenseArticleId)?.name;
+  const selectedExpenseArticle = selectedExpenseType?.articles.find((a) => a.id === form.expenseArticleId);
+  const expenseArticleName = selectedExpenseArticle?.name;
+  const directionName = selectedExpenseArticle?.directions?.find((d) => d.id === form.directionId)?.name;
   const incomeTypeName = incomeTypes.find((it) => it.id === form.incomeTypeId)?.name;
   const selectedIncomeType = incomeTypes.find((it) => it.id === form.incomeTypeId);
   const incomeArticleName = selectedIncomeType?.articles.find((a) => a.id === form.incomeArticleId)?.name;
@@ -325,6 +345,7 @@ export default function StepWizard({ open, onClose, onDone, editOperation, entit
     fromAccount: t("dds.fromAccount"),
     category: t("dds.selectCategory"),
     article: t("dds.selectArticle"),
+    direction: "Направление",
     incomeCategory: "Тип прихода",
     incomeArticle: "Статья прихода",
     details: t("dds.fillDetails"),
@@ -457,6 +478,27 @@ export default function StepWizard({ open, onClose, onDone, editOperation, entit
             ))}
           </div>
         )}
+
+        {/* Step: Direction */}
+        {step === "direction" && (() => {
+          const selType = expenseTypes.find((et) => et.id === form.expenseTypeId);
+          const selArt = selType?.articles.find((a) => a.id === form.expenseArticleId);
+          const dirs = selArt?.directions ?? [];
+          return (
+            <div className="step-wizard__grid">
+              {dirs.map((d) => (
+                <button
+                  key={d.id}
+                  type="button"
+                  className={`step-wizard__option ${form.directionId === d.id ? "step-wizard__option--selected" : ""}`}
+                  onClick={() => selectDirection(d.id)}
+                >
+                  {d.name}
+                </button>
+              ))}
+            </div>
+          );
+        })()}
 
         {/* Step: Income Category */}
         {step === "incomeCategory" && (
@@ -640,6 +682,12 @@ export default function StepWizard({ open, onClose, onDone, editOperation, entit
               <div className="step-wizard__review-row">
                 <span className="step-wizard__review-label">{t("dds.expenseArticle")}</span>
                 <span className="step-wizard__review-value">{expenseArticleName}</span>
+              </div>
+            )}
+            {directionName && (
+              <div className="step-wizard__review-row">
+                <span className="step-wizard__review-label">Направление</span>
+                <span className="step-wizard__review-value">{directionName}</span>
               </div>
             )}
             {incomeTypeName && (

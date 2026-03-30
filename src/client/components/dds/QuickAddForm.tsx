@@ -249,6 +249,7 @@ export default function QuickAddForm({ entities, onSaved }: Props) {
             onChange={(e) => {
               updateField("expenseTypeId", e.target.value || undefined);
               updateField("expenseArticleId", undefined);
+              updateField("directionId", undefined);
             }}
           />
         )}
@@ -259,9 +260,25 @@ export default function QuickAddForm({ entities, onSaved }: Props) {
             placeholder={t("dds.expenseArticle")}
             options={selectedExpenseType.articles.map((a) => ({ value: a.id, label: a.name }))}
             value={form.expenseArticleId ?? ""}
-            onChange={(e) => updateField("expenseArticleId", e.target.value || undefined)}
+            onChange={(e) => {
+              updateField("expenseArticleId", e.target.value || undefined);
+              updateField("directionId", undefined);
+            }}
           />
         )}
+
+        {/* Direction */}
+        {isExpense && (() => {
+          const selArt = selectedExpenseType?.articles.find((a) => a.id === form.expenseArticleId);
+          return selArt && selArt.directions && selArt.directions.length > 0 ? (
+            <Select
+              placeholder="Направление"
+              options={selArt.directions.map((d) => ({ value: d.id, label: d.name }))}
+              value={form.directionId ?? ""}
+              onChange={(e) => updateField("directionId", e.target.value || undefined)}
+            />
+          ) : null;
+        })()}
 
         {/* Income type */}
         {isIncome && incomeTypes.length > 0 && (

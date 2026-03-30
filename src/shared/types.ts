@@ -107,11 +107,19 @@ export interface Account {
 
 // === Expense Types & Articles ===
 
+export interface ArticleDirection {
+  id: string;
+  name: string;
+  expenseArticleId: string;
+  sortOrder: number;
+}
+
 export interface ExpenseArticle {
   id: string;
   name: string;
   expenseTypeId: string;
   sortOrder: number;
+  directions: ArticleDirection[];
 }
 
 export interface ExpenseType {
@@ -183,6 +191,8 @@ export interface DdsOperation {
   incomeType: { name: string } | null;
   incomeArticleId: string | null;
   incomeArticle: { name: string } | null;
+  directionId: string | null;
+  direction: { name: string } | null;
   orderNumber: string | null;
   comment: string | null;
   entityId: string;

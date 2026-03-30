@@ -535,7 +535,7 @@ router.get("/expense-types", async (req: Request, res: Response) => {
 
     const types = await prisma.expenseType.findMany({
       where: { OR: [{ companyId: user.companyId }, { entity: { companyId: user.companyId } }] },
-      include: { articles: { orderBy: { name: "asc" } } },
+      include: { articles: { orderBy: { name: "asc" }, include: { directions: { orderBy: { sortOrder: "asc" } } } } },
       orderBy: { name: "asc" },
     });
 
@@ -547,6 +547,7 @@ router.get("/expense-types", async (req: Request, res: Response) => {
         id: a.id,
         name: a.name,
         expenseTypeId: a.expenseTypeId,
+        directions: (a as any).directions ?? [],
       })),
     })));
   } catch (error) {

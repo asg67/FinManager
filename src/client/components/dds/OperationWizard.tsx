@@ -56,6 +56,7 @@ export default function OperationWizard({ open, onClose, onDone, editOperation, 
         toAccountId: editOperation.toAccountId ?? undefined,
         expenseTypeId: editOperation.expenseTypeId ?? undefined,
         expenseArticleId: editOperation.expenseArticleId ?? undefined,
+        directionId: editOperation.directionId ?? undefined,
         incomeTypeId: editOperation.incomeTypeId ?? undefined,
         incomeArticleId: editOperation.incomeArticleId ?? undefined,
         orderNumber: editOperation.orderNumber ?? undefined,
@@ -303,6 +304,7 @@ export default function OperationWizard({ open, onClose, onDone, editOperation, 
               onChange={(e) => {
                 updateField("expenseTypeId", e.target.value || undefined);
                 updateField("expenseArticleId", undefined);
+                updateField("directionId", undefined);
               }}
               placeholder={t("common.select")}
             />
@@ -311,10 +313,25 @@ export default function OperationWizard({ open, onClose, onDone, editOperation, 
                 label={t("dds.expenseArticle")}
                 options={selectedExpenseType.articles.map((a) => ({ value: a.id, label: a.name }))}
                 value={form.expenseArticleId ?? ""}
-                onChange={(e) => updateField("expenseArticleId", e.target.value || undefined)}
+                onChange={(e) => {
+                  updateField("expenseArticleId", e.target.value || undefined);
+                  updateField("directionId", undefined);
+                }}
                 placeholder={t("common.select")}
               />
             )}
+            {(() => {
+              const selArt = selectedExpenseType?.articles.find((a) => a.id === form.expenseArticleId);
+              return selArt && selArt.directions && selArt.directions.length > 0 ? (
+                <Select
+                  label="Направление"
+                  options={selArt.directions.map((d) => ({ value: d.id, label: d.name }))}
+                  value={form.directionId ?? ""}
+                  onChange={(e) => updateField("directionId", e.target.value || undefined)}
+                  placeholder={t("common.select")}
+                />
+              ) : null;
+            })()}
             <Input
               label={t("dds.orderNumber")}
               value={form.orderNumber ?? ""}

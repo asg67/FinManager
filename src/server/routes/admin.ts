@@ -575,7 +575,7 @@ router.get("/companies/:id/expense-types", async (req: Request, res: Response) =
     const companyId = req.params.id as string;
     const types = await prisma.expenseType.findMany({
       where: { OR: [{ companyId }, { entity: { companyId } }] },
-      include: { articles: { orderBy: { sortOrder: "asc" } } },
+      include: { articles: { orderBy: { sortOrder: "asc" }, include: { directions: { orderBy: { sortOrder: "asc" } } } } },
       orderBy: { sortOrder: "asc" },
     });
     res.json(types);
@@ -619,7 +619,7 @@ router.post("/companies/:id/expense-types", async (req: Request, res: Response) 
 
     const type = await prisma.expenseType.create({
       data,
-      include: { articles: true },
+      include: { articles: { include: { directions: true } } },
     });
 
     res.status(201).json(type);
@@ -647,7 +647,7 @@ router.put("/expense-types/:id", async (req: Request, res: Response) => {
     const updated = await prisma.expenseType.update({
       where: { id: type.id },
       data: { name: name.trim() },
-      include: { articles: { orderBy: { sortOrder: "asc" } } },
+      include: { articles: { orderBy: { sortOrder: "asc" }, include: { directions: { orderBy: { sortOrder: "asc" } } } } },
     });
 
     res.json(updated);
@@ -745,6 +745,81 @@ router.delete("/articles/:id", async (req: Request, res: Response) => {
     res.status(204).send();
   } catch (error) {
     console.error("Admin delete article error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// ===== ARTICLE DIRECTIONS CRUD =====
+
+// POST /api/admin/articles/:articleId/directions — create direction
+router.post("/articles/:articleId/directions", async (req: Request, res: Response) => {
+  try {
+    const { name } = req.body;
+    if (!name?.trim()) {
+      res.status(400).json({ message: "Name is required" });
+      return;
+    }
+
+    const article = await prisma.expenseArticle.findUnique({ where: { id: req.params.articleId as string } });
+    if (!article) {
+      res.status(404).json({ message: "Expense article not found" });
+      return;
+    }
+
+    const direction = await prisma.articleDirection.create({
+      data: {
+        name: name.trim(),
+        expenseArticleId: article.id,
+      },
+    });
+
+    res.status(201).json(direction);
+  } catch (error) {
+    console.error("Admin create direction error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// PUT /api/admin/directions/:id — rename direction
+router.put("/directions/:id", async (req: Request, res: Response) => {
+  try {
+    const { name } = req.body;
+    if (!name?.trim()) {
+      res.status(400).json({ message: "Name is required" });
+      return;
+    }
+
+    const direction = await prisma.articleDirection.findUnique({ where: { id: req.params.id as string } });
+    if (!direction) {
+      res.status(404).json({ message: "Article direction not found" });
+      return;
+    }
+
+    const updated = await prisma.articleDirection.update({
+      where: { id: direction.id },
+      data: { name: name.trim() },
+    });
+
+    res.json(updated);
+  } catch (error) {
+    console.error("Admin update direction error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// DELETE /api/admin/directions/:id — delete direction
+router.delete("/directions/:id", async (req: Request, res: Response) => {
+  try {
+    const direction = await prisma.articleDirection.findUnique({ where: { id: req.params.id as string } });
+    if (!direction) {
+      res.status(404).json({ message: "Article direction not found" });
+      return;
+    }
+
+    await prisma.articleDirection.delete({ where: { id: direction.id } });
+    res.status(204).send();
+  } catch (error) {
+    console.error("Admin delete direction error:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 });
