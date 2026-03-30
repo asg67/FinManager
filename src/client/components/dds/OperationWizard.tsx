@@ -27,7 +27,7 @@ export default function OperationWizard({ open, onClose, onDone, editOperation, 
   const user = useAuthStore((s) => s.user);
   const isDdsOnly = user?.company?.mode === "dds_only";
   const [accounts, setAccounts] = useState<Account[]>([]);
-  const [otherCash, setOtherCash] = useState<AccountWithEntity[]>([]);
+  const [otherAccounts, setOtherCash] = useState<AccountWithEntity[]>([]);
   const [expenseTypes, setExpenseTypes] = useState<ExpenseType[]>([]);
   const [incomeTypes, setIncomeTypes] = useState<IncomeType[]>([]);
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
@@ -108,7 +108,7 @@ export default function OperationWizard({ open, onClose, onDone, editOperation, 
   // Load cash accounts from other entities for transfers
   useEffect(() => {
     if (open && form.entityId) {
-      accountsApi.listOtherCash(entities, form.entityId).then(setOtherCash);
+      accountsApi.listOtherAccounts(entities, form.entityId).then(setOtherCash);
     } else {
       setOtherCash([]);
     }
@@ -286,7 +286,7 @@ export default function OperationWizard({ open, onClose, onDone, editOperation, 
             label={t("dds.toAccount")}
             options={[
               ...accounts.map((a) => ({ value: a.id, label: a.name })),
-              ...(isTransfer ? otherCash.map((a) => ({ value: a.id, label: `${a.entityName} — ${a.name}` })) : []),
+              ...(isTransfer ? otherAccounts.map((a) => ({ value: a.id, label: `${a.name} (${a.entityName})` })) : []),
             ]}
             value={form.toAccountId ?? ""}
             onChange={(e) => updateField("toAccountId", e.target.value || undefined)}

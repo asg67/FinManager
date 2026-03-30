@@ -24,8 +24,8 @@ export const accountsApi = {
     return api.get<Account[]>(`/entities/${entityId}/accounts${qs ? `?${qs}` : ""}`);
   },
 
-  /** Load cash accounts from all other company entities (for cross-entity transfers) */
-  listOtherCash: async (
+  /** Load enabled accounts from all other company entities (for cross-entity transfers) */
+  listOtherAccounts: async (
     _entities: { id: string; name: string }[],
     excludeEntityId: string,
   ): Promise<AccountWithEntity[]> => {

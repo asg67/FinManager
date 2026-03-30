@@ -336,7 +336,7 @@ router.delete("/templates/:id", async (req: Request, res: Response) => {
   }
 });
 
-// GET /api/dds/company-cash?excludeEntityId=xxx — cash accounts from all company entities (for transfers)
+// GET /api/dds/company-cash?excludeEntityId=xxx — enabled accounts from all other company entities (for transfers)
 router.get("/company-cash", async (req: Request, res: Response) => {
   try {
     const userId = req.user!.userId;
@@ -348,17 +348,15 @@ router.get("/company-cash", async (req: Request, res: Response) => {
       return;
     }
 
-    // All cash accounts from all company entities (except the excluded one)
+    // All enabled accounts from other company entities (for cross-entity transfers)
     const accounts = await prisma.account.findMany({
       where: {
         entity: { companyId: user.companyId },
-        type: "cash",
         enabled: true,
-        source: "manual",
         ...(excludeEntityId ? { entityId: { not: excludeEntityId } } : {}),
       },
       include: { entity: { select: { name: true } } },
-      orderBy: { createdAt: "asc" },
+      orderBy: [{ entity: { name: "asc" } }, { name: "asc" }],
     });
 
     res.json(accounts.map((a) => ({
