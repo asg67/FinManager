@@ -337,8 +337,8 @@ export default function QuickAddForm({ entities, onSaved }: Props) {
           required
         />
 
-        {/* Order number (expense only) */}
-        {isExpense && (
+        {/* Order number (expense only, hidden for dds_only) */}
+        {isExpense && !isDdsOnly && (
           <Input
             value={form.orderNumber ?? ""}
             onChange={(e) => updateField("orderNumber", e.target.value || undefined)}

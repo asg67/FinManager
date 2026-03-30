@@ -332,11 +332,13 @@ export default function OperationWizard({ open, onClose, onDone, editOperation, 
                 />
               ) : null;
             })()}
-            <Input
-              label={t("dds.orderNumber")}
-              value={form.orderNumber ?? ""}
-              onChange={(e) => updateField("orderNumber", e.target.value || undefined)}
-            />
+            {!isDdsOnly && (
+              <Input
+                label={t("dds.orderNumber")}
+                value={form.orderNumber ?? ""}
+                onChange={(e) => updateField("orderNumber", e.target.value || undefined)}
+              />
+            )}
           </>
         )}
 

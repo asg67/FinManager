@@ -418,11 +418,11 @@ function DdsTable({ companyName }: { companyName?: string }) {
     },
     // Custom field columns — only for dds_only
     ...customFieldColumns,
-    {
+    ...(!isDdsOnly ? [{
       key: "orderNumber",
       header: t("dds.orderNumber"),
       render: (r: DdsOperation) => r.orderNumber ?? "\u2014",
-    },
+    }] : []),
     {
       key: "comment",
       header: t("dds.comment"),
