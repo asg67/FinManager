@@ -1,5 +1,6 @@
 import { Router, Request, Response } from "express";
 import { Prisma } from "@prisma/client";
+import bcrypt from "bcryptjs";
 import { prisma } from "../prisma.js";
 import { authMiddleware } from "../middleware/auth.js";
 import { seedEntityAccounts } from "../helpers/seedAccounts.js";
@@ -1241,7 +1242,6 @@ router.post("/managers", async (req: Request, res: Response) => {
       return;
     }
 
-    const bcrypt = await import("bcryptjs");
     const passwordHash = await bcrypt.hash(password, 10);
 
     const manager = await prisma.user.create({
