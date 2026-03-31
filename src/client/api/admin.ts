@@ -15,6 +15,15 @@ export interface AdminUser {
   createdAt: string;
 }
 
+export interface AdminManager {
+  id: string;
+  name: string;
+  email: string;
+  lastLoginAt: string | null;
+  createdAt: string;
+  companies: { id: string; name: string }[];
+}
+
 export interface AdminCompanyDetail {
   id: string;
   name: string;
@@ -288,4 +297,17 @@ export const adminApi = {
 
   deleteCustomField: (id: string) =>
     api.delete<void>(`/admin/custom-fields/${id}`),
+
+  // Managers CRUD
+  getManagers: () =>
+    api.get<AdminManager[]>("/admin/managers"),
+
+  createManager: (data: { email: string; password: string; name: string }) =>
+    api.post<{ id: string; name: string; email: string }>("/admin/managers", data),
+
+  setManagerCompanies: (managerId: string, companyIds: string[]) =>
+    api.put<{ companyIds: string[] }>(`/admin/managers/${managerId}/companies`, { companyIds }),
+
+  deleteManager: (managerId: string) =>
+    api.delete<void>(`/admin/managers/${managerId}`),
 };

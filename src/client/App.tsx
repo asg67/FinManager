@@ -22,6 +22,7 @@ import "./styles/bank-accounts.css";
 import "./styles/onboarding.css";
 import "./styles/datepicker.css";
 import "./styles/admin.css";
+import "./styles/manager.css";
 
 // Lazy-loaded pages for code splitting
 const Dashboard = lazy(() => import("./pages/Dashboard.js"));
@@ -33,6 +34,8 @@ const BankAccounts = lazy(() => import("./pages/BankAccounts.js"));
 const BankConnectionDetail = lazy(() => import("./pages/BankConnectionDetail.js"));
 const Admin = lazy(() => import("./pages/Admin.js"));
 const ShareTarget = lazy(() => import("./pages/ShareTarget.js"));
+const ManagerCabinet = lazy(() => import("./pages/manager/ManagerCabinet.js"));
+const ManagerCompanyView = lazy(() => import("./pages/manager/ManagerCompanyView.js"));
 
 export default function App() {
   const { i18n } = useTranslation();
@@ -76,6 +79,7 @@ export default function App() {
 
   // Owner (admin) always sees admin panel, regular users see normal app
   const isOwner = user?.role === "owner";
+  const isManager = user?.role === "manager";
 
   return (
     <>
@@ -93,6 +97,13 @@ export default function App() {
               {/* Admin — full screen, no sidebar, all routes redirect here */}
               <Route path="/admin" element={<Suspense fallback={pageFallback}><Admin /></Suspense>} />
               <Route path="*" element={<Navigate to="/admin" replace />} />
+            </>
+          ) : isManager ? (
+            <>
+              {/* Manager cabinet — own layout, no sidebar */}
+              <Route path="/manager" element={<Suspense fallback={pageFallback}><ManagerCabinet /></Suspense>} />
+              <Route path="/manager/:companyId" element={<Suspense fallback={pageFallback}><ManagerCompanyView /></Suspense>} />
+              <Route path="*" element={<Navigate to="/manager" replace />} />
             </>
           ) : (
             <>

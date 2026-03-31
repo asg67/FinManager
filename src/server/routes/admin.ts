@@ -1190,4 +1190,135 @@ router.delete("/operations/:id", async (req: Request, res: Response) => {
   }
 });
 
+// ===== MANAGER CRUD =====
+
+// GET /api/admin/managers
+router.get("/managers", async (_req: Request, res: Response) => {
+  try {
+    const managers = await prisma.user.findMany({
+      where: { role: "manager" },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        lastLoginAt: true,
+        createdAt: true,
+        managerAccess: { select: { company: { select: { id: true, name: true } } } },
+      },
+      orderBy: { createdAt: "asc" },
+    });
+
+    res.json(managers.map((m) => ({
+      id: m.id,
+      name: m.name,
+      email: m.email,
+      lastLoginAt: m.lastLoginAt?.toISOString() ?? null,
+      createdAt: m.createdAt.toISOString(),
+      companies: m.managerAccess.map((a) => ({ id: a.company.id, name: a.company.name })),
+    })));
+  } catch (error) {
+    console.error("Admin get managers error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// POST /api/admin/managers
+router.post("/managers", async (req: Request, res: Response) => {
+  try {
+    const { email, password, name } = req.body;
+    if (!email || !password || !name) {
+      res.status(400).json({ message: "email, password, name are required" });
+      return;
+    }
+    if (password.length < 6) {
+      res.status(400).json({ message: "Password must be at least 6 characters" });
+      return;
+    }
+
+    const existing = await prisma.user.findUnique({ where: { email } });
+    if (existing) {
+      res.status(409).json({ message: "Email already registered" });
+      return;
+    }
+
+    const bcrypt = await import("bcryptjs");
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    const manager = await prisma.user.create({
+      data: { email, passwordHash, name, role: "manager" },
+    });
+
+    res.status(201).json({ id: manager.id, name: manager.name, email: manager.email });
+  } catch (error) {
+    console.error("Admin create manager error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// PUT /api/admin/managers/:id/companies
+router.put("/managers/:id/companies", async (req: Request, res: Response) => {
+  try {
+    const managerId = req.params.id as string;
+    const { companyIds } = req.body;
+    if (!Array.isArray(companyIds)) {
+      res.status(400).json({ message: "companyIds must be an array" });
+      return;
+    }
+
+    const manager = await prisma.user.findUnique({ where: { id: managerId } });
+    if (!manager || manager.role !== "manager") {
+      res.status(404).json({ message: "Manager not found" });
+      return;
+    }
+
+    // Validate all companyIds exist
+    if (companyIds.length > 0) {
+      const validCompanies = await prisma.company.findMany({
+        where: { id: { in: companyIds } },
+        select: { id: true },
+      });
+      if (validCompanies.length !== companyIds.length) {
+        res.status(400).json({ message: "Some company IDs are invalid" });
+        return;
+      }
+    }
+
+    // Replace all access records in a transaction
+    await prisma.$transaction([
+      prisma.managerCompanyAccess.deleteMany({ where: { userId: managerId } }),
+      ...(companyIds.length > 0
+        ? [prisma.managerCompanyAccess.createMany({
+            data: companyIds.map((cid: string) => ({
+              userId: managerId,
+              companyId: cid,
+              createdById: req.user!.userId,
+            })),
+          })]
+        : []),
+    ]);
+
+    res.json({ companyIds });
+  } catch (error) {
+    console.error("Admin set manager companies error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// DELETE /api/admin/managers/:id
+router.delete("/managers/:id", async (req: Request, res: Response) => {
+  try {
+    const managerId = req.params.id as string;
+    const manager = await prisma.user.findUnique({ where: { id: managerId } });
+    if (!manager || manager.role !== "manager") {
+      res.status(404).json({ message: "Manager not found" });
+      return;
+    }
+    await prisma.user.delete({ where: { id: managerId } });
+    res.status(204).send();
+  } catch (error) {
+    console.error("Admin delete manager error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 export default router;

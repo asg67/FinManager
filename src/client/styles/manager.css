@@ -1,0 +1,633 @@
+/* ===== Manager Cabinet ===== */
+
+.manager-layout {
+  min-height: 100vh;
+  background: var(--bg-base);
+  display: flex;
+  flex-direction: column;
+}
+
+/* ===== Header ===== */
+
+.manager-header {
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--glass-border);
+  padding: 0 2rem;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.manager-header__left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.manager-header__logo {
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+}
+
+.manager-header__company {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.manager-header__back {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.375rem 0.625rem;
+  border-radius: 8px;
+  transition: background 0.15s, color 0.15s;
+}
+
+.manager-header__back:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.manager-header__right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.manager-header__name {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+}
+
+.manager-header__btn {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.375rem 0.625rem;
+  border-radius: 8px;
+  transition: background 0.15s, color 0.15s;
+}
+
+.manager-header__btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+/* ===== Main content ===== */
+
+.manager-content {
+  flex: 1;
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 2rem 2rem 4rem;
+}
+
+/* ===== Cabinet (company list) ===== */
+
+.manager-cabinet__title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: 0.375rem;
+}
+
+.manager-cabinet__subtitle {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin-bottom: 2rem;
+}
+
+.manager-company-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+@media (max-width: 900px) {
+  .manager-company-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .manager-company-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.manager-company-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  padding: 1.5rem;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.manager-company-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.03) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+.manager-company-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+  border-color: var(--accent-primary);
+}
+
+.manager-company-card__name {
+  font-size: 1.125rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.manager-company-card__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.manager-company-card__row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+}
+
+.manager-company-card__row svg {
+  flex-shrink: 0;
+}
+
+.manager-company-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: auto;
+}
+
+.manager-company-card__last-dds {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.manager-empty {
+  text-align: center;
+  padding: 4rem 2rem;
+  color: var(--text-secondary);
+}
+
+.manager-empty__title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: var(--text-primary);
+}
+
+/* ===== Company View ===== */
+
+.manager-company-view__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.manager-company-view__title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.manager-company-view__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* ===== Tabs ===== */
+
+.manager-tabs {
+  display: flex;
+  gap: 0.25rem;
+  border-bottom: 1px solid var(--glass-border);
+  margin-bottom: 1.5rem;
+}
+
+.manager-tab {
+  padding: 0.625rem 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+  margin-bottom: -1px;
+}
+
+.manager-tab:hover {
+  color: var(--text-primary);
+}
+
+.manager-tab--active {
+  color: var(--text-primary);
+  border-bottom-color: var(--accent-primary);
+}
+
+/* ===== KPI Row ===== */
+
+.manager-kpi-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+@media (max-width: 600px) {
+  .manager-kpi-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.manager-kpi-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--glass-border);
+  border-radius: 14px;
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.manager-kpi-card__label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.manager-kpi-card__value {
+  font-size: 1.625rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.manager-kpi-card__value--income { color: #22c55e; }
+.manager-kpi-card__value--expense { color: #ef4444; }
+.manager-kpi-card__value--balance { color: var(--text-primary); }
+
+.manager-kpi-card__count {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+/* ===== Charts ===== */
+
+.manager-charts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+  margin-bottom: 2rem;
+}
+
+@media (max-width: 768px) {
+  .manager-charts {
+    grid-template-columns: 1fr;
+  }
+}
+
+.manager-chart-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--glass-border);
+  border-radius: 14px;
+  padding: 1.25rem;
+}
+
+.manager-chart-card__title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: var(--text-primary);
+}
+
+/* ===== Filters row ===== */
+
+.manager-filters {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.manager-filter-select {
+  padding: 0.5rem 0.875rem;
+  font-size: 0.875rem;
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.manager-filter-select:focus {
+  border-color: var(--accent-primary);
+}
+
+.manager-filter-input {
+  padding: 0.5rem 0.875rem;
+  font-size: 0.875rem;
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  outline: none;
+  min-width: 160px;
+  transition: border-color 0.15s;
+}
+
+.manager-filter-input:focus {
+  border-color: var(--accent-primary);
+}
+
+/* ===== Operations table ===== */
+
+.manager-ops-table-wrap {
+  overflow-x: auto;
+  border-radius: 12px;
+  border: 1px solid var(--glass-border);
+}
+
+.manager-ops-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+
+.manager-ops-table th {
+  text-align: left;
+  padding: 0.75rem 1rem;
+  background: var(--bg-surface);
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.manager-ops-table td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--glass-border);
+  color: var(--text-primary);
+  vertical-align: middle;
+}
+
+.manager-ops-table tr:last-child td {
+  border-bottom: none;
+}
+
+.manager-ops-table tr:hover td {
+  background: var(--bg-hover);
+}
+
+.manager-ops-table__amount--income { color: #22c55e; font-weight: 600; }
+.manager-ops-table__amount--expense { color: #ef4444; font-weight: 600; }
+.manager-ops-table__amount--transfer { color: var(--text-primary); font-weight: 600; }
+
+.manager-type-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem 0.5rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.manager-type-badge--income { background: rgba(34,197,94,0.12); color: #22c55e; }
+.manager-type-badge--expense { background: rgba(239,68,68,0.12); color: #ef4444; }
+.manager-type-badge--transfer { background: rgba(148,163,184,0.12); color: var(--text-secondary); }
+
+/* ===== Pagination ===== */
+
+.manager-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.875rem 0;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+}
+
+.manager-pagination__btns {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.manager-pagination__btn {
+  padding: 0.375rem 0.875rem;
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-size: 0.8125rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.manager-pagination__btn:hover:not(:disabled) {
+  background: var(--bg-hover);
+}
+
+.manager-pagination__btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* ===== Users table ===== */
+
+.manager-users-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+
+.manager-users-table th {
+  text-align: left;
+  padding: 0.75rem 1rem;
+  background: var(--bg-surface);
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.manager-users-table td {
+  padding: 0.875rem 1rem;
+  border-bottom: 1px solid var(--glass-border);
+  color: var(--text-primary);
+}
+
+.manager-users-table tr:last-child td {
+  border-bottom: none;
+}
+
+.manager-users-table__name {
+  font-weight: 500;
+}
+
+.manager-users-table__email {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.manager-role-badge {
+  display: inline-flex;
+  padding: 0.125rem 0.5rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.manager-role-badge--owner { background: rgba(99,102,241,0.12); color: #818cf8; }
+.manager-role-badge--member { background: rgba(148,163,184,0.12); color: var(--text-secondary); }
+
+.manager-last-action--dds { color: #22c55e; }
+.manager-last-action--pdf { color: #60a5fa; }
+.manager-last-action--login { color: var(--text-muted); }
+
+/* ===== Export button ===== */
+
+.manager-export-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.manager-export-btn:hover {
+  background: var(--bg-hover);
+  border-color: var(--accent-primary);
+}
+
+.manager-export-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* ===== Entity filter badge ===== */
+
+.manager-entity-tabs {
+  display: flex;
+  gap: 0.375rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.manager-entity-tab {
+  padding: 0.3125rem 0.875rem;
+  border: 1px solid var(--glass-border);
+  border-radius: 20px;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  transition: all 0.15s;
+}
+
+.manager-entity-tab:hover {
+  border-color: var(--accent-primary);
+  color: var(--text-primary);
+}
+
+.manager-entity-tab--active {
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
+  color: #fff;
+}
+
+/* ===== Loading / Empty states ===== */
+
+.manager-loading {
+  padding: 3rem;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+.manager-empty-state {
+  padding: 3rem;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+}
+
+/* ===== Mobile ===== */
+
+@media (max-width: 600px) {
+  .manager-content {
+    padding: 1.25rem 1rem 5rem;
+  }
+  .manager-header {
+    padding: 0 1rem;
+  }
+  .manager-company-view__header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .manager-kpi-card__value {
+    font-size: 1.25rem;
+  }
+  .manager-ops-table th,
+  .manager-ops-table td {
+    padding: 0.625rem 0.75rem;
+  }
+}

@@ -12,6 +12,11 @@ export async function buildEntityFilter(userId: string) {
     select: { companyId: true, role: true },
   });
 
+  // Managers have no entity access via standard routes
+  if (user?.role === "manager") {
+    return { id: { in: [] as string[] } };
+  }
+
   if (!user?.companyId) {
     return { ownerId: userId, companyId: null };
   }
@@ -37,8 +42,13 @@ export async function buildEntityFilter(userId: string) {
 export async function buildCompanyEntityFilter(userId: string) {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { companyId: true },
+    select: { companyId: true, role: true },
   });
+
+  // Managers have no entity access via standard routes
+  if (user?.role === "manager") {
+    return { id: { in: [] as string[] } };
+  }
 
   if (!user?.companyId) {
     return { ownerId: userId, companyId: null };

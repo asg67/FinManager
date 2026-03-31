@@ -11,6 +11,7 @@ import { companyApi } from "../api/company.js";
 import {
   adminApi,
   type AdminUser,
+  type AdminManager,
   type AdminCompanyListItem,
   type AdminCompanyDetail,
   type AdminOperation,
@@ -30,6 +31,7 @@ type View =
   | { kind: "company-detail"; companyId: string }
   | { kind: "entity-detail"; companyId: string; entityId: string }
   | { kind: "users" }
+  | { kind: "managers" }
   | { kind: "notifications" };
 
 export default function Admin() {
@@ -83,6 +85,7 @@ export default function Admin() {
         <EntityDetailView companyId={view.companyId} entityId={view.entityId} onBack={goBack} />
       )}
       {view.kind === "users" && <UsersView onBack={goBack} />}
+      {view.kind === "managers" && <ManagersView onBack={goBack} />}
       {view.kind === "notifications" && <NotificationsView onBack={goBack} />}
 
       <CreateCompanyModal open={createOpen} onClose={() => setCreateOpen(false)} onCreated={handleCompanyCreated} />
@@ -121,6 +124,12 @@ function DashboardView({
       title: "Пользователи",
       count: `${usersCount} чел.`,
       onClick: () => onNavigate({ kind: "users" }),
+    },
+    {
+      icon: <Sliders size={20} />,
+      title: "Менеджеры",
+      count: "Кабинет",
+      onClick: () => onNavigate({ kind: "managers" }),
     },
     {
       icon: <Bell size={20} />,
@@ -1771,4 +1780,176 @@ function opTypeLabel(type: string) {
     case "transfer": return "Перевод";
     default: return type;
   }
+}
+
+/* ==================== ManagersView ==================== */
+
+function ManagersView({ onBack }: { onBack: () => void }) {
+  const [managers, setManagers] = useState<AdminManager[]>([]);
+  const [companies, setCompanies] = useState<AdminCompanyListItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    Promise.all([adminApi.getManagers(), adminApi.listCompanies()])
+      .then(([mgrs, comps]) => { setManagers(mgrs); setCompanies(comps); })
+      .finally(() => setLoading(false));
+  }, []);
+
+  async function handleCompanyToggle(managerId: string, companyId: string, currentCompanies: { id: string; name: string }[]) {
+    const hasAccess = currentCompanies.some((c) => c.id === companyId);
+    const newIds = hasAccess
+      ? currentCompanies.filter((c) => c.id !== companyId).map((c) => c.id)
+      : [...currentCompanies.map((c) => c.id), companyId];
+    await adminApi.setManagerCompanies(managerId, newIds);
+    const updated = await adminApi.getManagers();
+    setManagers(updated);
+  }
+
+  async function handleDelete(managerId: string) {
+    if (!confirm("Удалить менеджера?")) return;
+    await adminApi.deleteManager(managerId);
+    setManagers((prev) => prev.filter((m) => m.id !== managerId));
+  }
+
+  return (
+    <div>
+      <button className="admin-back" onClick={onBack}>
+        <ArrowLeft size={16} /> Назад
+      </button>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1.5rem" }}>
+        <h2 className="admin-subtitle">Менеджеры ({managers.length})</h2>
+        <button className="admin-btn admin-btn--primary" onClick={() => setCreateOpen(true)}>
+          <Plus size={14} /> Создать менеджера
+        </button>
+      </div>
+
+      {loading ? (
+        <div className="tab-loading">Загрузка...</div>
+      ) : managers.length === 0 ? (
+        <div style={{ color: "var(--text-muted)", fontSize: "0.875rem", padding: "2rem 0" }}>
+          Менеджеров пока нет. Создайте первого.
+        </div>
+      ) : (
+        <div className="admin-users-list">
+          {managers.map((m) => (
+            <div key={m.id} className="admin-user-card">
+              <div className="admin-user-card__header" onClick={() => setEditingId(editingId === m.id ? null : m.id)}>
+                <div className="admin-user-card__info">
+                  <span className="admin-user-card__name">{m.name}</span>
+                  <span className="admin-user-card__email">{m.email}</span>
+                </div>
+                <div className="admin-user-card__meta">
+                  <span className="admin-role admin-role--member">Менеджер</span>
+                  {m.companies.length > 0 && (
+                    <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
+                      {m.companies.map((c) => c.name).join(", ")}
+                    </span>
+                  )}
+                  {m.lastLoginAt && (
+                    <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
+                      Вход: {formatDate(m.lastLoginAt)}
+                    </span>
+                  )}
+                </div>
+                <ChevronDown size={16} className={`admin-user-card__chevron ${editingId === m.id ? "admin-user-card__chevron--open" : ""}`} />
+              </div>
+
+              {editingId === m.id && (
+                <div className="admin-user-card__body">
+                  <div className="admin-user-card__section">
+                    <label className="admin-user-card__label">Доступ к компаниям</label>
+                    <div className="admin-bank-toggles">
+                      {companies.map((c) => {
+                        const hasAccess = m.companies.some((mc) => mc.id === c.id);
+                        return (
+                          <button
+                            key={c.id}
+                            type="button"
+                            className={`admin-bank-toggle ${hasAccess ? "admin-bank-toggle--on" : "admin-bank-toggle--off"}`}
+                            onClick={() => handleCompanyToggle(m.id, c.id, m.companies)}
+                          >
+                            {c.name}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <div className="admin-user-card__footer">
+                    <span className="admin-user-card__date">Регистрация: {formatDate(m.createdAt)}</span>
+                    <button
+                      className="admin-btn admin-btn--danger"
+                      style={{ fontSize: "0.75rem", padding: "0.25rem 0.625rem" }}
+                      onClick={() => handleDelete(m.id)}
+                    >
+                      <Trash2 size={12} /> Удалить
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {createOpen && (
+        <CreateManagerModal
+          onClose={() => setCreateOpen(false)}
+          onCreated={async () => {
+            setCreateOpen(false);
+            const updated = await adminApi.getManagers();
+            setManagers(updated);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function CreateManagerModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!name.trim() || !email.trim() || !password.trim()) {
+      setError("Заполните все поля");
+      return;
+    }
+    if (password.length < 6) {
+      setError("Пароль минимум 6 символов");
+      return;
+    }
+    setLoading(true);
+    setError("");
+    try {
+      await adminApi.createManager({ name: name.trim(), email: email.trim().toLowerCase(), password });
+      onCreated();
+    } catch (err: any) {
+      setError(err?.message ?? "Ошибка создания");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <Modal open onClose={onClose} title="Создать менеджера">
+      <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+        <Input label="Имя" value={name} onChange={(e) => setName(e.target.value)} placeholder="Иванов Иван" />
+        <Input label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="manager@example.com" />
+        <Input label="Пароль" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Минимум 6 символов" />
+        {error && <div style={{ color: "var(--error)", fontSize: "0.875rem" }}>{error}</div>}
+        <div style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
+          <button type="button" className="admin-btn" onClick={onClose}>Отмена</button>
+          <button type="submit" className="admin-btn admin-btn--primary" disabled={loading}>
+            {loading ? "Создание..." : "Создать"}
+          </button>
+        </div>
+      </form>
+    </Modal>
+  );
 }

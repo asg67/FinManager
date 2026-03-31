@@ -21,6 +21,7 @@ import adminRouter from "./routes/admin.js";
 import incomesRouter from "./routes/incomes.js";
 import customFieldsRouter from "./routes/customFields.js";
 import reconciliationRouter from "./routes/reconciliation.js";
+import managerRouter from "./routes/manager.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import cron from "node-cron";
 import { syncAllForYesterday } from "./bank-api/sync.js";
@@ -58,6 +59,7 @@ app.use("/api/export", exportRouter);
 app.use("/api/bank-connections", bankConnectionsRouter);
 app.use("/api/admin", adminRouter);
 app.use("/api/reconciliation", reconciliationRouter);
+app.use("/api/manager", managerRouter);
 
 // Serve uploaded files (avatars)
 const uploadsPath = path.resolve(__dirname, "../../uploads");

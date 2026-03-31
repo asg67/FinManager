@@ -69,6 +69,7 @@ function sanitizeUser(user: {
   permission?: { disabledBanks: string[] } | null;
   avatar?: string | null;
   createdAt: Date;
+  managerAccess?: { company: { id: string; name: string } }[];
 }) {
   // Effective mode: user override > company mode > "full"
   const effectiveMode = user.mode ?? user.company?.mode ?? "full";
@@ -91,6 +92,7 @@ function sanitizeUser(user: {
     disabledBanks: user.permission?.disabledBanks ?? [],
     avatar: user.avatar ?? null,
     createdAt: user.createdAt.toISOString(),
+    managerCompanies: user.managerAccess?.map((a) => ({ id: a.company.id, name: a.company.name })) ?? [],
   };
 }
 
@@ -156,7 +158,11 @@ router.post("/login", validate(loginSchema), async (req: Request, res: Response)
 
     const user = await prisma.user.findUnique({
       where: { email },
-      include: { company: true, permission: { select: { disabledBanks: true } } },
+      include: {
+        company: true,
+        permission: { select: { disabledBanks: true } },
+        managerAccess: { select: { company: { select: { id: true, name: true } } } },
+      },
     });
     if (!user) {
       res.status(401).json({ message: "Invalid credentials" });
@@ -168,6 +174,9 @@ router.post("/login", validate(loginSchema), async (req: Request, res: Response)
       res.status(401).json({ message: "Invalid credentials" });
       return;
     }
+
+    // Update last login time
+    await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
 
     const tokens = generateTokens(user.id, user.role);
 
@@ -212,7 +221,11 @@ router.get("/me", authMiddleware, async (req: Request, res: Response) => {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.user!.userId },
-      include: { company: true, permission: { select: { disabledBanks: true } } },
+      include: {
+        company: true,
+        permission: { select: { disabledBanks: true } },
+        managerAccess: { select: { company: { select: { id: true, name: true } } } },
+      },
     });
 
     if (!user) {
