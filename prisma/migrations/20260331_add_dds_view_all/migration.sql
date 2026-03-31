@@ -1,0 +1,1 @@
+ALTER TABLE "Permission" ADD COLUMN "ddsViewAll" BOOLEAN NOT NULL DEFAULT false;

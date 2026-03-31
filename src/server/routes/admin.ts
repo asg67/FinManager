@@ -68,7 +68,7 @@ router.get("/users", async (_req: Request, res: Response) => {
         mode: true,
         companyId: true,
         company: { select: { name: true } },
-        permission: { select: { disabledBanks: true } },
+        permission: { select: { disabledBanks: true, ddsViewAll: true } },
         entityAccess: { select: { entityId: true, entity: { select: { name: true } } } },
         createdAt: true,
       },
@@ -117,6 +117,7 @@ router.get("/users", async (_req: Request, res: Response) => {
         mode: u.mode ?? null,
         companyId: u.companyId,
         disabledBanks: u.permission?.disabledBanks ?? [],
+        ddsViewAll: u.permission?.ddsViewAll ?? false,
         companyName: u.company?.name || null,
         entityAccess: u.entityAccess.map((ea) => ({ entityId: ea.entityId, entityName: ea.entity.name })),
         lastAction,
@@ -172,6 +173,25 @@ router.put("/users/:id/disabled-banks", async (req: Request, res: Response) => {
     res.json({ ok: true });
   } catch (error) {
     console.error("Admin set disabled banks error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+router.put("/users/:id/dds-view-all", async (req: Request, res: Response) => {
+  try {
+    const { ddsViewAll } = req.body;
+    if (typeof ddsViewAll !== "boolean") {
+      res.status(400).json({ message: "ddsViewAll must be a boolean" });
+      return;
+    }
+    await prisma.permission.upsert({
+      where: { userId: req.params.id },
+      update: { ddsViewAll },
+      create: { userId: req.params.id, ddsViewAll },
+    });
+    res.json({ ok: true });
+  } catch (error) {
+    console.error("Admin set ddsViewAll error:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 });

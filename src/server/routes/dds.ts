@@ -88,9 +88,20 @@ router.get("/operations", async (req: Request, res: Response) => {
     const limitNum = Math.min(100, Math.max(1, parseInt(limit) || 20));
     const skip = (pageNum - 1) * limitNum;
 
-    // Build where clause — show all company operations (not restricted by EntityAccess)
+    // Build where clause
     const where: Prisma.DdsOperationWhereInput = {};
-    where.entity = await buildCompanyEntityFilter(userId);
+
+    // Check if user can see all company operations or only their own entities
+    const permission = await prisma.permission.findUnique({ where: { userId }, select: { ddsViewAll: true } });
+    const user = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
+    const canViewAll = user?.role === "owner" || (permission?.ddsViewAll ?? false);
+
+    if (canViewAll) {
+      where.entity = await buildCompanyEntityFilter(userId);
+    } else {
+      // Restrict to entities owned by this user
+      where.entity = { ownerId: userId };
+    }
 
     if (entityId) where.entityId = entityId;
     if (operationType) where.operationType = operationType;

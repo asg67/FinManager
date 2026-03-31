@@ -1449,6 +1449,11 @@ function UsersView({ onBack }: { onBack: () => void }) {
     setUsers((prev) => prev.map((u) => u.id === userId ? { ...u, disabledBanks: newDisabled } : u));
   }
 
+  async function handleDdsViewAllToggle(userId: string, current: boolean) {
+    await adminApi.setUserDdsViewAll(userId, !current);
+    setUsers((prev) => prev.map((u) => u.id === userId ? { ...u, ddsViewAll: !current } : u));
+  }
+
   async function handleEntityToggle(userId: string, entityId: string, currentAccess: { entityId: string; entityName: string }[]) {
     const hasAccess = currentAccess.some((ea) => ea.entityId === entityId);
     const newIds = hasAccess
@@ -1505,6 +1510,19 @@ function UsersView({ onBack }: { onBack: () => void }) {
                       <option value="full">Полный (ДДС + выписки)</option>
                       <option value="dds_only">Только ДДС (без выписок)</option>
                     </select>
+                  </div>
+
+                  <div className="admin-user-card__section">
+                    <label className="admin-user-card__label">Видимость ДДС</label>
+                    <div className="admin-bank-toggles">
+                      <button
+                        type="button"
+                        className={`admin-bank-toggle ${u.ddsViewAll ? "admin-bank-toggle--on" : "admin-bank-toggle--off"}`}
+                        onClick={() => handleDdsViewAllToggle(u.id, u.ddsViewAll)}
+                      >
+                        {u.ddsViewAll ? "Все операции" : "Только свои"}
+                      </button>
+                    </div>
                   </div>
 
                   <div className="admin-user-card__section">

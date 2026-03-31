@@ -86,6 +86,7 @@ model Permission {
   analytics     Boolean  @default(false)
   export        Boolean  @default(false)
   disabledBanks String[] @default([])
+  ddsViewAll    Boolean  @default(false)
 }
 
 // ============ BUSINESS ENTITIES ============

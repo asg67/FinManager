@@ -8,6 +8,7 @@ export interface AdminUser {
   mode: string | null;
   companyId: string | null;
   disabledBanks: string[];
+  ddsViewAll: boolean;
   companyName: string | null;
   entityAccess: { entityId: string; entityName: string }[];
   lastAction: { type: string; date: string } | null;
@@ -139,6 +140,9 @@ export const adminApi = {
 
   setUserDisabledBanks: (userId: string, disabledBanks: string[]) =>
     api.put<{ ok: boolean }>(`/admin/users/${userId}/disabled-banks`, { disabledBanks }),
+
+  setUserDdsViewAll: (userId: string, ddsViewAll: boolean) =>
+    api.put<{ ok: boolean }>(`/admin/users/${userId}/dds-view-all`, { ddsViewAll }),
 
   setUserEntityAccess: (userId: string, entityIds: string[]) =>
     api.put<{ entityId: string; entityName: string }[]>(`/admin/users/${userId}/entity-access`, { entityIds }),
