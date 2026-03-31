@@ -1203,6 +1203,7 @@ function EntityDetailView({
 
   const [newAccName, setNewAccName] = useState("");
   const [newAccType, setNewAccType] = useState("cash");
+  const [newAccCustomType, setNewAccCustomType] = useState("");
 
   async function handleToggleAccount(accountId: string) {
     const result = await adminApi.toggleAccount(accountId);
@@ -1215,7 +1216,8 @@ function EntityDetailView({
 
   async function handleAddAccount() {
     if (!newAccName.trim()) return;
-    const acc = await adminApi.createAccount(entityId, { name: newAccName.trim(), type: newAccType });
+    const resolvedType = newAccType === "other" ? (newAccCustomType.trim() || "other") : newAccType;
+    const acc = await adminApi.createAccount(entityId, { name: newAccName.trim(), type: resolvedType });
     setEntity((prev) =>
       prev
         ? { ...prev, accounts: [...prev.accounts, { ...acc, accountNumber: null, enabled: true, transactionCount: 0 }] }
@@ -1274,15 +1276,19 @@ function EntityDetailView({
                   </div>
                 </div>
               ))}
-            <div className="admin-inline-edit" style={{ marginTop: "0.5rem" }}>
-              <select className="admin-inline-input" value={newAccType} onChange={(e) => setNewAccType(e.target.value)} style={{ maxWidth: 120 }}>
+            <div className="admin-inline-edit" style={{ marginTop: "0.5rem", flexWrap: "wrap", gap: "0.5rem" }}>
+              <select className="admin-inline-input" value={newAccType} onChange={(e) => { setNewAccType(e.target.value); setNewAccCustomType(""); }} style={{ maxWidth: 130 }}>
                 <option value="cash">Наличные</option>
-                <option value="card">Карт��</option>
+                <option value="card">Карта</option>
                 <option value="checking">Расчётный</option>
                 <option value="deposit">Депозит</option>
+                <option value="other">Другое...</option>
               </select>
-              <input className="admin-inline-input" placeholder="Название сч��та" value={newAccName} onChange={(e) => setNewAccName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") handleAddAccount(); }} />
-              <button className="btn btn--primary btn--sm" onClick={handleAddAccount} disabled={!newAccName.trim()}><Plus size={14} /> Добавить</button>
+              {newAccType === "other" && (
+                <input className="admin-inline-input" placeholder="Тип (напр. ЮMoney)" value={newAccCustomType} onChange={(e) => setNewAccCustomType(e.target.value)} style={{ maxWidth: 150 }} />
+              )}
+              <input className="admin-inline-input" placeholder="Название счёта" value={newAccName} onChange={(e) => setNewAccName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") handleAddAccount(); }} />
+              <button className="btn btn--primary btn--sm" onClick={handleAddAccount} disabled={!newAccName.trim() || (newAccType === "other" && !newAccCustomType.trim())}><Plus size={14} /> Добавить</button>
             </div>
           </div>
         </div>
