@@ -26,6 +26,7 @@ export default function OperationWizard({ open, onClose, onDone, editOperation, 
   const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
   const isDdsOnly = user?.company?.mode === "dds_only";
+  const incomeDirections = user?.company?.incomeDirections ?? false;
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [otherAccounts, setOtherCash] = useState<AccountWithEntity[]>([]);
   const [expenseTypes, setExpenseTypes] = useState<ExpenseType[]>([]);
@@ -57,6 +58,7 @@ export default function OperationWizard({ open, onClose, onDone, editOperation, 
         expenseTypeId: editOperation.expenseTypeId ?? undefined,
         expenseArticleId: editOperation.expenseArticleId ?? undefined,
         directionId: editOperation.directionId ?? undefined,
+        incomeDirection: editOperation.incomeDirection ?? undefined,
         incomeTypeId: editOperation.incomeTypeId ?? undefined,
         incomeArticleId: editOperation.incomeArticleId ?? undefined,
         orderNumber: editOperation.orderNumber ?? undefined,
@@ -173,6 +175,7 @@ export default function OperationWizard({ open, onClose, onDone, editOperation, 
           expenseArticleId: form.expenseArticleId ?? null,
           incomeTypeId: form.incomeTypeId ?? null,
           incomeArticleId: form.incomeArticleId ?? null,
+          incomeDirection: form.incomeDirection ?? null,
           orderNumber: form.orderNumber ?? null,
           comment: form.comment ?? null,
           customFieldValues,
@@ -342,8 +345,22 @@ export default function OperationWizard({ open, onClose, onDone, editOperation, 
           </>
         )}
 
-        {/* Income type & article */}
-        {isIncome && incomeTypes.length > 0 && (
+        {/* Income direction (when incomeDirections flag is on) */}
+        {isIncome && incomeDirections && (() => {
+          const dirs = [...new Set(expenseTypes.flatMap((et) => et.articles.flatMap((a) => (a.directions ?? []).map((d) => d.name))))];
+          return dirs.length > 0 ? (
+            <Select
+              label="Направление"
+              options={dirs.map((name) => ({ value: name, label: name }))}
+              value={form.incomeDirection ?? ""}
+              onChange={(e) => updateField("incomeDirection", e.target.value || undefined)}
+              placeholder={t("common.select")}
+            />
+          ) : null;
+        })()}
+
+        {/* Income type & article (when incomeDirections is off) */}
+        {isIncome && !incomeDirections && incomeTypes.length > 0 && (
           <>
             <Select
               label="Тип прихода"

@@ -829,6 +829,22 @@ function CompanyDetailView({
         })}
       </div>
 
+      {/* === Income Directions Toggle === */}
+      <div className="admin-hidden-fields">
+        <label className="admin-hidden-fields__toggle">
+          <input
+            type="checkbox"
+            checked={company.incomeDirections ?? false}
+            onChange={async () => {
+              const next = !company.incomeDirections;
+              await adminApi.setCompanyIncomeDirections(companyId, next);
+              setCompany((prev) => prev ? { ...prev, incomeDirections: next } : prev);
+            }}
+          />
+          Приход → направления (без типа/статьи)
+        </label>
+      </div>
+
       {/* === Section: Entities === */}
       <div className="admin-section">
         <div className="admin-section__header" onClick={() => toggleSection("entities")}>

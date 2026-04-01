@@ -86,6 +86,7 @@ function sanitizeUser(user: {
       name: user.company.name,
       mode: effectiveMode,
       hiddenFields: Array.isArray(user.company.hiddenFields) ? user.company.hiddenFields : [],
+      incomeDirections: user.company.incomeDirections ?? false,
       onboardingDone: user.company.onboardingDone,
       createdAt: user.company.createdAt.toISOString(),
     } : null,

@@ -181,6 +181,7 @@ function OperationCard({ op, onEdit, onDelete, t, formatAmount, formatDate, isDd
         {!isDdsOnly && op.toAccount && <span className="op-card__meta">{t("dds.to")}: {op.toAccount.name}</span>}
         {op.expenseType && <span className="op-card__meta">{op.expenseType.name}{op.expenseArticle ? ` / ${op.expenseArticle.name}` : ""}{op.direction ? ` / ${op.direction.name}` : ""}</span>}
         {op.incomeType && <span className="op-card__meta">{op.incomeType.name}{op.incomeArticle ? ` / ${op.incomeArticle.name}` : ""}</span>}
+        {op.incomeDirection && <span className="op-card__meta">Направление: {op.incomeDirection}</span>}
         {op.orderNumber && <span className="op-card__meta">#{op.orderNumber}</span>}
         {op.customFieldValues && op.customFieldValues.length > 0 && op.customFieldValues.map((cfv) => (
           <span key={cfv.id} className="op-card__meta">{cfv.customField?.name ?? ""}: {cfv.value}</span>
@@ -414,7 +415,7 @@ function DdsTable({ companyName }: { companyName?: string }) {
     {
       key: "direction",
       header: "Направление",
-      render: (r: DdsOperation) => r.direction?.name ?? "\u2014",
+      render: (r: DdsOperation) => r.direction?.name ?? r.incomeDirection ?? "\u2014",
     },
     // Custom field columns — only for dds_only
     ...customFieldColumns,

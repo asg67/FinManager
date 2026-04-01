@@ -24,6 +24,7 @@ export default function QuickAddForm({ entities, onSaved }: Props) {
   const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
   const isDdsOnly = user?.company?.mode === "dds_only";
+  const incomeDirections = user?.company?.incomeDirections ?? false;
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [otherAccounts, setOtherCash] = useState<AccountWithEntity[]>([]);
   const [expenseTypes, setExpenseTypes] = useState<ExpenseType[]>([]);
@@ -280,8 +281,21 @@ export default function QuickAddForm({ entities, onSaved }: Props) {
           ) : null;
         })()}
 
-        {/* Income type */}
-        {isIncome && incomeTypes.length > 0 && (
+        {/* Income direction (when incomeDirections flag is on) */}
+        {isIncome && incomeDirections && (() => {
+          const dirs = [...new Set(expenseTypes.flatMap((et) => et.articles.flatMap((a) => (a.directions ?? []).map((d) => d.name))))];
+          return dirs.length > 0 ? (
+            <Select
+              placeholder="Направление"
+              options={dirs.map((name) => ({ value: name, label: name }))}
+              value={form.incomeDirection ?? ""}
+              onChange={(e) => updateField("incomeDirection", e.target.value || undefined)}
+            />
+          ) : null;
+        })()}
+
+        {/* Income type (when incomeDirections is off) */}
+        {isIncome && !incomeDirections && incomeTypes.length > 0 && (
           <Select
             placeholder="Тип прихода"
             options={incomeTypes.map((it) => ({ value: it.id, label: it.name }))}
@@ -293,8 +307,8 @@ export default function QuickAddForm({ entities, onSaved }: Props) {
           />
         )}
 
-        {/* Income article */}
-        {isIncome && selectedIncomeType && selectedIncomeType.articles.length > 0 && (
+        {/* Income article (when incomeDirections is off) */}
+        {isIncome && !incomeDirections && selectedIncomeType && selectedIncomeType.articles.length > 0 && (
           <Select
             placeholder="Статья прихода"
             options={selectedIncomeType.articles.map((a) => ({ value: a.id, label: a.name }))}

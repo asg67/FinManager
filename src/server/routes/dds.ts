@@ -20,7 +20,7 @@ router.use(authMiddleware);
 router.post("/operations", validate(createOperationSchema), async (req: Request, res: Response) => {
   try {
     const userId = req.user!.userId;
-    const { operationType, amount, entityId, fromAccountId, toAccountId, expenseTypeId, expenseArticleId, incomeTypeId, incomeArticleId, directionId, orderNumber, comment, customFieldValues } = req.body;
+    const { operationType, amount, entityId, fromAccountId, toAccountId, expenseTypeId, expenseArticleId, incomeTypeId, incomeArticleId, directionId, incomeDirection, orderNumber, comment, customFieldValues } = req.body;
 
     // Verify user has access to this entity
     const check = await checkEntityAccess(entityId, userId);
@@ -41,6 +41,7 @@ router.post("/operations", validate(createOperationSchema), async (req: Request,
         incomeTypeId: incomeTypeId ?? null,
         incomeArticleId: incomeArticleId ?? null,
         directionId: directionId ?? null,
+        incomeDirection: incomeDirection ?? null,
         orderNumber: orderNumber ?? null,
         comment: comment ?? null,
         userId,

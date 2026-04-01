@@ -9,7 +9,7 @@ import { Button, Input, Modal } from "../ui/index.js";
 import { useAuthStore } from "../../stores/auth.js";
 import type { Entity, Account, ExpenseType, IncomeType, CustomField, DdsOperation, DdsTemplate } from "@shared/types.js";
 
-type Step = "entity" | "opType" | "fromAccount" | "category" | "article" | "direction" | "incomeCategory" | "incomeArticle" | "details" | "review";
+type Step = "entity" | "opType" | "fromAccount" | "category" | "article" | "direction" | "incomeDirection" | "incomeCategory" | "incomeArticle" | "details" | "review";
 
 interface Props {
   open: boolean;
@@ -23,6 +23,7 @@ export default function StepWizard({ open, onClose, onDone, editOperation, entit
   const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
   const isDdsOnly = user?.company?.mode === "dds_only";
+  const incomeDirections = user?.company?.incomeDirections ?? false;
   const [step, setStep] = useState<Step>("entity");
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [otherAccounts, setOtherCash] = useState<AccountWithEntity[]>([]);
@@ -57,6 +58,7 @@ export default function StepWizard({ open, onClose, onDone, editOperation, entit
         expenseTypeId: editOperation.expenseTypeId ?? undefined,
         expenseArticleId: editOperation.expenseArticleId ?? undefined,
         directionId: editOperation.directionId ?? undefined,
+        incomeDirection: editOperation.incomeDirection ?? undefined,
         incomeTypeId: editOperation.incomeTypeId ?? undefined,
         incomeArticleId: editOperation.incomeArticleId ?? undefined,
         orderNumber: editOperation.orderNumber ?? undefined,
@@ -131,12 +133,19 @@ export default function StepWizard({ open, onClose, onDone, editOperation, entit
     setStep("opType");
   }
 
+  // Unique direction names from expense articles (for income directions mode)
+  const uniqueIncomeDirections = incomeDirections
+    ? [...new Set(expenseTypes.flatMap((et) => et.articles.flatMap((a) => (a.directions ?? []).map((d) => d.name))))]
+    : [];
+
   function selectOpType(opType: string) {
-    setForm((prev) => ({ ...prev, operationType: opType, expenseTypeId: undefined, expenseArticleId: undefined, incomeTypeId: undefined, incomeArticleId: undefined }));
+    setForm((prev) => ({ ...prev, operationType: opType, expenseTypeId: undefined, expenseArticleId: undefined, incomeTypeId: undefined, incomeArticleId: undefined, incomeDirection: undefined }));
     if (isDdsOnly) {
       // dds_only: skip account selection, go straight to category or details
       if (opType === "expense" && expenseTypes.length > 0) {
         setStep("category");
+      } else if (opType === "income" && incomeDirections && uniqueIncomeDirections.length > 0) {
+        setStep("incomeDirection");
       } else if (opType === "income" && incomeTypes.length > 0) {
         setStep("incomeCategory");
       } else {
@@ -144,6 +153,8 @@ export default function StepWizard({ open, onClose, onDone, editOperation, entit
       }
     } else if (opType === "expense") {
       setStep("fromAccount");
+    } else if (opType === "income" && incomeDirections && uniqueIncomeDirections.length > 0) {
+      setStep("incomeDirection");
     } else if (opType === "income" && incomeTypes.length > 0) {
       setStep("incomeCategory");
     } else {
@@ -179,6 +190,11 @@ export default function StepWizard({ open, onClose, onDone, editOperation, entit
 
   function selectDirection(dirId: string) {
     setForm((prev) => ({ ...prev, directionId: dirId }));
+    setStep("details");
+  }
+
+  function selectIncomeDirection(dirName: string) {
+    setForm((prev) => ({ ...prev, incomeDirection: dirName }));
     setStep("details");
   }
 
@@ -229,6 +245,9 @@ export default function StepWizard({ open, onClose, onDone, editOperation, entit
       case "direction":
         setStep("article");
         break;
+      case "incomeDirection":
+        setStep("opType");
+        break;
       case "incomeCategory":
         setStep("opType");
         break;
@@ -246,6 +265,8 @@ export default function StepWizard({ open, onClose, onDone, editOperation, entit
           } else {
             setStep("category");
           }
+        } else if (form.operationType === "income" && incomeDirections && uniqueIncomeDirections.length > 0) {
+          setStep("incomeDirection");
         } else if (form.operationType === "income" && incomeTypes.length > 0) {
           const cat = incomeTypes.find((it) => it.id === form.incomeTypeId);
           if (cat && cat.articles.length > 0) {
@@ -302,6 +323,7 @@ export default function StepWizard({ open, onClose, onDone, editOperation, entit
           expenseArticleId: form.expenseArticleId ?? null,
           incomeTypeId: form.incomeTypeId ?? null,
           incomeArticleId: form.incomeArticleId ?? null,
+          incomeDirection: form.incomeDirection ?? null,
           orderNumber: form.orderNumber ?? null,
           comment: form.comment ?? null,
           customFieldValues,
@@ -346,6 +368,7 @@ export default function StepWizard({ open, onClose, onDone, editOperation, entit
     category: t("dds.selectCategory"),
     article: t("dds.selectArticle"),
     direction: "Направление",
+    incomeDirection: "Направление",
     incomeCategory: "Тип прихода",
     incomeArticle: "Статья прихода",
     details: t("dds.fillDetails"),
@@ -499,6 +522,22 @@ export default function StepWizard({ open, onClose, onDone, editOperation, entit
             </div>
           );
         })()}
+
+        {/* Step: Income Direction (when incomeDirections flag is on) */}
+        {step === "incomeDirection" && (
+          <div className="step-wizard__grid">
+            {uniqueIncomeDirections.map((name) => (
+              <button
+                key={name}
+                type="button"
+                className={`step-wizard__option ${form.incomeDirection === name ? "step-wizard__option--selected" : ""}`}
+                onClick={() => selectIncomeDirection(name)}
+              >
+                {name}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Step: Income Category */}
         {step === "incomeCategory" && (
@@ -688,6 +727,12 @@ export default function StepWizard({ open, onClose, onDone, editOperation, entit
               <div className="step-wizard__review-row">
                 <span className="step-wizard__review-label">Направление</span>
                 <span className="step-wizard__review-value">{directionName}</span>
+              </div>
+            )}
+            {form.incomeDirection && (
+              <div className="step-wizard__review-row">
+                <span className="step-wizard__review-label">Направление</span>
+                <span className="step-wizard__review-value">{form.incomeDirection}</span>
               </div>
             )}
             {incomeTypeName && (

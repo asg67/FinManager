@@ -29,6 +29,7 @@ export interface AdminCompanyDetail {
   name: string;
   mode: string;
   hiddenFields: string[];
+  incomeDirections: boolean;
   onboardingDone: boolean;
   createdAt: string;
   members: { id: string; name: string; email: string; role: string; createdAt: string }[];
@@ -248,6 +249,9 @@ export const adminApi = {
 
   setCompanyHiddenFields: (companyId: string, hiddenFields: string[]) =>
     api.put<{ id: string; hiddenFields: string[] }>(`/admin/companies/${companyId}/hidden-fields`, { hiddenFields }),
+
+  setCompanyIncomeDirections: (companyId: string, enabled: boolean) =>
+    api.put<{ id: string; incomeDirections: boolean }>(`/admin/companies/${companyId}/income-directions`, { enabled }),
 
   // Income Types CRUD (company-wide)
   getCompanyIncomeTypes: (companyId: string) =>

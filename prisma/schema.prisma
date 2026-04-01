@@ -12,8 +12,9 @@ datasource db {
 model Company {
   id             String   @id @default(uuid())
   name           String   @unique
-  mode           String   @default("full") // "full" | "dds_only"
-  hiddenFields   Json     @default("[]")   // e.g. ["orderNumber"]
+  mode              String   @default("full") // "full" | "dds_only"
+  hiddenFields      Json     @default("[]")   // e.g. ["orderNumber"]
+  incomeDirections  Boolean  @default(false)  // income skips type/article, shows directions instead
   onboardingDone Boolean  @default(false)
   createdById    String?
   createdBy      User?    @relation("CompanyCreator", fields: [createdById], references: [id])
@@ -293,6 +294,7 @@ model DdsOperation {
   incomeArticle      IncomeArticle?    @relation(fields: [incomeArticleId], references: [id])
   directionId        String?
   direction          ArticleDirection? @relation(fields: [directionId], references: [id])
+  incomeDirection    String?
   orderNumber        String?
   comment            String?
   entityId           String

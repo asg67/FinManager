@@ -5,6 +5,7 @@ export interface Company {
   name: string;
   mode: "full" | "dds_only";
   hiddenFields: string[];
+  incomeDirections: boolean;
   onboardingDone: boolean;
   createdAt: string;
 }
@@ -194,6 +195,7 @@ export interface DdsOperation {
   incomeArticle: { name: string } | null;
   directionId: string | null;
   direction: { name: string } | null;
+  incomeDirection: string | null;
   orderNumber: string | null;
   comment: string | null;
   entityId: string;

@@ -279,6 +279,7 @@ router.get("/companies/:id", async (req: Request, res: Response) => {
       name: company.name,
       mode: company.mode,
       hiddenFields: Array.isArray(company.hiddenFields) ? company.hiddenFields : [],
+      incomeDirections: company.incomeDirections ?? false,
       onboardingDone: company.onboardingDone,
       createdAt: company.createdAt.toISOString(),
       members: members.map((u) => ({
@@ -898,6 +899,33 @@ router.put("/companies/:id/hidden-fields", async (req: Request, res: Response) =
     res.json({ id: updated.id, hiddenFields: updated.hiddenFields });
   } catch (error) {
     console.error("Admin set hidden fields error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// PUT /api/admin/companies/:id/income-directions — toggle income directions mode
+router.put("/companies/:id/income-directions", async (req: Request, res: Response) => {
+  try {
+    const { enabled } = req.body;
+    if (typeof enabled !== "boolean") {
+      res.status(400).json({ message: "enabled must be a boolean" });
+      return;
+    }
+
+    const company = await prisma.company.findUnique({ where: { id: req.params.id as string } });
+    if (!company) {
+      res.status(404).json({ message: "Company not found" });
+      return;
+    }
+
+    const updated = await prisma.company.update({
+      where: { id: company.id },
+      data: { incomeDirections: enabled },
+    });
+
+    res.json({ id: updated.id, incomeDirections: updated.incomeDirections });
+  } catch (error) {
+    console.error("Admin set income directions error:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 });
