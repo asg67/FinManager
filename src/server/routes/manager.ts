@@ -570,7 +570,7 @@ router.get("/companies/:companyId/statements", async (req: Request, res: Respons
   try {
     const { userId } = req.user!;
     const { companyId } = req.params;
-    const { accountId, direction, from, to, page, limit } = req.query as Record<string, string>;
+    const { accountId, direction, bank, from, to, page, limit } = req.query as Record<string, string>;
 
     if (!(await checkManagerAccess(userId, companyId))) {
       res.status(403).json({ message: "Access denied" });
@@ -587,8 +587,11 @@ router.get("/companies/:companyId/statements", async (req: Request, res: Respons
     const limitNum = Math.min(100, Math.max(1, parseInt(limit) || 20));
     const skip = (pageNum - 1) * limitNum;
 
+    const accountFilter: any = { entityId: { in: entityIds } };
+    if (bank) accountFilter.bank = bank;
+
     const where: Prisma.BankTransactionWhereInput = {
-      account: { entityId: { in: entityIds } },
+      account: accountFilter,
     };
     if (accountId) where.accountId = accountId;
     if (direction) where.direction = direction;

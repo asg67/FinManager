@@ -179,6 +179,7 @@ export const managerApi = {
   getStatements: (companyId: string, params: {
     accountId?: string;
     direction?: string;
+    bank?: string;
     from?: string;
     to?: string;
     page?: number;
@@ -187,6 +188,7 @@ export const managerApi = {
     const q = buildQuery({
       accountId: params.accountId,
       direction: params.direction,
+      bank: params.bank,
       from: params.from,
       to: params.to,
       page: params.page?.toString(),

@@ -393,16 +393,28 @@ function UsersTab({ companyId }: { companyId: string }) {
 function AccountsTab({ companyId }: { companyId: string }) {
   const [accounts, setAccounts] = useState<ManagerAccount[]>([]);
   const [loading, setLoading] = useState(true);
+  const [bankFilter, setBankFilter] = useState("");
 
   useEffect(() => {
     managerApi.getAccounts(companyId).then(setAccounts).finally(() => setLoading(false));
   }, [companyId]);
 
+  const banks = [...new Set(accounts.map((a) => a.bank).filter(Boolean))] as string[];
+  const filtered = bankFilter ? accounts.filter((a) => a.bank === bankFilter) : accounts;
+
   return (
     <div>
+      {banks.length > 1 && (
+        <div className="manager-filters" style={{ marginBottom: "1rem" }}>
+          <select className="manager-filter-select" value={bankFilter} onChange={(e) => setBankFilter(e.target.value)}>
+            <option value="">Все банки</option>
+            {banks.map((b) => <option key={b} value={b}>{b}</option>)}
+          </select>
+        </div>
+      )}
       {loading ? (
         <div className="manager-loading">Загрузка...</div>
-      ) : accounts.length === 0 ? (
+      ) : filtered.length === 0 ? (
         <div className="manager-empty-state">Нет назначенных пользователей или счетов</div>
       ) : (
         <div className="manager-ops-table-wrap">
@@ -418,7 +430,7 @@ function AccountsTab({ companyId }: { companyId: string }) {
               </tr>
             </thead>
             <tbody>
-              {accounts.map((acc) => (
+              {filtered.map((acc) => (
                 <tr key={acc.id}>
                   <td style={{ fontWeight: 500 }}>{acc.name}</td>
                   <td style={{ color: "var(--text-muted)" }}>{acc.type}</td>
@@ -449,6 +461,7 @@ function StatementsTab({ companyId }: { companyId: string }) {
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
+  const [bankFilter, setBankFilter] = useState("");
   const [accountId, setAccountId] = useState("");
   const [direction, setDirection] = useState("");
   const limit = 30;
@@ -457,27 +470,38 @@ function StatementsTab({ companyId }: { companyId: string }) {
     managerApi.getAccounts(companyId).then(setAccounts);
   }, [companyId]);
 
+  const banks = [...new Set(accounts.map((a) => a.bank).filter(Boolean))] as string[];
+  const filteredAccounts = bankFilter ? accounts.filter((a) => a.bank === bankFilter) : accounts;
+
   const load = useCallback(() => {
     setLoading(true);
     managerApi.getStatements(companyId, {
       accountId: accountId || undefined,
       direction: direction || undefined,
+      bank: bankFilter || undefined,
       page,
       limit,
     })
       .then((r) => { setData(r.data); setTotal(r.total); setTotalPages(r.totalPages); })
       .finally(() => setLoading(false));
-  }, [companyId, accountId, direction, page]);
+  }, [companyId, bankFilter, accountId, direction, page]);
 
+  useEffect(() => { setPage(1); setAccountId(""); }, [bankFilter]);
   useEffect(() => { setPage(1); }, [accountId, direction]);
   useEffect(() => { load(); }, [load]);
 
   return (
     <div>
       <div className="manager-filters" style={{ marginBottom: "1rem" }}>
+        {banks.length > 1 && (
+          <select className="manager-filter-select" value={bankFilter} onChange={(e) => setBankFilter(e.target.value)}>
+            <option value="">Все банки</option>
+            {banks.map((b) => <option key={b} value={b}>{b}</option>)}
+          </select>
+        )}
         <select className="manager-filter-select" value={accountId} onChange={(e) => setAccountId(e.target.value)}>
           <option value="">Все счета</option>
-          {accounts.map((a) => <option key={a.id} value={a.id}>{a.name} ({a.entityName})</option>)}
+          {filteredAccounts.map((a) => <option key={a.id} value={a.id}>{a.name} ({a.entityName})</option>)}
         </select>
         <select className="manager-filter-select" value={direction} onChange={(e) => setDirection(e.target.value)}>
           <option value="">Все</option>
