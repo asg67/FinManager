@@ -80,6 +80,9 @@ model User {
   invitesUsed     Invite[]  @relation("InviteUsed")
   managerAccess         ManagerCompanyAccess[] @relation("ManagerAccess")
   managerAccessCreated  ManagerCompanyAccess[] @relation("ManagerAccessCreator")
+  managerUserAccess        ManagerUserAccess[] @relation("ManagerUserTarget")
+  managerUserAccessCreated ManagerUserAccess[] @relation("ManagerUserAccessCreator")
+  managerUserAccessGranted ManagerUserAccess[] @relation("ManagerUserAccessManager")
 }
 
 model ManagerCompanyAccess {
@@ -95,6 +98,21 @@ model ManagerCompanyAccess {
   @@unique([userId, companyId])
   @@index([userId])
   @@index([companyId])
+}
+
+model ManagerUserAccess {
+  id          String   @id @default(uuid())
+  managerId   String
+  manager     User     @relation("ManagerUserAccessManager", fields: [managerId], references: [id], onDelete: Cascade)
+  targetUserId String
+  targetUser   User     @relation("ManagerUserTarget", fields: [targetUserId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  createdById String
+  createdBy   User     @relation("ManagerUserAccessCreator", fields: [createdById], references: [id])
+
+  @@unique([managerId, targetUserId])
+  @@index([managerId])
+  @@index([targetUserId])
 }
 
 model Permission {

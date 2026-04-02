@@ -1233,6 +1233,7 @@ router.get("/managers", async (_req: Request, res: Response) => {
         lastLoginAt: true,
         createdAt: true,
         managerAccess: { select: { company: { select: { id: true, name: true } } } },
+        managerUserAccessGranted: { select: { targetUser: { select: { id: true, name: true, email: true, companyId: true } } } },
       },
       orderBy: { createdAt: "asc" },
     });
@@ -1244,6 +1245,12 @@ router.get("/managers", async (_req: Request, res: Response) => {
       lastLoginAt: m.lastLoginAt?.toISOString() ?? null,
       createdAt: m.createdAt.toISOString(),
       companies: m.managerAccess.map((a) => ({ id: a.company.id, name: a.company.name })),
+      assignedUsers: m.managerUserAccessGranted.map((a) => ({
+        id: a.targetUser.id,
+        name: a.targetUser.name,
+        email: a.targetUser.email,
+        companyId: a.targetUser.companyId,
+      })),
     })));
   } catch (error) {
     console.error("Admin get managers error:", error);
@@ -1345,6 +1352,42 @@ router.delete("/managers/:id", async (req: Request, res: Response) => {
     res.status(204).send();
   } catch (error) {
     console.error("Admin delete manager error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// PUT /api/admin/managers/:id/users — assign users to manager
+router.put("/managers/:id/users", async (req: Request, res: Response) => {
+  try {
+    const managerId = req.params.id as string;
+    const { userIds } = req.body;
+    if (!Array.isArray(userIds)) {
+      res.status(400).json({ message: "userIds must be an array" });
+      return;
+    }
+
+    const manager = await prisma.user.findUnique({ where: { id: managerId } });
+    if (!manager || manager.role !== "manager") {
+      res.status(404).json({ message: "Manager not found" });
+      return;
+    }
+
+    await prisma.$transaction([
+      prisma.managerUserAccess.deleteMany({ where: { managerId } }),
+      ...(userIds.length > 0
+        ? [prisma.managerUserAccess.createMany({
+            data: userIds.map((uid: string) => ({
+              managerId,
+              targetUserId: uid,
+              createdById: req.user!.userId,
+            })),
+          })]
+        : []),
+    ]);
+
+    res.json({ userIds });
+  } catch (error) {
+    console.error("Admin set manager users error:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 });

@@ -2,6 +2,7 @@ import { Router, Request, Response, NextFunction } from "express";
 import { prisma } from "../prisma.js";
 import { authMiddleware } from "../middleware/auth.js";
 import { createExcelResponse } from "../utils/excel.js";
+import { Prisma } from "@prisma/client";
 
 const router = Router();
 
@@ -22,6 +23,22 @@ async function checkManagerAccess(userId: string, companyId: string): Promise<bo
     where: { userId_companyId: { userId, companyId } },
   });
   return !!access;
+}
+
+// Helper: get entity IDs for manager's assigned users within a company
+async function getAssignedEntityIds(managerId: string, companyId: string): Promise<string[]> {
+  const accesses = await prisma.managerUserAccess.findMany({
+    where: { managerId },
+    select: { targetUserId: true },
+  });
+  const targetUserIds = accesses.map((a) => a.targetUserId);
+  if (targetUserIds.length === 0) return [];
+
+  const entities = await prisma.entity.findMany({
+    where: { companyId, ownerId: { in: targetUserIds } },
+    select: { id: true },
+  });
+  return entities.map((e) => e.id);
 }
 
 // GET /api/manager/companies — list manager's companies
@@ -482,6 +499,139 @@ router.get("/companies/:companyId/export/dds-excel", async (req: Request, res: R
     await createExcelResponse(res, `dds-${safeName}-${date}.xlsx`, columns, rows);
   } catch (error) {
     console.error("Manager export error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// GET /api/manager/companies/:companyId/accounts — accounts for assigned users' entities
+router.get("/companies/:companyId/accounts", async (req: Request, res: Response) => {
+  try {
+    const { userId } = req.user!;
+    const { companyId } = req.params;
+
+    if (!(await checkManagerAccess(userId, companyId))) {
+      res.status(403).json({ message: "Access denied" });
+      return;
+    }
+
+    const entityIds = await getAssignedEntityIds(userId, companyId);
+    if (entityIds.length === 0) {
+      res.json([]);
+      return;
+    }
+
+    const accounts = await prisma.account.findMany({
+      where: { entityId: { in: entityIds }, enabled: true },
+      include: {
+        entity: { select: { name: true } },
+        _count: { select: { bankTransactions: true } },
+      },
+      orderBy: [{ entity: { name: "asc" } }, { name: "asc" }],
+    });
+
+    // Compute balances
+    const result = await Promise.all(accounts.map(async (acc) => {
+      let balance: number | null = null;
+      if (acc.initialBalance !== null && acc.initialBalanceDate !== null) {
+        const [incAgg, expAgg] = await Promise.all([
+          prisma.bankTransaction.aggregate({
+            where: { accountId: acc.id, direction: "income", date: { gt: acc.initialBalanceDate } },
+            _sum: { amount: true },
+          }),
+          prisma.bankTransaction.aggregate({
+            where: { accountId: acc.id, direction: "expense", date: { gt: acc.initialBalanceDate } },
+            _sum: { amount: true },
+          }),
+        ]);
+        balance = acc.initialBalance.toNumber()
+          + (incAgg._sum.amount?.toNumber() ?? 0)
+          - (expAgg._sum.amount?.toNumber() ?? 0);
+      }
+      return {
+        id: acc.id,
+        name: acc.name,
+        type: acc.type,
+        bank: acc.bank,
+        entityName: acc.entity.name,
+        transactionsCount: acc._count.bankTransactions,
+        balance,
+      };
+    }));
+
+    res.json(result);
+  } catch (error) {
+    console.error("Manager accounts error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// GET /api/manager/companies/:companyId/statements — bank transactions for assigned users' entities
+router.get("/companies/:companyId/statements", async (req: Request, res: Response) => {
+  try {
+    const { userId } = req.user!;
+    const { companyId } = req.params;
+    const { accountId, direction, from, to, page, limit } = req.query as Record<string, string>;
+
+    if (!(await checkManagerAccess(userId, companyId))) {
+      res.status(403).json({ message: "Access denied" });
+      return;
+    }
+
+    const entityIds = await getAssignedEntityIds(userId, companyId);
+    if (entityIds.length === 0) {
+      res.json({ data: [], total: 0, page: 1, limit: 20, totalPages: 0 });
+      return;
+    }
+
+    const pageNum = Math.max(1, parseInt(page) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit) || 20));
+    const skip = (pageNum - 1) * limitNum;
+
+    const where: Prisma.BankTransactionWhereInput = {
+      account: { entityId: { in: entityIds } },
+    };
+    if (accountId) where.accountId = accountId;
+    if (direction) where.direction = direction;
+    if (from || to) {
+      where.date = {};
+      if (from) (where.date as any).gte = new Date(from);
+      if (to) (where.date as any).lte = new Date(to);
+    }
+
+    const [transactions, total] = await Promise.all([
+      prisma.bankTransaction.findMany({
+        where,
+        include: {
+          account: { select: { name: true, type: true, bank: true, entity: { select: { name: true } } } },
+        },
+        orderBy: { date: "desc" },
+        skip,
+        take: limitNum,
+      }),
+      prisma.bankTransaction.count({ where }),
+    ]);
+
+    res.json({
+      data: transactions.map((tx) => ({
+        id: tx.id,
+        date: tx.date.toISOString(),
+        time: tx.time,
+        amount: tx.amount.toNumber(),
+        direction: tx.direction,
+        counterparty: tx.counterparty,
+        purpose: tx.purpose,
+        balance: tx.balance?.toNumber() ?? null,
+        accountName: tx.account.name,
+        accountBank: tx.account.bank,
+        entityName: (tx.account as any).entity.name,
+      })),
+      total,
+      page: pageNum,
+      limit: limitNum,
+      totalPages: Math.ceil(total / limitNum),
+    });
+  } catch (error) {
+    console.error("Manager statements error:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 });

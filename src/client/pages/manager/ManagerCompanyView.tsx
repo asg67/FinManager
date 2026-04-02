@@ -3,14 +3,14 @@ import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Download, Loader } from "lucide-react";
 import { useAuthStore } from "../../stores/auth.js";
 import { useThemeStore } from "../../stores/theme.js";
-import { managerApi, type ManagerCompanyDetail, type ManagerOperation, type ManagerCompanyUser, type CategoryStat, type MonthStat } from "../../api/manager.js";
+import { managerApi, type ManagerCompanyDetail, type ManagerOperation, type ManagerCompanyUser, type CategoryStat, type MonthStat, type ManagerAccount, type ManagerStatement } from "../../api/manager.js";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend,
 } from "recharts";
 import { LogOut, Moon, Sun } from "lucide-react";
 
-type Tab = "operations" | "stats" | "users";
+type Tab = "operations" | "stats" | "users" | "accounts" | "statements";
 
 // Colors for pie chart
 const PIE_COLORS = ["#6366f1", "#22c55e", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4", "#f97316", "#ec4899", "#10b981", "#3b82f6"];
@@ -388,6 +388,159 @@ function UsersTab({ companyId }: { companyId: string }) {
   );
 }
 
+// ===== Accounts Tab =====
+
+function AccountsTab({ companyId }: { companyId: string }) {
+  const [accounts, setAccounts] = useState<ManagerAccount[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    managerApi.getAccounts(companyId).then(setAccounts).finally(() => setLoading(false));
+  }, [companyId]);
+
+  return (
+    <div>
+      {loading ? (
+        <div className="manager-loading">Загрузка...</div>
+      ) : accounts.length === 0 ? (
+        <div className="manager-empty-state">Нет назначенных пользователей или счетов</div>
+      ) : (
+        <div className="manager-ops-table-wrap">
+          <table className="manager-ops-table">
+            <thead>
+              <tr>
+                <th>Счёт</th>
+                <th>Тип</th>
+                <th>Банк</th>
+                <th>Юрлицо</th>
+                <th>Операций</th>
+                <th>Баланс</th>
+              </tr>
+            </thead>
+            <tbody>
+              {accounts.map((acc) => (
+                <tr key={acc.id}>
+                  <td style={{ fontWeight: 500 }}>{acc.name}</td>
+                  <td style={{ color: "var(--text-muted)" }}>{acc.type}</td>
+                  <td style={{ color: "var(--text-muted)" }}>{acc.bank ?? "—"}</td>
+                  <td>{acc.entityName}</td>
+                  <td style={{ color: "var(--text-muted)" }}>{acc.transactionsCount}</td>
+                  <td style={{ fontWeight: 600 }}>
+                    {acc.balance !== null
+                      ? `${formatMoney(acc.balance)} ₽`
+                      : "—"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ===== Statements Tab =====
+
+function StatementsTab({ companyId }: { companyId: string }) {
+  const [data, setData] = useState<ManagerStatement[]>([]);
+  const [accounts, setAccounts] = useState<ManagerAccount[]>([]);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [accountId, setAccountId] = useState("");
+  const [direction, setDirection] = useState("");
+  const limit = 30;
+
+  useEffect(() => {
+    managerApi.getAccounts(companyId).then(setAccounts);
+  }, [companyId]);
+
+  const load = useCallback(() => {
+    setLoading(true);
+    managerApi.getStatements(companyId, {
+      accountId: accountId || undefined,
+      direction: direction || undefined,
+      page,
+      limit,
+    })
+      .then((r) => { setData(r.data); setTotal(r.total); setTotalPages(r.totalPages); })
+      .finally(() => setLoading(false));
+  }, [companyId, accountId, direction, page]);
+
+  useEffect(() => { setPage(1); }, [accountId, direction]);
+  useEffect(() => { load(); }, [load]);
+
+  return (
+    <div>
+      <div className="manager-filters" style={{ marginBottom: "1rem" }}>
+        <select className="manager-filter-select" value={accountId} onChange={(e) => setAccountId(e.target.value)}>
+          <option value="">Все счета</option>
+          {accounts.map((a) => <option key={a.id} value={a.id}>{a.name} ({a.entityName})</option>)}
+        </select>
+        <select className="manager-filter-select" value={direction} onChange={(e) => setDirection(e.target.value)}>
+          <option value="">Все</option>
+          <option value="income">Приход</option>
+          <option value="expense">Расход</option>
+        </select>
+      </div>
+
+      {loading ? (
+        <div className="manager-loading">Загрузка...</div>
+      ) : data.length === 0 ? (
+        <div className="manager-empty-state">Операции не найдены</div>
+      ) : (
+        <>
+          <div className="manager-ops-table-wrap">
+            <table className="manager-ops-table">
+              <thead>
+                <tr>
+                  <th>Дата</th>
+                  <th>Сумма</th>
+                  <th>Контрагент</th>
+                  <th>Назначение</th>
+                  <th>Счёт</th>
+                  <th>Юрлицо</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.map((tx) => (
+                  <tr key={tx.id}>
+                    <td style={{ whiteSpace: "nowrap", color: "var(--text-muted)" }}>
+                      {new Date(tx.date).toLocaleDateString("ru-RU")}
+                      {tx.time ? ` ${tx.time}` : ""}
+                    </td>
+                    <td className={`manager-ops-table__amount--${tx.direction}`}>
+                      {tx.direction === "expense" ? "−" : "+"}
+                      {formatMoney(tx.amount)} ₽
+                    </td>
+                    <td>{tx.counterparty ?? "—"}</td>
+                    <td style={{ color: "var(--text-muted)", maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {tx.purpose ?? "—"}
+                    </td>
+                    <td>{tx.accountName}</td>
+                    <td>{tx.entityName}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="manager-pagination">
+            <span>Всего: {total}</span>
+            <div className="manager-pagination__btns">
+              <button className="manager-pagination__btn" disabled={page <= 1} onClick={() => setPage(page - 1)}>← Назад</button>
+              <span style={{ padding: "0.375rem 0.5rem", fontSize: "0.8125rem" }}>{page} / {totalPages}</span>
+              <button className="manager-pagination__btn" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>Вперёд →</button>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 // ===== Main View =====
 
 export default function ManagerCompanyView() {
@@ -477,15 +630,24 @@ export default function ManagerCompanyView() {
         </div>
 
         <div className="manager-tabs">
-          {(["stats", "operations", "users"] as Tab[]).map((t) => (
-            <button
-              key={t}
-              className={`manager-tab ${tab === t ? "manager-tab--active" : ""}`}
-              onClick={() => setTab(t)}
-            >
-              {t === "stats" ? "Статистика" : t === "operations" ? "ДДС операции" : "Пользователи"}
-            </button>
-          ))}
+          {(["stats", "operations", "accounts", "statements", "users"] as Tab[]).map((t) => {
+            const labels: Record<Tab, string> = {
+              stats: "Статистика",
+              operations: "ДДС операции",
+              accounts: "Счета",
+              statements: "Выписки",
+              users: "Пользователи",
+            };
+            return (
+              <button
+                key={t}
+                className={`manager-tab ${tab === t ? "manager-tab--active" : ""}`}
+                onClick={() => setTab(t)}
+              >
+                {labels[t]}
+              </button>
+            );
+          })}
         </div>
 
         {tab === "stats" && (
@@ -493,6 +655,12 @@ export default function ManagerCompanyView() {
         )}
         {tab === "operations" && (
           <OperationsTab companyId={companyId!} entities={detail.entities} />
+        )}
+        {tab === "accounts" && (
+          <AccountsTab companyId={companyId!} />
+        )}
+        {tab === "statements" && (
+          <StatementsTab companyId={companyId!} />
         )}
         {tab === "users" && (
           <UsersTab companyId={companyId!} />

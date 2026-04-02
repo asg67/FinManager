@@ -1809,13 +1809,18 @@ function opTypeLabel(type: string) {
 function ManagersView({ onBack }: { onBack: () => void }) {
   const [managers, setManagers] = useState<AdminManager[]>([]);
   const [companies, setCompanies] = useState<AdminCompanyListItem[]>([]);
+  const [allUsers, setAllUsers] = useState<{ id: string; name: string; email: string; companyId: string | null }[]>([]);
   const [loading, setLoading] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
   useEffect(() => {
-    Promise.all([adminApi.getManagers(), adminApi.listCompanies()])
-      .then(([mgrs, comps]) => { setManagers(mgrs); setCompanies(comps); })
+    Promise.all([adminApi.getManagers(), adminApi.listCompanies(), adminApi.listUsers()])
+      .then(([mgrs, comps, users]) => {
+        setManagers(mgrs);
+        setCompanies(comps);
+        setAllUsers(users.filter((u) => u.role !== "manager").map((u) => ({ id: u.id, name: u.name, email: u.email, companyId: u.companyId })));
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -1825,6 +1830,16 @@ function ManagersView({ onBack }: { onBack: () => void }) {
       ? currentCompanies.filter((c) => c.id !== companyId).map((c) => c.id)
       : [...currentCompanies.map((c) => c.id), companyId];
     await adminApi.setManagerCompanies(managerId, newIds);
+    const updated = await adminApi.getManagers();
+    setManagers(updated);
+  }
+
+  async function handleUserToggle(managerId: string, userId: string, currentAssigned: { id: string }[]) {
+    const hasAccess = currentAssigned.some((u) => u.id === userId);
+    const newIds = hasAccess
+      ? currentAssigned.filter((u) => u.id !== userId).map((u) => u.id)
+      : [...currentAssigned.map((u) => u.id), userId];
+    await adminApi.setManagerUsers(managerId, newIds);
     const updated = await adminApi.getManagers();
     setManagers(updated);
   }
@@ -1898,6 +1913,35 @@ function ManagersView({ onBack }: { onBack: () => void }) {
                       })}
                     </div>
                   </div>
+                  {m.companies.length > 0 && (
+                    <div className="admin-user-card__section">
+                      <label className="admin-user-card__label">Пользователи (выписки и счета)</label>
+                      {m.companies.map((comp) => {
+                        const compUsers = allUsers.filter((u) => u.companyId === comp.id);
+                        if (compUsers.length === 0) return null;
+                        return (
+                          <div key={comp.id} style={{ marginBottom: "0.5rem" }}>
+                            <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: "0.25rem" }}>{comp.name}</div>
+                            <div className="admin-bank-toggles">
+                              {compUsers.map((u) => {
+                                const isAssigned = m.assignedUsers.some((au) => au.id === u.id);
+                                return (
+                                  <button
+                                    key={u.id}
+                                    type="button"
+                                    className={`admin-bank-toggle ${isAssigned ? "admin-bank-toggle--on" : "admin-bank-toggle--off"}`}
+                                    onClick={() => handleUserToggle(m.id, u.id, m.assignedUsers)}
+                                  >
+                                    {u.name}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                   <div className="admin-user-card__footer">
                     <span className="admin-user-card__date">Регистрация: {formatDate(m.createdAt)}</span>
                     <button

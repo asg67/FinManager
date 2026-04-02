@@ -22,6 +22,7 @@ export interface AdminManager {
   lastLoginAt: string | null;
   createdAt: string;
   companies: { id: string; name: string }[];
+  assignedUsers: { id: string; name: string; email: string; companyId: string | null }[];
 }
 
 export interface AdminCompanyDetail {
@@ -314,4 +315,7 @@ export const adminApi = {
 
   deleteManager: (managerId: string) =>
     api.delete<void>(`/admin/managers/${managerId}`),
+
+  setManagerUsers: (managerId: string, userIds: string[]) =>
+    api.put<{ userIds: string[] }>(`/admin/managers/${managerId}/users`, { userIds }),
 };

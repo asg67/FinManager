@@ -70,6 +70,38 @@ export interface ManagerOperationsResponse {
   pages: number;
 }
 
+export interface ManagerAccount {
+  id: string;
+  name: string;
+  type: string;
+  bank: string | null;
+  entityName: string;
+  transactionsCount: number;
+  balance: number | null;
+}
+
+export interface ManagerStatement {
+  id: string;
+  date: string;
+  time: string | null;
+  amount: number;
+  direction: string;
+  counterparty: string | null;
+  purpose: string | null;
+  balance: number | null;
+  accountName: string;
+  accountBank: string | null;
+  entityName: string;
+}
+
+export interface ManagerStatementsResponse {
+  data: ManagerStatement[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
 function buildQuery(params: Record<string, string | undefined>): string {
   const sp = new URLSearchParams();
   for (const [k, v] of Object.entries(params)) {
@@ -139,5 +171,27 @@ export const managerApi = {
       `/api/manager/companies/${companyId}/export/dds-excel${q}`,
       `dds-${companyName}-${date}.xlsx`,
     );
+  },
+
+  getAccounts: (companyId: string) =>
+    api.get<ManagerAccount[]>(`/manager/companies/${companyId}/accounts`),
+
+  getStatements: (companyId: string, params: {
+    accountId?: string;
+    direction?: string;
+    from?: string;
+    to?: string;
+    page?: number;
+    limit?: number;
+  }) => {
+    const q = buildQuery({
+      accountId: params.accountId,
+      direction: params.direction,
+      from: params.from,
+      to: params.to,
+      page: params.page?.toString(),
+      limit: params.limit?.toString(),
+    });
+    return api.get<ManagerStatementsResponse>(`/manager/companies/${companyId}/statements${q}`);
   },
 };
