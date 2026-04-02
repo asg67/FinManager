@@ -71,9 +71,13 @@ export async function syncConnection(
       // Fetch transactions
       const transactions = await adapter.fetchTransactions(conn.token, remoteAcc, fromDate, toDate);
 
-      // Save with deduplication
+      // Save with deduplication (include time + sequence for same-key ops)
+      const keyCountMap = new Map<string, number>();
       for (const tx of transactions) {
-        const dedupeKey = `${localAccount.id}|${tx.date}|${tx.amount}|${tx.direction}`;
+        const baseKey = `${localAccount.id}|${tx.date}|${tx.time || ""}|${tx.amount}|${tx.direction}`;
+        const seq = (keyCountMap.get(baseKey) || 0) + 1;
+        keyCountMap.set(baseKey, seq);
+        const dedupeKey = `${baseKey}|${seq}`;
         const existing = await prisma.bankTransaction.findFirst({ where: { dedupeKey } });
         if (existing) {
           totalSkipped++;

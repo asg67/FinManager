@@ -105,17 +105,21 @@ router.post("/upload", upload.single("file"), async (req: Request, res: Response
       balance: string | null;
     }>;
 
+    // Build dedupeKeys with time + sequence to distinguish same-day same-amount ops
+    const keyCountMap = new Map<string, number>();
+    const txsWithKeys = transactions.map((tx) => {
+      const baseKey = `${accountId}|${tx.date}|${tx.time || ""}|${tx.amount}|${tx.direction}`;
+      const seq = (keyCountMap.get(baseKey) || 0) + 1;
+      keyCountMap.set(baseKey, seq);
+      return { ...tx, dedupeKey: `${baseKey}|${seq}` };
+    });
+
     const enriched = await Promise.all(
-      transactions.map(async (tx) => {
-        const dedupeKey = `${accountId}|${tx.date}|${tx.amount}|${tx.direction}`;
+      txsWithKeys.map(async (tx) => {
         const existing = await prisma.bankTransaction.findFirst({
-          where: { dedupeKey },
+          where: { dedupeKey: tx.dedupeKey },
         });
-        return {
-          ...tx,
-          dedupeKey,
-          isDuplicate: !!existing,
-        };
+        return { ...tx, isDuplicate: !!existing };
       }),
     );
 
@@ -153,7 +157,9 @@ router.post("/confirm", validate(confirmSchema), async (req: Request, res: Respo
     let skipped = 0;
 
     for (const tx of transactions) {
-      const dedupeKey = `${pdfUpload.accountId}|${tx.date}|${tx.amount}|${tx.direction}`;
+      // Use dedupeKey from frontend (computed during upload with time+seq)
+      const dedupeKey = tx.dedupeKey ||
+        `${pdfUpload.accountId}|${tx.date}|${tx.time || ""}|${tx.amount}|${tx.direction}|1`;
 
       // Check for duplicate
       const existing = await prisma.bankTransaction.findFirst({

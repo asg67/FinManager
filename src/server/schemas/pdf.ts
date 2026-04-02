@@ -16,6 +16,7 @@ export const confirmSchema = z.object({
       counterparty: z.string().nullable().optional(),
       purpose: z.string().nullable().optional(),
       balance: z.string().nullable().optional(),
+      dedupeKey: z.string().optional(),
     }),
   ),
 });
