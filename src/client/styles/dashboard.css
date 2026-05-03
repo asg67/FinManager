@@ -459,6 +459,96 @@
 [data-theme="dark"] .dash-metric-card__value--income { color: var(--color-income); }
 [data-theme="dark"] .dash-metric-card__value--expense { color: var(--color-expense); }
 
+/* ===== TWIN DONUTS (Income/Expense like Фин-Табло) ===== */
+.dash-twin-donuts {
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+}
+
+.dash-twin-donut {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+}
+
+.dash-twin-donut__chart-wrap {
+  position: relative;
+  width: 180px;
+  height: 180px;
+}
+
+.dash-twin-donut__center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  pointer-events: none;
+}
+
+.dash-twin-donut__value {
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1.1;
+}
+.dash-twin-donut__value--expense { color: #DC503C; }
+.dash-twin-donut__value--income { color: #F5A623; }
+[data-theme="dark"] .dash-twin-donut__value--expense { color: var(--color-expense); }
+[data-theme="dark"] .dash-twin-donut__value--income { color: var(--color-income); }
+
+.dash-twin-donut__sub {
+  font-size: 11px;
+  color: #999;
+  margin-top: 3px;
+}
+[data-theme="dark"] .dash-twin-donut__sub { color: var(--text-muted); }
+
+/* --- Summary Stats Row --- */
+.dash-summary-stats {
+  padding: 14px 20px;
+  display: flex;
+  gap: 24px;
+  justify-content: center;
+}
+
+.dash-summary-stat {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #888;
+}
+.dash-summary-stat__label {
+  font-size: 13px;
+  color: #888;
+}
+.dash-summary-stat__value {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1A1A1A;
+}
+[data-theme="dark"] .dash-summary-stat { color: var(--text-muted); }
+[data-theme="dark"] .dash-summary-stat__label { color: var(--text-muted); }
+[data-theme="dark"] .dash-summary-stat__value { color: var(--text-primary); }
+
+/* --- Dashboard Timeline Chart Card --- */
+.dash-chart-card {
+  padding: 24px;
+}
+.dash-chart-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.dash-chart-area {
+  width: 100%;
+}
+
 /* ===== CHART BLOCK ===== */
 .chart-card { padding: 24px; }
 .chart-card__chart-area { width: 100%; height: 260px; }
@@ -719,23 +809,11 @@
     align-items: flex-start;
     gap: 12px;
   }
-  .dash-donut-metrics {
-    flex-direction: column;
-    gap: 20px;
-  }
-  .dash-donut-chart-wrap { width: 240px; height: 240px; }
-  .dash-metrics-column {
-    flex-direction: row;
-    flex-wrap: wrap;
-  }
-  .dash-metric-card {
-    flex: 1;
-    min-width: 140px;
-  }
-  .dash-metric-card__value {
-    padding-left: 0;
-    font-size: 16px;
-  }
+  .dash-twin-donuts { gap: 12px; padding: 16px; }
+  .dash-twin-donut__chart-wrap { width: 150px; height: 150px; }
+  .dash-twin-donut__value { font-size: 13px; }
+  .dash-chart-card { padding: 16px; }
+  .dash-chart-card__header { flex-direction: column; align-items: flex-start; }
   .chart-card__header {
     flex-direction: column;
     align-items: flex-start;
@@ -751,10 +829,11 @@
   }
   .dash-greeting__name { font-size: 20px; }
   .dash-accounts-card { padding: 16px; }
-  .dash-donut-metrics { padding: 16px; }
+  .dash-twin-donuts { flex-direction: column; padding: 16px; }
+  .dash-twin-donut__chart-wrap { width: 160px; height: 160px; }
+  .dash-chart-card { padding: 12px; }
+  .dash-summary-stats { flex-direction: column; gap: 8px; padding: 12px; }
   .chart-card { padding: 16px; }
   .dash-recent { padding: 16px; }
   .glass-card { border-radius: 16px; }
-  .dash-donut-chart-wrap { width: 220px; height: 220px; }
-  .dash-donut-center-label__value { font-size: 15px; }
 }

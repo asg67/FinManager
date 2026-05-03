@@ -9,8 +9,9 @@ import {
 } from "lucide-react";
 import {
   PieChart, Pie, Cell, ResponsiveContainer,
+  AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid,
 } from "recharts";
-import { analyticsApi, type SummaryData, type AccountBalance, type RecentOperation } from "../api/analytics.js";
+import { analyticsApi, type SummaryData, type AccountBalance, type RecentOperation, type TimelinePoint, type CategoryData } from "../api/analytics.js";
 import { ddsApi } from "../api/dds.js";
 import { pdfApi, type BankTransaction } from "../api/pdf.js";
 import { entitiesApi } from "../api/entities.js";
@@ -19,19 +20,11 @@ import { useAuthStore } from "../stores/auth.js";
 import { useThemeStore } from "../stores/theme.js";
 import type { DdsOperation } from "@shared/types.js";
 
-const CATEGORY_COLORS: Record<string, string> = {
-  checking: "#F5A623",
-  card: "#1A1A1A",
-  cash: "#D9D9D9",
-  deposit: "#F4D78E",
-};
-
-const CATEGORY_COLORS_DARK: Record<string, string> = {
-  checking: "#6b7280",
-  card: "#9ca3af",
-  cash: "#4b5563",
-  deposit: "#d1d5db",
-};
+const EXPENSE_CAT_COLORS = [
+  "#6366f1", "#8b5cf6", "#a855f7", "#d946ef",
+  "#ec4899", "#f43f5e", "#ef4444", "#f97316",
+  "#eab308", "#84cc16", "#22c55e", "#14b8a6",
+];
 
 function defaultFrom() {
   const d = new Date();
@@ -66,8 +59,6 @@ export default function Dashboard() {
   const user = useAuthStore((s) => s.user);
   const theme = useThemeStore((s) => s.theme);
 
-  const catColors = theme === "light" ? CATEGORY_COLORS : CATEGORY_COLORS_DARK;
-
   const [dateFrom, setDateFrom] = useState(defaultFrom);
   const [dateTo, setDateTo] = useState(today);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -88,6 +79,9 @@ export default function Dashboard() {
   const [ddsOps, setDdsOps] = useState<DdsOperation[]>([]);
   const [bankTxs, setBankTxs] = useState<BankTransaction[]>([]);
   const [opsLoading, setOpsLoading] = useState(false);
+  const [timeline, setTimeline] = useState<TimelinePoint[]>([]);
+  const [categories, setCategories] = useState<CategoryData[]>([]);
+  const [chartFilter, setChartFilter] = useState<"all" | "income" | "expense">("all");
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -118,10 +112,14 @@ export default function Dashboard() {
       analyticsApi.summary(filters),
       analyticsApi.accountBalances(myEntityId),
       analyticsApi.recent(10, myEntityId),
-    ]).then(([sum, bal, rec]) => {
+      analyticsApi.timeline({ from: dateFrom, entityId: myEntityId }),
+      analyticsApi.byCategory(filters),
+    ]).then(([sum, bal, rec, tl, cat]) => {
       setSummary(sum);
       setBalances(bal);
       setRecent(rec);
+      setTimeline(tl);
+      setCategories(cat);
       setLoading(false);
     });
   }, [dateFrom, dateTo, myEntityId]);
@@ -183,12 +181,12 @@ export default function Dashboard() {
     });
   }
 
-  const donutData = useMemo(
-    () => Object.entries(sumByType).filter(([, v]) => v > 0).map(([type, value]) => ({ name: typeLabel(type), value, color: catColors[type] || "#ccc" })),
-    [sumByType, catColors],
-  );
-  const hasDonutData = donutData.length > 0;
-  const donutDisplay = hasDonutData ? donutData : [{ name: "—", value: 1, color: theme === "light" ? "#E0E0E0" : "#374151" }];
+  const expenseDonut = useMemo(() => {
+    if (categories.length > 0) return categories.map((c, i) => ({ name: c.name, value: c.total, color: EXPENSE_CAT_COLORS[i % EXPENSE_CAT_COLORS.length] }));
+    return [{ name: "Расходы", value: Math.abs(calcExpense) || 1, color: "#ef4444" }];
+  }, [categories, calcExpense]);
+
+  const incomeDonut = useMemo(() => [{ name: "Поступления", value: calcIncome || 1, color: "#22c55e" }], [calcIncome]);
 
   const calcBalance = summary?.balance ?? balances.reduce((s, a) => s + a.balance, 0);
   const calcIncome = summary?.totalIncome ?? 0;
@@ -322,53 +320,86 @@ export default function Dashboard() {
                 {balances.length === 0 && <div className="dash-empty-placeholder"><span>{t("settings.noAccounts")}</span></div>}
               </div>
 
-              {/* RIGHT column */}
+              {/* RIGHT column: twin donuts + summary */}
               <div className="dash-middle-right">
-                {/* Donut + Metrics */}
-                <div className="glass-card dash-donut-metrics">
-                  <div className="dash-donut-left">
-                    <div className="dash-donut-chart-wrap">
+                <div className="glass-card dash-twin-donuts">
+                  <div className="dash-twin-donut">
+                    <div className="dash-twin-donut__chart-wrap">
                       <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
-                          <Pie data={donutDisplay} dataKey="value" cx="50%" cy="50%" innerRadius="60%" outerRadius="90%" paddingAngle={hasDonutData ? 3 : 0} stroke="none">
-                            {donutDisplay.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                          <Pie data={expenseDonut} dataKey="value" cx="50%" cy="50%" innerRadius="62%" outerRadius="88%" paddingAngle={expenseDonut.length > 1 ? 2 : 0} stroke="none">
+                            {expenseDonut.map((e, i) => <Cell key={i} fill={e.color} />)}
                           </Pie>
                         </PieChart>
                       </ResponsiveContainer>
-                      <div className="dash-donut-center-label">
-                        <div className="dash-donut-center-label__value">{formatMoney(calcBalance)} ₽</div>
-                        <div className="dash-donut-center-label__sub">{t("dashboard.balance")}</div>
+                      <div className="dash-twin-donut__center">
+                        <div className="dash-twin-donut__value dash-twin-donut__value--expense">-{formatMoney(Math.abs(calcExpense))} ₽</div>
+                        <div className="dash-twin-donut__sub">Все списания</div>
                       </div>
                     </div>
-                    <div className="dash-donut-legend">
-                      {Object.entries(catColors).map(([type, color]) => (
-                        <div className="dash-donut-legend__item" key={type}>
-                          <span className="dash-donut-legend__dot" style={{ background: color }} />
-                          {typeLabel(type)}
-                        </div>
-                      ))}
-                    </div>
                   </div>
-                  <div className="dash-metrics-column">
-                    <div className="dash-metric-card">
-                      <div className="dash-metric-card__top"><div className="dash-metric-card__icon dash-metric-card__icon--balance"><Wallet size={16} /></div><span className="dash-metric-card__label">{t("dashboard.balance")}</span></div>
-                      <div className="dash-metric-card__value">{formatMoney(calcBalance)} ₽</div>
-                    </div>
-                    <div className="dash-metric-card">
-                      <div className="dash-metric-card__top"><div className="dash-metric-card__icon dash-metric-card__icon--income"><TrendingUp size={16} /></div><span className="dash-metric-card__label">{t("dashboard.income")}</span></div>
-                      <div className="dash-metric-card__value dash-metric-card__value--income">+{formatMoney(calcIncome)} ₽</div>
-                    </div>
-                    <div className="dash-metric-card">
-                      <div className="dash-metric-card__top"><div className="dash-metric-card__icon dash-metric-card__icon--expense"><TrendingDown size={16} /></div><span className="dash-metric-card__label">{t("dashboard.expense")}</span></div>
-                      <div className="dash-metric-card__value dash-metric-card__value--expense">-{formatMoney(Math.abs(calcExpense))} ₽</div>
-                    </div>
-                    <div className="dash-metric-card">
-                      <div className="dash-metric-card__top"><div className="dash-metric-card__icon dash-metric-card__icon--count"><Activity size={16} /></div><span className="dash-metric-card__label">{t("dashboard.operations")}</span></div>
-                      <div className="dash-metric-card__value">{calcOps}</div>
+                  <div className="dash-twin-donut">
+                    <div className="dash-twin-donut__chart-wrap">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie data={incomeDonut} dataKey="value" cx="50%" cy="50%" innerRadius="62%" outerRadius="88%" paddingAngle={0} stroke="none">
+                            {incomeDonut.map((e, i) => <Cell key={i} fill={e.color} />)}
+                          </Pie>
+                        </PieChart>
+                      </ResponsiveContainer>
+                      <div className="dash-twin-donut__center">
+                        <div className="dash-twin-donut__value dash-twin-donut__value--income">+{formatMoney(calcIncome)} ₽</div>
+                        <div className="dash-twin-donut__sub">Все поступления</div>
+                      </div>
                     </div>
                   </div>
                 </div>
+                <div className="glass-card dash-summary-stats">
+                  <div className="dash-summary-stat">
+                    <Wallet size={16} />
+                    <span className="dash-summary-stat__label">{t("dashboard.balance")}</span>
+                    <span className="dash-summary-stat__value">{formatMoney(calcBalance)} ₽</span>
+                  </div>
+                  <div className="dash-summary-stat">
+                    <Activity size={16} />
+                    <span className="dash-summary-stat__label">{t("dashboard.operations")}</span>
+                    <span className="dash-summary-stat__value">{calcOps}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
 
+            {/* Timeline chart */}
+            <div className="glass-card dash-chart-card">
+              <div className="dash-chart-card__header">
+                <h3 className="chart-title">График</h3>
+                <div className="chart-filter-tabs">
+                  {([["all", "Все"], ["expense", "Списания"], ["income", "Поступления"]] as const).map(([key, label]) => (
+                    <button key={key} type="button" className={`chart-filter-tab${chartFilter === key ? " chart-filter-tab--active" : ""}`} onClick={() => setChartFilter(key as typeof chartFilter)}>{label}</button>
+                  ))}
+                </div>
+              </div>
+              <div className="dash-chart-area">
+                <ResponsiveContainer width="100%" height={220}>
+                  <AreaChart data={timeline}>
+                    <defs>
+                      <linearGradient id="gradIncome" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#22c55e" stopOpacity={0.15} />
+                        <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
+                      </linearGradient>
+                      <linearGradient id="gradExpense" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#ef4444" stopOpacity={0.15} />
+                        <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke={theme === "dark" ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)"} />
+                    <XAxis dataKey="date" tickFormatter={(v: string) => { const d = new Date(v); return `${String(d.getDate()).padStart(2, "0")}.${String(d.getMonth() + 1).padStart(2, "0")}`; }} tick={{ fontSize: 11, fill: theme === "dark" ? "#9ca3af" : "#888" }} />
+                    <YAxis tickFormatter={(v: number) => v >= 1000000 ? `${(v / 1000000).toFixed(1)}M` : v >= 1000 ? `${(v / 1000).toFixed(0)}K` : String(v)} tick={{ fontSize: 11, fill: theme === "dark" ? "#9ca3af" : "#888" }} width={55} />
+                    <Tooltip formatter={(v: number) => [formatMoney(v) + " ₽"]} labelFormatter={(l: string) => new Date(l).toLocaleDateString("ru-RU")} contentStyle={{ background: theme === "dark" ? "#1f2937" : "#fff", border: "none", borderRadius: 8, boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }} />
+                    {(chartFilter === "all" || chartFilter === "income") && <Area type="monotone" dataKey="income" stroke="#22c55e" fill="url(#gradIncome)" strokeWidth={2} name="Поступления" />}
+                    {(chartFilter === "all" || chartFilter === "expense") && <Area type="monotone" dataKey="expense" stroke="#ef4444" fill="url(#gradExpense)" strokeWidth={2} name="Списания" />}
+                  </AreaChart>
+                </ResponsiveContainer>
               </div>
             </div>
 
