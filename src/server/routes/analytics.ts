@@ -249,13 +249,13 @@ router.get("/account-balances", async (req: Request, res: Response) => {
         entity: { select: { name: true } },
         initialBalance: true,
         initialBalanceDate: true,
-        _count: { select: { bankTransactions: true } },
+        _count: { select: { bankStatements: true } },
       },
     });
 
     // Only compute balances for accounts that have data
     const relevant = accounts.filter(
-      (acc) => acc.initialBalance !== null || acc._count.bankTransactions > 0,
+      (acc) => acc.initialBalance !== null || acc._count.bankStatements > 0,
     );
 
     const balances = await Promise.all(

@@ -524,7 +524,7 @@ router.get("/companies/:companyId/accounts", async (req: Request, res: Response)
       where: { entityId: { in: entityIds }, enabled: true },
       include: {
         entity: { select: { name: true } },
-        _count: { select: { bankTransactions: true } },
+        _count: { select: { bankStatements: true } },
       },
       orderBy: [{ entity: { name: "asc" } }, { name: "asc" }],
     });
@@ -533,7 +533,7 @@ router.get("/companies/:companyId/accounts", async (req: Request, res: Response)
     const result = await Promise.all(accounts.map(async (acc) => {
       let balance: number | null = null;
       if (acc.initialBalance !== null && acc.initialBalanceDate !== null) {
-        if (acc._count.bankTransactions === 0) {
+        if (acc._count.bankStatements === 0) {
           balance = acc.initialBalance.toNumber();
         } else {
           const [incAgg, expAgg] = await Promise.all([
@@ -557,7 +557,7 @@ router.get("/companies/:companyId/accounts", async (req: Request, res: Response)
         type: acc.type,
         bank: acc.bank,
         entityName: acc.entity.name,
-        transactionsCount: acc._count.bankTransactions,
+        transactionsCount: acc._count.bankStatements,
         balance,
       };
     }));
