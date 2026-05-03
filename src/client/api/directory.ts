@@ -58,8 +58,14 @@ export interface DirCategoryRule {
   createdAt: string;
 }
 
+export interface DirEntity {
+  id: string;
+  name: string;
+}
+
 export const directoryApi = {
   canEdit: () => api.get<{ canEdit: boolean }>("/directory/can-edit"),
+  listEntities: () => api.get<DirEntity[]>("/directory/entities"),
 
   // Expense types
   listExpenseTypes: () => api.get<DirExpenseType[]>("/directory/expense-types"),
@@ -79,6 +85,11 @@ export const directoryApi = {
 
   // Accounts
   listAccounts: () => api.get<DirAccount[]>("/directory/accounts"),
+  createAccount: (data: { entityId: string; name: string; type: string; bank?: string; accountNumber?: string }) =>
+    api.post<DirAccount>("/directory/accounts", data),
+  updateAccount: (id: string, data: { name?: string; type?: string; bank?: string; accountNumber?: string }) =>
+    api.put<DirAccount>(`/directory/accounts/${id}`, data),
+  deleteAccount: (id: string) => api.delete<void>(`/directory/accounts/${id}`),
   toggleAccount: (id: string) => api.put<{ id: string; enabled: boolean }>(`/directory/accounts/${id}/toggle`),
 
   // Income types

@@ -7,10 +7,10 @@ import {
   Wallet, CreditCard, Banknote, PiggyBank, Sparkles,
 } from "lucide-react";
 import clsx from "clsx";
-import { directoryApi, type DirExpenseType, type DirExpenseArticle, type DirAccount, type DirDirectionItem, type DirCategoryRule } from "../api/directory.js";
+import { directoryApi, type DirExpenseType, type DirExpenseArticle, type DirAccount, type DirDirectionItem, type DirCategoryRule, type DirEntity } from "../api/directory.js";
 import { useAuthStore } from "../stores/auth.js";
 
-type Section = "main" | "dds";
+type Section = "main" | "dds" | "accountsMgmt";
 type DdsTab = "articles" | "accounts" | "directions" | "categorization";
 
 export default function Directory() {
@@ -46,6 +46,7 @@ export default function Directory() {
 
       {section === "main" && <MainView onSelect={setSection} />}
       {section === "dds" && <DdsView canEdit={canEdit} />}
+      {section === "accountsMgmt" && <AccountsManageView canEdit={canEdit} />}
     </div>
   );
 }
@@ -65,6 +66,17 @@ function MainView({ onSelect }: { onSelect: (s: Section) => void }) {
           <div className="dir-nav-card__text">
             <h3 className="dir-nav-card__title">{t("directory.ddsBlock")}</h3>
             <p className="dir-nav-card__desc">{t("directory.ddsBlockDesc")}</p>
+          </div>
+          <ChevronRight size={20} className="dir-nav-card__arrow" />
+        </button>
+
+        <button type="button" className="glass-card dir-nav-card" onClick={() => onSelect("accountsMgmt")}>
+          <div className="dir-nav-card__icon" style={{ background: "rgba(34,197,94,0.08)", color: "#22c55e" }}>
+            <CreditCard size={24} />
+          </div>
+          <div className="dir-nav-card__text">
+            <h3 className="dir-nav-card__title">{t("directory.accountsBlock")}</h3>
+            <p className="dir-nav-card__desc">{t("directory.accountsBlockDesc")}</p>
           </div>
           <ChevronRight size={20} className="dir-nav-card__arrow" />
         </button>
@@ -528,6 +540,218 @@ function DirectionsView() {
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+/* ===== ACCOUNTS MANAGE VIEW ===== */
+function AccountsManageView({ canEdit }: { canEdit: boolean }) {
+  const { t } = useTranslation();
+  const [accounts, setAccounts] = useState<DirAccount[]>([]);
+  const [entities, setEntities] = useState<DirEntity[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [adding, setAdding] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  const emptyForm = { name: "", type: "checking", customType: "", entityId: "", bank: "", accountNumber: "" };
+  const [form, setForm] = useState(emptyForm);
+
+  useEffect(() => {
+    Promise.all([directoryApi.listAccounts(), directoryApi.listEntities()]).then(([a, e]) => {
+      setAccounts(a);
+      setEntities(e);
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  }, []);
+
+  const stdTypes = ["checking", "card", "cash", "deposit"];
+
+  const typeConfig: Record<string, { label: string; icon: typeof Wallet }> = {
+    checking: { label: t("settings.typeChecking"), icon: Wallet },
+    card: { label: t("settings.typeCard"), icon: CreditCard },
+    cash: { label: t("settings.typeCash"), icon: Banknote },
+    deposit: { label: t("settings.typeDeposit"), icon: PiggyBank },
+  };
+
+  function getTypeLabel(type: string) {
+    return typeConfig[type]?.label || type;
+  }
+  function getTypeIcon(type: string) {
+    const Icon = typeConfig[type]?.icon || Wallet;
+    return <Icon size={16} />;
+  }
+
+  function startAdd() {
+    setForm({ ...emptyForm, entityId: entities[0]?.id || "" });
+    setAdding(true);
+    setEditingId(null);
+  }
+
+  function startEdit(acc: DirAccount) {
+    const isStd = stdTypes.includes(acc.type);
+    setForm({
+      name: acc.name,
+      type: isStd ? acc.type : "other",
+      customType: isStd ? "" : acc.type,
+      entityId: acc.entityId,
+      bank: acc.bank || "",
+      accountNumber: acc.accountNumber || "",
+    });
+    setEditingId(acc.id);
+    setAdding(false);
+  }
+
+  function cancelForm() {
+    setAdding(false);
+    setEditingId(null);
+    setForm(emptyForm);
+  }
+
+  async function handleSave() {
+    if (!form.name.trim()) return;
+    const resolvedType = form.type === "other" ? form.customType.trim() : form.type;
+    if (!resolvedType) return;
+
+    const data = {
+      name: form.name.trim(),
+      type: resolvedType,
+      bank: form.bank.trim() || undefined,
+      accountNumber: form.accountNumber.trim() || undefined,
+    };
+
+    if (editingId) {
+      const updated = await directoryApi.updateAccount(editingId, data);
+      setAccounts((prev) => prev.map((a) => a.id === editingId ? updated : a));
+    } else {
+      const created = await directoryApi.createAccount({ ...data, entityId: form.entityId });
+      setAccounts((prev) => [...prev, created]);
+    }
+    cancelForm();
+  }
+
+  async function handleDelete(id: string) {
+    if (!confirm(t("directory.deleteAccountConfirm"))) return;
+    await directoryApi.deleteAccount(id);
+    setAccounts((prev) => prev.filter((a) => a.id !== id));
+  }
+
+  async function handleToggle(id: string) {
+    const result = await directoryApi.toggleAccount(id);
+    setAccounts((prev) => prev.map((a) => a.id === id ? { ...a, enabled: result.enabled } : a));
+  }
+
+  if (loading) return <div className="dir-loading">{t("common.loading")}</div>;
+
+  const grouped = entities.map((e) => ({
+    entity: e,
+    accounts: accounts.filter((a) => a.entityId === e.id),
+  })).filter((g) => g.accounts.length > 0 || adding);
+
+  const isEditing = adding || editingId;
+
+  return (
+    <div className="dir-section">
+      <div className="dir-sub__header">
+        <h2 className="dir-section__title">{t("directory.accountsBlock")}</h2>
+        {canEdit && !isEditing && (
+          <button type="button" className="dir-add-btn" onClick={startAdd}>
+            <Plus size={16} />
+            <span>{t("directory.addAccount")}</span>
+          </button>
+        )}
+      </div>
+
+      {isEditing && (
+        <div className="dir-cat-form glass-card">
+          {adding && entities.length > 1 && (
+            <div className="dir-cat-form__row">
+              <label className="dir-cat-form__label">{t("directory.accountEntity")}</label>
+              <select className="dir-cat-form__select" value={form.entityId} onChange={(e) => setForm({ ...form, entityId: e.target.value })}>
+                {entities.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
+              </select>
+            </div>
+          )}
+          <div className="dir-cat-form__row">
+            <label className="dir-cat-form__label">{t("directory.accountName")}</label>
+            <input className="dir-inline-input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder={t("directory.accountNamePlaceholder")} autoFocus />
+          </div>
+          <div className="dir-cat-form__row dir-cat-form__row--grid">
+            <div>
+              <label className="dir-cat-form__label">{t("settings.accountType")}</label>
+              <select className="dir-cat-form__select" value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value, customType: "" })}>
+                {stdTypes.map((st) => <option key={st} value={st}>{typeConfig[st]?.label || st}</option>)}
+                <option value="other">{t("directory.accountOtherType")}</option>
+              </select>
+            </div>
+            {form.type === "other" && (
+              <div>
+                <label className="dir-cat-form__label">{t("directory.accountCustomTypePlaceholder")}</label>
+                <input className="dir-inline-input" value={form.customType} onChange={(e) => setForm({ ...form, customType: e.target.value })} placeholder={t("directory.accountCustomTypePlaceholder")} />
+              </div>
+            )}
+            <div>
+              <label className="dir-cat-form__label">{t("settings.bank")}</label>
+              <input className="dir-inline-input" value={form.bank} onChange={(e) => setForm({ ...form, bank: e.target.value })} placeholder={t("directory.accountBankPlaceholder")} />
+            </div>
+            <div>
+              <label className="dir-cat-form__label">{t("settings.accountNumber")}</label>
+              <input className="dir-inline-input" value={form.accountNumber} onChange={(e) => setForm({ ...form, accountNumber: e.target.value })} placeholder={t("directory.accountNumberPlaceholder")} />
+            </div>
+          </div>
+          <div className="dir-cat-form__actions">
+            <button type="button" className="dir-add-btn" onClick={handleSave} disabled={!form.name.trim() || (form.type === "other" && !form.customType.trim())}>
+              <Check size={16} /><span>{t("common.save")}</span>
+            </button>
+            <button type="button" className="dir-cat-form__cancel" onClick={cancelForm}>{t("common.cancel")}</button>
+          </div>
+        </div>
+      )}
+
+      {accounts.length === 0 && !isEditing && (
+        <div className="dir-empty">{t("directory.noAccountsYet")}</div>
+      )}
+
+      {grouped.map((g) => (
+        <div key={g.entity.id} className="dir-amgmt-group">
+          {entities.length > 1 && (
+            <div className="dir-amgmt-group__header">
+              <Landmark size={16} />
+              <span className="dir-amgmt-group__entity">{g.entity.name}</span>
+              <span className="dir-tree__count">{g.accounts.length}</span>
+            </div>
+          )}
+          <div className="dir-amgmt-list">
+            {g.accounts.map((acc) => (
+              <div key={acc.id} className={clsx("dir-amgmt-card glass-card", !acc.enabled && "dir-amgmt-card--disabled", editingId === acc.id && "dir-amgmt-card--editing")}>
+                <div className="dir-amgmt-card__icon">
+                  {getTypeIcon(acc.type)}
+                </div>
+                <div className="dir-amgmt-card__info">
+                  <span className="dir-amgmt-card__name">{acc.name}</span>
+                  <span className="dir-amgmt-card__meta">
+                    {getTypeLabel(acc.type)}
+                    {acc.bank && <> · {acc.bank}</>}
+                    {acc.accountNumber && <> · {acc.accountNumber}</>}
+                  </span>
+                </div>
+                <div className="dir-amgmt-card__right">
+                  {canEdit && (
+                    <button type="button" className="dir-toggle-btn" onClick={() => handleToggle(acc.id)} title={acc.enabled ? t("directory.disable") : t("directory.enable")}>
+                      {acc.enabled ? <ToggleRight size={22} className="dir-toggle--on" /> : <ToggleLeft size={22} className="dir-toggle--off" />}
+                    </button>
+                  )}
+                  {canEdit && (
+                    <div className="dir-amgmt-card__actions">
+                      <button type="button" className="dir-icon-btn" onClick={() => startEdit(acc)}><Pencil size={14} /></button>
+                      <button type="button" className="dir-icon-btn dir-icon-btn--danger" onClick={() => handleDelete(acc.id)}><Trash2 size={14} /></button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

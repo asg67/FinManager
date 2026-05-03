@@ -250,6 +250,114 @@ router.put("/accounts/:id/toggle", async (req: Request, res: Response) => {
   }
 });
 
+// ===== ENTITIES LIST (for account creation) =====
+
+router.get("/entities", async (req: Request, res: Response) => {
+  try {
+    const user = await getCompanyUser(req.user!.userId);
+    if (!user) { res.status(403).json({ message: "No company" }); return; }
+
+    const entities = await prisma.entity.findMany({
+      where: { companyId: user.companyId! },
+      select: { id: true, name: true },
+      orderBy: { createdAt: "asc" },
+    });
+    res.json(entities);
+  } catch (error) {
+    console.error("Directory list entities error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// ===== ACCOUNT CRUD =====
+
+router.post("/accounts", async (req: Request, res: Response) => {
+  try {
+    if (!(await canEditCheck(req.user!.userId))) { res.status(403).json({ message: "Access denied" }); return; }
+    const user = await getCompanyUser(req.user!.userId);
+    if (!user) { res.status(403).json({ message: "No company" }); return; }
+
+    const { entityId, name, type, bank, accountNumber } = req.body;
+    if (!name?.trim()) { res.status(400).json({ message: "Name is required" }); return; }
+    if (!type?.trim()) { res.status(400).json({ message: "Type is required" }); return; }
+
+    const entity = await prisma.entity.findFirst({ where: { id: entityId, companyId: user.companyId! } });
+    if (!entity) { res.status(400).json({ message: "Invalid entity" }); return; }
+
+    const account = await prisma.account.create({
+      data: {
+        name: name.trim(),
+        type: type.trim(),
+        bank: bank?.trim() || null,
+        accountNumber: accountNumber?.trim() || null,
+        entityId: entity.id,
+      },
+      include: { entity: { select: { name: true } } },
+    });
+
+    res.status(201).json({
+      id: account.id,
+      name: account.name,
+      type: account.type,
+      bank: account.bank,
+      accountNumber: account.accountNumber,
+      enabled: account.enabled,
+      entityName: account.entity.name,
+      entityId: account.entityId,
+    });
+  } catch (error) {
+    console.error("Directory create account error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+router.put("/accounts/:id", async (req: Request, res: Response) => {
+  try {
+    if (!(await canEditCheck(req.user!.userId))) { res.status(403).json({ message: "Access denied" }); return; }
+
+    const id = req.params.id as string;
+    const { name, type, bank, accountNumber } = req.body;
+
+    const data: any = {};
+    if (name !== undefined) data.name = name.trim();
+    if (type !== undefined) data.type = type.trim();
+    if (bank !== undefined) data.bank = bank?.trim() || null;
+    if (accountNumber !== undefined) data.accountNumber = accountNumber?.trim() || null;
+
+    const account = await prisma.account.update({
+      where: { id },
+      data,
+      include: { entity: { select: { name: true } } },
+    });
+
+    res.json({
+      id: account.id,
+      name: account.name,
+      type: account.type,
+      bank: account.bank,
+      accountNumber: account.accountNumber,
+      enabled: account.enabled,
+      entityName: account.entity.name,
+      entityId: account.entityId,
+    });
+  } catch (error) {
+    console.error("Directory update account error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+router.delete("/accounts/:id", async (req: Request, res: Response) => {
+  try {
+    if (!(await canEditCheck(req.user!.userId))) { res.status(403).json({ message: "Access denied" }); return; }
+    const id = req.params.id as string;
+    await prisma.account.delete({ where: { id } });
+    res.status(204).send();
+  } catch (error) {
+    console.error("Directory delete account error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 // ===== INCOME TYPES =====
 
 router.get("/income-types", async (req: Request, res: Response) => {

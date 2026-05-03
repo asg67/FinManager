@@ -560,6 +560,100 @@
 [data-theme="dark"] .dir-direction-item__name { color: var(--text-primary); }
 [data-theme="dark"] .dir-direction-item__article { color: var(--text-muted); }
 
+/* ===== ACCOUNTS MANAGE ===== */
+.dir-amgmt-group {
+  margin-bottom: 28px;
+}
+
+.dir-amgmt-group__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 4px;
+  margin-bottom: 12px;
+  color: #1A1A1A;
+  font-size: 15px;
+  font-weight: 600;
+}
+[data-theme="dark"] .dir-amgmt-group__header { color: var(--text-primary); }
+
+.dir-amgmt-group__entity {
+  flex: 1;
+}
+
+.dir-amgmt-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.dir-amgmt-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  transition: all 0.15s;
+}
+.dir-amgmt-card:hover { box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06); }
+[data-theme="dark"] .dir-amgmt-card:hover { background: var(--bg-surface-hover); box-shadow: none; }
+
+.dir-amgmt-card--disabled { opacity: 0.5; }
+.dir-amgmt-card--editing { opacity: 0.3; pointer-events: none; }
+
+.dir-amgmt-card__icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(99, 102, 241, 0.08);
+  color: #6366f1;
+  flex-shrink: 0;
+}
+
+.dir-amgmt-card__info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dir-amgmt-card__name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1A1A1A;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+[data-theme="dark"] .dir-amgmt-card__name { color: var(--text-primary); }
+
+.dir-amgmt-card__meta {
+  font-size: 12px;
+  color: #888;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+[data-theme="dark"] .dir-amgmt-card__meta { color: var(--text-muted); }
+
+.dir-amgmt-card__right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.dir-amgmt-card__actions {
+  display: flex;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.dir-amgmt-card:hover .dir-amgmt-card__actions { opacity: 1; }
+
 /* ===== CATEGORIZATION ===== */
 .dir-cat-desc {
   font-size: 13px;
@@ -735,6 +829,10 @@
   .dir-cat-rule__category { width: 100%; }
   .dir-cat-rule__actions { opacity: 1; }
   .dir-cat-form__row--grid { grid-template-columns: 1fr; }
+
+  .dir-amgmt-card { padding: 12px 14px; gap: 10px; }
+  .dir-amgmt-card__actions { opacity: 1; }
+  .dir-amgmt-card__icon { width: 32px; height: 32px; }
 }
 
 @media (max-width: 480px) {
