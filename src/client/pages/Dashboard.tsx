@@ -112,16 +112,16 @@ export default function Dashboard() {
       analyticsApi.summary(filters),
       analyticsApi.accountBalances(myEntityId),
       analyticsApi.recent(10, myEntityId),
-      analyticsApi.timeline({ from: dateFrom, entityId: myEntityId }),
-      analyticsApi.byCategory(filters),
+      analyticsApi.timeline({ from: dateFrom, entityId: myEntityId }).catch(() => []),
+      analyticsApi.byCategory(filters).catch(() => []),
     ]).then(([sum, bal, rec, tl, cat]) => {
       setSummary(sum);
       setBalances(bal);
       setRecent(rec);
-      setTimeline(tl);
-      setCategories(cat);
+      setTimeline(tl as TimelinePoint[]);
+      setCategories(cat as CategoryData[]);
       setLoading(false);
-    });
+    }).catch(() => setLoading(false));
   }, [dateFrom, dateTo, myEntityId]);
 
   useEffect(() => {
@@ -181,17 +181,17 @@ export default function Dashboard() {
     });
   }
 
+  const calcBalance = summary?.balance ?? balances.reduce((s, a) => s + a.balance, 0);
+  const calcIncome = summary?.totalIncome ?? 0;
+  const calcExpense = summary?.totalExpense ?? 0;
+  const calcOps = summary?.operationsCount ?? 0;
+
   const expenseDonut = useMemo(() => {
     if (categories.length > 0) return categories.map((c, i) => ({ name: c.name, value: c.total, color: EXPENSE_CAT_COLORS[i % EXPENSE_CAT_COLORS.length] }));
     return [{ name: "Расходы", value: Math.abs(calcExpense) || 1, color: "#ef4444" }];
   }, [categories, calcExpense]);
 
   const incomeDonut = useMemo(() => [{ name: "Поступления", value: calcIncome || 1, color: "#22c55e" }], [calcIncome]);
-
-  const calcBalance = summary?.balance ?? balances.reduce((s, a) => s + a.balance, 0);
-  const calcIncome = summary?.totalIncome ?? 0;
-  const calcExpense = summary?.totalExpense ?? 0;
-  const calcOps = summary?.operationsCount ?? 0;
 
   function typeLabel(type: string) {
     switch (type) {
