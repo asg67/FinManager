@@ -249,13 +249,12 @@ router.get("/account-balances", async (req: Request, res: Response) => {
         entity: { select: { name: true } },
         initialBalance: true,
         initialBalanceDate: true,
-        _count: { select: { bankStatements: true } },
+        _count: { select: { bankStatements: true, transactionsFrom: true, transactionsTo: true } },
       },
     });
 
-    // Only compute balances for accounts that have data
     const relevant = accounts.filter(
-      (acc) => acc.initialBalance !== null || acc._count.bankStatements > 0,
+      (acc) => acc.initialBalance !== null || acc._count.bankStatements > 0 || acc._count.transactionsFrom > 0 || acc._count.transactionsTo > 0,
     );
 
     const balances = await Promise.all(
@@ -264,7 +263,11 @@ router.get("/account-balances", async (req: Request, res: Response) => {
           ? { date: { gt: acc.initialBalanceDate } }
           : {};
 
-        const [bankIncomeAgg, bankExpenseAgg] = await Promise.all([
+        const ddsDateFilter: Prisma.DdsOperationWhereInput = acc.initialBalanceDate
+          ? { createdAt: { gt: acc.initialBalanceDate } }
+          : {};
+
+        const [bankIncomeAgg, bankExpenseAgg, ddsInAgg, ddsOutAgg] = await Promise.all([
           prisma.bankTransaction.aggregate({
             where: { accountId: acc.id, direction: "income", ...dateFilter },
             _sum: { amount: true },
@@ -273,11 +276,21 @@ router.get("/account-balances", async (req: Request, res: Response) => {
             where: { accountId: acc.id, direction: "expense", ...dateFilter },
             _sum: { amount: true },
           }),
+          prisma.ddsOperation.aggregate({
+            where: { toAccountId: acc.id, linkedBankTxId: null, ...ddsDateFilter },
+            _sum: { amount: true },
+          }),
+          prisma.ddsOperation.aggregate({
+            where: { fromAccountId: acc.id, linkedBankTxId: null, ...ddsDateFilter },
+            _sum: { amount: true },
+          }),
         ]);
 
         const initial = acc.initialBalance?.toNumber() ?? 0;
         const bankIncome = bankIncomeAgg._sum.amount?.toNumber() ?? 0;
         const bankExpense = bankExpenseAgg._sum.amount?.toNumber() ?? 0;
+        const ddsIn = ddsInAgg._sum.amount?.toNumber() ?? 0;
+        const ddsOut = ddsOutAgg._sum.amount?.toNumber() ?? 0;
 
         return {
           id: acc.id,
@@ -285,7 +298,7 @@ router.get("/account-balances", async (req: Request, res: Response) => {
           type: acc.type,
           bank: acc.bank,
           entityName: acc.entity.name,
-          balance: initial + bankIncome - bankExpense,
+          balance: initial + bankIncome - bankExpense + ddsIn - ddsOut,
         };
       }),
     );

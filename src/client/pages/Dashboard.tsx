@@ -182,7 +182,7 @@ export default function Dashboard() {
     });
   }
 
-  const calcBalance = summary?.balance ?? balances.reduce((s, a) => s + a.balance, 0);
+  const calcBalance = balances.reduce((s, a) => s + a.balance, 0);
   const calcIncome = summary?.totalIncome ?? 0;
   const calcExpense = summary?.totalExpense ?? 0;
   const calcOps = summary?.operationsCount ?? 0;
