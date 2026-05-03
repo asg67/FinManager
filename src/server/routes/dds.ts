@@ -9,7 +9,7 @@ import {
   updateTemplateSchema,
 } from "../schemas/dds.js";
 import { Prisma } from "@prisma/client";
-import { checkEntityAccess, buildCompanyEntityFilter } from "../helpers/entityAccess.js";
+import { checkEntityAccess, buildEntityFilter, buildCompanyEntityFilter } from "../helpers/entityAccess.js";
 
 const router = Router();
 router.use(authMiddleware);
@@ -100,8 +100,7 @@ router.get("/operations", async (req: Request, res: Response) => {
     if (canViewAll) {
       where.entity = await buildCompanyEntityFilter(userId);
     } else {
-      // Restrict to entities owned by this user
-      where.entity = { ownerId: userId };
+      where.entity = await buildEntityFilter(userId);
     }
 
     if (entityId) where.entityId = entityId;
