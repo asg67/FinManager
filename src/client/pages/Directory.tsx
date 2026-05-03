@@ -4,14 +4,14 @@ import {
   BookOpen, Tags, Landmark, Compass, ArrowLeft, ArrowLeftRight,
   ChevronRight, ChevronDown, Plus, Pencil, Trash2, Check, X,
   ToggleLeft, ToggleRight,
-  Wallet, CreditCard, Banknote, PiggyBank,
+  Wallet, CreditCard, Banknote, PiggyBank, Sparkles,
 } from "lucide-react";
 import clsx from "clsx";
-import { directoryApi, type DirExpenseType, type DirAccount, type DirDirectionItem } from "../api/directory.js";
+import { directoryApi, type DirExpenseType, type DirExpenseArticle, type DirAccount, type DirDirectionItem, type DirCategoryRule } from "../api/directory.js";
 import { useAuthStore } from "../stores/auth.js";
 
 type Section = "main" | "dds";
-type DdsTab = "articles" | "accounts" | "directions";
+type DdsTab = "articles" | "accounts" | "directions" | "categorization";
 
 export default function Directory() {
   const { t } = useTranslation();
@@ -82,6 +82,7 @@ function DdsView({ canEdit }: { canEdit: boolean }) {
     { key: "articles", label: t("directory.articles"), icon: Tags },
     { key: "accounts", label: t("directory.accounts"), icon: Landmark },
     { key: "directions", label: t("directory.directions"), icon: Compass },
+    { key: "categorization", label: t("directory.categorization"), icon: Sparkles },
   ];
 
   return (
@@ -105,6 +106,7 @@ function DdsView({ canEdit }: { canEdit: boolean }) {
       {tab === "articles" && <ArticlesView canEdit={canEdit} />}
       {tab === "accounts" && <AccountsView canEdit={canEdit} />}
       {tab === "directions" && <DirectionsView />}
+      {tab === "categorization" && <CategorizationView canEdit={canEdit} />}
     </div>
   );
 }
@@ -526,6 +528,198 @@ function DirectionsView() {
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+/* ===== CATEGORIZATION VIEW ===== */
+function CategorizationView({ canEdit }: { canEdit: boolean }) {
+  const { t } = useTranslation();
+  const [rules, setRules] = useState<DirCategoryRule[]>([]);
+  const [types, setTypes] = useState<DirExpenseType[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [adding, setAdding] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  const emptyForm = { pattern: "", matchField: "counterparty", direction: null as string | null, expenseTypeName: "", expenseArticleName: "", directionName: "", priority: 0 };
+  const [form, setForm] = useState(emptyForm);
+
+  useEffect(() => {
+    Promise.all([directoryApi.listCategoryRules(), directoryApi.listExpenseTypes()]).then(([r, t]) => {
+      setRules(r);
+      setTypes(t);
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  }, []);
+
+  const allArticles: DirExpenseArticle[] = types.flatMap((t) => t.articles);
+  const allDirections = allArticles.flatMap((a) => a.directions);
+  const selectedTypeArticles = form.expenseTypeName ? types.find((t) => t.name === form.expenseTypeName)?.articles || [] : [];
+  const selectedArticleDirections = form.expenseArticleName ? selectedTypeArticles.find((a) => a.name === form.expenseArticleName)?.directions || [] : [];
+
+  function startAdd() {
+    setForm(emptyForm);
+    setAdding(true);
+    setEditingId(null);
+  }
+
+  function startEdit(rule: DirCategoryRule) {
+    setForm({
+      pattern: rule.pattern,
+      matchField: rule.matchField,
+      direction: rule.direction,
+      expenseTypeName: rule.expenseTypeName || "",
+      expenseArticleName: rule.expenseArticleName || "",
+      directionName: rule.directionName || "",
+      priority: rule.priority,
+    });
+    setEditingId(rule.id);
+    setAdding(false);
+  }
+
+  function cancelForm() {
+    setAdding(false);
+    setEditingId(null);
+    setForm(emptyForm);
+  }
+
+  async function handleSave() {
+    if (!form.pattern.trim()) return;
+    const data = {
+      pattern: form.pattern.trim(),
+      matchField: form.matchField,
+      direction: form.direction,
+      expenseTypeName: form.expenseTypeName || null,
+      expenseArticleName: form.expenseArticleName || null,
+      directionName: form.directionName || null,
+      priority: form.priority,
+    };
+
+    if (editingId) {
+      const updated = await directoryApi.updateCategoryRule(editingId, data);
+      setRules((prev) => prev.map((r) => r.id === editingId ? updated : r));
+    } else {
+      const created = await directoryApi.createCategoryRule(data);
+      setRules((prev) => [created, ...prev]);
+    }
+    cancelForm();
+  }
+
+  async function handleDelete(id: string) {
+    if (!confirm(t("directory.deleteRuleConfirm"))) return;
+    await directoryApi.deleteCategoryRule(id);
+    setRules((prev) => prev.filter((r) => r.id !== id));
+  }
+
+  const matchLabels: Record<string, string> = {
+    counterparty: t("directory.ruleMatchCounterparty"),
+    purpose: t("directory.ruleMatchPurpose"),
+    any: t("directory.ruleMatchAny"),
+  };
+
+  const dirLabels: Record<string, string> = {
+    income: t("directory.ruleDirectionIncome"),
+    expense: t("directory.ruleDirectionExpense"),
+  };
+
+  if (loading) return <div className="dir-loading">{t("common.loading")}</div>;
+
+  const isEditing = adding || editingId;
+
+  return (
+    <div className="dir-sub">
+      <div className="dir-sub__header">
+        <h3 className="dir-sub__title">{t("directory.categorization")}</h3>
+        {canEdit && !isEditing && (
+          <button type="button" className="dir-add-btn" onClick={startAdd}>
+            <Plus size={16} />
+            <span>{t("directory.addRule")}</span>
+          </button>
+        )}
+      </div>
+
+      <p className="dir-cat-desc">{t("directory.categorizationDesc")}</p>
+
+      {isEditing && (
+        <div className="dir-cat-form glass-card">
+          <div className="dir-cat-form__row">
+            <label className="dir-cat-form__label">{t("directory.rulePattern")}</label>
+            <input className="dir-inline-input" value={form.pattern} onChange={(e) => setForm({ ...form, pattern: e.target.value })} placeholder={t("directory.rulePatternPlaceholder")} autoFocus />
+          </div>
+          <div className="dir-cat-form__row dir-cat-form__row--grid">
+            <div>
+              <label className="dir-cat-form__label">{t("directory.ruleMatchField")}</label>
+              <select className="dir-cat-form__select" value={form.matchField} onChange={(e) => setForm({ ...form, matchField: e.target.value })}>
+                <option value="counterparty">{t("directory.ruleMatchCounterparty")}</option>
+                <option value="purpose">{t("directory.ruleMatchPurpose")}</option>
+                <option value="any">{t("directory.ruleMatchAny")}</option>
+              </select>
+            </div>
+            <div>
+              <label className="dir-cat-form__label">{t("directory.ruleDirection")}</label>
+              <select className="dir-cat-form__select" value={form.direction || ""} onChange={(e) => setForm({ ...form, direction: e.target.value || null })}>
+                <option value="">{t("directory.ruleDirectionAll")}</option>
+                <option value="income">{t("directory.ruleDirectionIncome")}</option>
+                <option value="expense">{t("directory.ruleDirectionExpense")}</option>
+              </select>
+            </div>
+          </div>
+          <div className="dir-cat-form__row dir-cat-form__row--grid">
+            <div>
+              <label className="dir-cat-form__label">{t("directory.ruleCategory")}</label>
+              <select className="dir-cat-form__select" value={form.expenseTypeName} onChange={(e) => setForm({ ...form, expenseTypeName: e.target.value, expenseArticleName: "", directionName: "" })}>
+                <option value="">—</option>
+                {types.map((t) => <option key={t.id} value={t.name}>{t.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="dir-cat-form__label">{t("directory.ruleArticle")}</label>
+              <select className="dir-cat-form__select" value={form.expenseArticleName} onChange={(e) => setForm({ ...form, expenseArticleName: e.target.value, directionName: "" })} disabled={!form.expenseTypeName}>
+                <option value="">—</option>
+                {selectedTypeArticles.map((a) => <option key={a.id} value={a.name}>{a.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="dir-cat-form__label">{t("directory.ruleDirectionName")}</label>
+              <select className="dir-cat-form__select" value={form.directionName} onChange={(e) => setForm({ ...form, directionName: e.target.value })} disabled={!form.expenseArticleName || selectedArticleDirections.length === 0}>
+                <option value="">—</option>
+                {selectedArticleDirections.map((d) => <option key={d.id} value={d.name}>{d.name}</option>)}
+              </select>
+            </div>
+          </div>
+          <div className="dir-cat-form__actions">
+            <button type="button" className="dir-add-btn" onClick={handleSave}><Check size={16} /><span>{t("common.save")}</span></button>
+            <button type="button" className="dir-cat-form__cancel" onClick={cancelForm}>{t("common.cancel")}</button>
+          </div>
+        </div>
+      )}
+
+      {rules.length === 0 && !isEditing && (
+        <div className="dir-empty">{t("directory.noRules")}</div>
+      )}
+
+      {rules.length > 0 && (
+        <div className="dir-cat-rules">
+          {rules.map((rule) => (
+            <div key={rule.id} className={clsx("dir-cat-rule glass-card", editingId === rule.id && "dir-cat-rule--editing")}>
+              <div className="dir-cat-rule__main">
+                <span className="dir-cat-rule__pattern">«{rule.pattern}»</span>
+                <span className="dir-cat-rule__match">{matchLabels[rule.matchField] || rule.matchField}</span>
+                {rule.direction && <span className="dir-cat-rule__dir-badge">{dirLabels[rule.direction]}</span>}
+              </div>
+              <div className="dir-cat-rule__category">
+                {[rule.expenseTypeName, rule.expenseArticleName, rule.directionName].filter(Boolean).join(" → ") || "—"}
+              </div>
+              {canEdit && (
+                <div className="dir-cat-rule__actions">
+                  <button type="button" className="dir-icon-btn" onClick={() => startEdit(rule)}><Pencil size={14} /></button>
+                  <button type="button" className="dir-icon-btn dir-icon-btn--danger" onClick={() => handleDelete(rule.id)}><Trash2 size={14} /></button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

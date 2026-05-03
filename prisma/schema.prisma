@@ -25,9 +25,10 @@ model Company {
   entities      Entity[]
   invites       Invite[]
   customFields  CustomField[]
-  expenseTypes  ExpenseType[]
-  incomeTypes   IncomeType[]
-  managerAccess ManagerCompanyAccess[]
+  expenseTypes    ExpenseType[]
+  incomeTypes     IncomeType[]
+  categoryRules   CategoryRule[]
+  managerAccess   ManagerCompanyAccess[]
 }
 
 model Invite {
@@ -262,6 +263,24 @@ model IncomeArticle {
 
   ddsOperations DdsOperation[]
   ddsTemplates  DdsTemplate[]
+}
+
+// ============ CATEGORY RULES (auto-categorization) ============
+
+model CategoryRule {
+  id                 String   @id @default(uuid())
+  companyId          String
+  company            Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  pattern            String
+  matchField         String   @default("counterparty") // "counterparty" | "purpose" | "any"
+  direction          String?  // "income" | "expense" | null = both
+  expenseTypeName    String?
+  expenseArticleName String?
+  directionName      String?
+  priority           Int      @default(0)
+  createdAt          DateTime @default(now())
+
+  @@index([companyId])
 }
 
 // ============ CUSTOM FIELDS ============

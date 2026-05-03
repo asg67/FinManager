@@ -15,13 +15,9 @@ async function getCompanyUser(userId: string) {
 }
 
 async function canEditCheck(userId: string): Promise<boolean> {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    include: { permission: true },
-  });
+  const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) return false;
-  if (user.role === "owner") return true;
-  return user.permission?.ddsViewAll === true;
+  return !!user.companyId;
 }
 
 // ===== EXPENSE TYPES =====
@@ -301,6 +297,87 @@ router.get("/directions-list", async (req: Request, res: Response) => {
     res.json(Array.from(unique.values()));
   } catch (error) {
     console.error("Directory list directions error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// ===== CATEGORY RULES (auto-categorization) =====
+
+router.get("/category-rules", async (req: Request, res: Response) => {
+  try {
+    const user = await getCompanyUser(req.user!.userId);
+    if (!user) { res.status(403).json({ message: "No company" }); return; }
+
+    const rules = await prisma.categoryRule.findMany({
+      where: { companyId: user.companyId! },
+      orderBy: { priority: "desc" },
+    });
+    res.json(rules);
+  } catch (error) {
+    console.error("Directory list category rules error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+router.post("/category-rules", async (req: Request, res: Response) => {
+  try {
+    if (!(await canEditCheck(req.user!.userId))) { res.status(403).json({ message: "Access denied" }); return; }
+    const user = await getCompanyUser(req.user!.userId);
+    if (!user) { res.status(403).json({ message: "No company" }); return; }
+
+    const { pattern, matchField, direction, expenseTypeName, expenseArticleName, directionName, priority } = req.body;
+    if (!pattern?.trim()) { res.status(400).json({ message: "Pattern is required" }); return; }
+
+    const rule = await prisma.categoryRule.create({
+      data: {
+        companyId: user.companyId!,
+        pattern: pattern.trim(),
+        matchField: matchField || "counterparty",
+        direction: direction || null,
+        expenseTypeName: expenseTypeName || null,
+        expenseArticleName: expenseArticleName || null,
+        directionName: directionName || null,
+        priority: priority ?? 0,
+      },
+    });
+    res.status(201).json(rule);
+  } catch (error) {
+    console.error("Directory create category rule error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+router.put("/category-rules/:id", async (req: Request, res: Response) => {
+  try {
+    if (!(await canEditCheck(req.user!.userId))) { res.status(403).json({ message: "Access denied" }); return; }
+    const id = req.params.id as string;
+    const { pattern, matchField, direction, expenseTypeName, expenseArticleName, directionName, priority } = req.body;
+
+    const data: any = {};
+    if (pattern !== undefined) data.pattern = pattern.trim();
+    if (matchField !== undefined) data.matchField = matchField;
+    if (direction !== undefined) data.direction = direction || null;
+    if (expenseTypeName !== undefined) data.expenseTypeName = expenseTypeName || null;
+    if (expenseArticleName !== undefined) data.expenseArticleName = expenseArticleName || null;
+    if (directionName !== undefined) data.directionName = directionName || null;
+    if (priority !== undefined) data.priority = priority;
+
+    const updated = await prisma.categoryRule.update({ where: { id }, data });
+    res.json(updated);
+  } catch (error) {
+    console.error("Directory update category rule error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+router.delete("/category-rules/:id", async (req: Request, res: Response) => {
+  try {
+    if (!(await canEditCheck(req.user!.userId))) { res.status(403).json({ message: "Access denied" }); return; }
+    const id = req.params.id as string;
+    await prisma.categoryRule.delete({ where: { id } });
+    res.status(204).send();
+  } catch (error) {
+    console.error("Directory delete category rule error:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 });

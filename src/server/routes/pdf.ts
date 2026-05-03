@@ -7,6 +7,7 @@ import { confirmSchema } from "../schemas/pdf.js";
 import { config } from "../config.js";
 import { Prisma } from "@prisma/client";
 import { buildEntityFilter } from "../helpers/entityAccess.js";
+import { applyCategorizationRules } from "../helpers/categorize.js";
 
 const router = Router();
 router.use(authMiddleware);
@@ -195,6 +196,7 @@ router.post("/confirm", validate(confirmSchema), async (req: Request, res: Respo
     });
 
     // Auto-match: link new bank transactions to existing DDS operations
+    let categorized = 0;
     if (saved > 0) {
       try {
         const account = await prisma.account.findUnique({ where: { id: pdfUpload.accountId }, select: { entityId: true } });
@@ -225,11 +227,21 @@ router.post("/confirm", validate(confirmSchema), async (req: Request, res: Respo
               unlinkedDds.splice(unlinkedDds.indexOf(match), 1);
             }
           }
+
+          // Auto-categorize uncategorized transactions
+          const entity = await prisma.entity.findUnique({ where: { id: account.entityId }, select: { companyId: true } });
+          if (entity?.companyId) {
+            const uncategorized = await prisma.bankTransaction.findMany({
+              where: { pdfUploadId: pdfUpload.id, ddsArticle: null },
+              select: { id: true, direction: true, counterparty: true, purpose: true },
+            });
+            categorized = await applyCategorizationRules(entity.companyId, uncategorized);
+          }
         }
       } catch (e) { console.error("Auto-match after confirm:", e); }
     }
 
-    res.json({ saved, skipped, total: transactions.length });
+    res.json({ saved, skipped, categorized, total: transactions.length });
   } catch (error) {
     console.error("Confirm error:", error);
     res.status(500).json({ message: "Internal server error" });

@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "../prisma.js";
 import { bankAdapters } from "./index.js";
+import { applyCategorizationRules } from "../helpers/categorize.js";
 
 export interface SyncResultData {
   accountsSynced: number;
@@ -122,6 +123,24 @@ export async function syncConnection(
       errors.push(msg);
       console.error("Sync account error:", msg);
     }
+  }
+
+  // 2b. Auto-categorize new uncategorized transactions
+  if (totalSaved > 0) {
+    try {
+      const entity = await prisma.entity.findUnique({ where: { id: conn.entityId }, select: { companyId: true } });
+      if (entity?.companyId) {
+        const uncategorized = await prisma.bankTransaction.findMany({
+          where: {
+            account: { entityId: conn.entityId },
+            ddsArticle: null,
+            createdAt: { gte: new Date(Date.now() - 5 * 60 * 1000) },
+          },
+          select: { id: true, direction: true, counterparty: true, purpose: true },
+        });
+        await applyCategorizationRules(entity.companyId, uncategorized);
+      }
+    } catch (e) { console.error("Auto-categorize after sync:", e); }
   }
 
   // 3. Update connection status

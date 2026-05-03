@@ -45,6 +45,19 @@ export interface DirDirectionItem {
   articleName: string;
 }
 
+export interface DirCategoryRule {
+  id: string;
+  companyId: string;
+  pattern: string;
+  matchField: string;
+  direction: string | null;
+  expenseTypeName: string | null;
+  expenseArticleName: string | null;
+  directionName: string | null;
+  priority: number;
+  createdAt: string;
+}
+
 export const directoryApi = {
   canEdit: () => api.get<{ canEdit: boolean }>("/directory/can-edit"),
 
@@ -73,4 +86,12 @@ export const directoryApi = {
 
   // Directions list (unique)
   listDirections: () => api.get<DirDirectionItem[]>("/directory/directions-list"),
+
+  // Category rules
+  listCategoryRules: () => api.get<DirCategoryRule[]>("/directory/category-rules"),
+  createCategoryRule: (data: Omit<DirCategoryRule, "id" | "companyId" | "createdAt">) =>
+    api.post<DirCategoryRule>("/directory/category-rules", data),
+  updateCategoryRule: (id: string, data: Partial<Omit<DirCategoryRule, "id" | "companyId" | "createdAt">>) =>
+    api.put<DirCategoryRule>(`/directory/category-rules/${id}`, data),
+  deleteCategoryRule: (id: string) => api.delete<void>(`/directory/category-rules/${id}`),
 };
