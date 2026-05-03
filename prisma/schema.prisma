@@ -188,6 +188,9 @@ model Account {
   enabled            Boolean   @default(true)
   initialBalance     Decimal?
   initialBalanceDate DateTime?
+  linkedAccountId    String?
+  linkedAccount      Account?  @relation("AccountLink", fields: [linkedAccountId], references: [id], onDelete: SetNull)
+  linkedFrom         Account[] @relation("AccountLink")
   entityId           String
   entity             Entity    @relation(fields: [entityId], references: [id], onDelete: Cascade)
   createdAt          DateTime  @default(now())

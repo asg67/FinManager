@@ -448,5 +448,11 @@ export default {
     accountNumberPlaceholder: "Номер счёта",
     accountOtherType: "Другое...",
     accountCustomTypePlaceholder: "Введите тип",
+    linkedAccount: "Привязка",
+    linkAccount: "Привязать",
+    unlinkAccount: "Отвязать",
+    selectLinkedAccount: "Выберите счёт для привязки",
+    linkedTo: "Привязан к",
+    noLinkableAccounts: "Нет доступных счетов",
   },
 } as const;

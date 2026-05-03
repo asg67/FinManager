@@ -580,7 +580,7 @@
 
 .dir-amgmt-table__head {
   display: grid;
-  grid-template-columns: 2fr 1.5fr 1.2fr 1fr 1.2fr 90px;
+  grid-template-columns: 2fr 1.5fr 1.2fr 1fr 1.5fr 1.2fr 90px;
   gap: 8px;
   padding: 10px 16px;
   font-size: 11px;
@@ -597,7 +597,7 @@
 
 .dir-amgmt-table__row {
   display: grid;
-  grid-template-columns: 2fr 1.5fr 1.2fr 1fr 1.2fr 90px;
+  grid-template-columns: 2fr 1.5fr 1.2fr 1fr 1.5fr 1.2fr 90px;
   gap: 8px;
   padding: 11px 16px;
   align-items: center;
@@ -621,6 +621,47 @@
 .dir-amgmt-table__number { color: #888; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .dir-amgmt-table__entity { color: #888; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dir-amgmt-table__bank { color: #888; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.dir-amgmt-table__linked { overflow: hidden; }
+.dir-amgmt-link-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #6366f1;
+  background: rgba(99,102,241,0.08);
+  padding: 2px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+.dir-amgmt-link-badge .dir-icon-btn { flex-shrink: 0; }
+.dir-amgmt-link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #888;
+  background: none;
+  border: 1px dashed #ccc;
+  border-radius: 6px;
+  padding: 2px 8px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: color 0.15s, border-color 0.15s;
+}
+.dir-amgmt-link-btn:hover { color: #6366f1; border-color: #6366f1; }
+[data-theme="dark"] .dir-amgmt-link-btn { color: var(--text-muted); border-color: var(--glass-border); }
+[data-theme="dark"] .dir-amgmt-link-btn:hover { color: #818cf8; border-color: #818cf8; }
+.dir-amgmt-link-picker {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.dir-amgmt-link-picker select { font-size: 12px; padding: 2px 4px; max-width: 160px; }
+
 .dir-amgmt-table__balance { font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .dir-amgmt-table__balance--neg { color: #ef4444; }
 [data-theme="dark"] .dir-amgmt-table__number,
@@ -823,7 +864,8 @@
   }
   .dir-amgmt-table__number,
   .dir-amgmt-table__entity,
-  .dir-amgmt-table__bank { display: none; }
+  .dir-amgmt-table__bank,
+  .dir-amgmt-table__linked { display: none; }
   .dir-amgmt-table__name { grid-column: 1; }
   .dir-amgmt-table__balance { grid-column: 1; text-align: left; font-size: 12px; }
   .dir-amgmt-table__actions-cell { grid-column: 2; grid-row: 1 / 3; }

@@ -249,12 +249,20 @@ router.get("/account-balances", async (req: Request, res: Response) => {
         entity: { select: { name: true } },
         initialBalance: true,
         initialBalanceDate: true,
+        linkedAccountId: true,
+        linkedFrom: { select: { id: true } },
         _count: { select: { bankStatements: true, transactionsFrom: true, transactionsTo: true } },
       },
     });
 
+    const linkedSecondaryIds = new Set(
+      accounts.filter((a) => a.linkedAccountId).map((a) => a.id),
+    );
+
     const relevant = accounts.filter(
-      (acc) => acc.initialBalance !== null || acc._count.bankStatements > 0 || acc._count.transactionsFrom > 0 || acc._count.transactionsTo > 0,
+      (acc) =>
+        !linkedSecondaryIds.has(acc.id) &&
+        (acc.initialBalance !== null || acc._count.bankStatements > 0 || acc._count.transactionsFrom > 0 || acc._count.transactionsTo > 0 || acc.linkedFrom.length > 0),
     );
 
     const balances = await Promise.all(
@@ -267,21 +275,24 @@ router.get("/account-balances", async (req: Request, res: Response) => {
           ? { createdAt: { gt: acc.initialBalanceDate } }
           : {};
 
+        const linkedIds = acc.linkedFrom.map((l) => l.id);
+        const allAccountIds = [acc.id, ...linkedIds];
+
         const [bankIncomeAgg, bankExpenseAgg, ddsInAgg, ddsOutAgg] = await Promise.all([
           prisma.bankTransaction.aggregate({
-            where: { accountId: acc.id, direction: "income", ...dateFilter },
+            where: { accountId: { in: allAccountIds }, direction: "income", ...dateFilter },
             _sum: { amount: true },
           }),
           prisma.bankTransaction.aggregate({
-            where: { accountId: acc.id, direction: "expense", ...dateFilter },
+            where: { accountId: { in: allAccountIds }, direction: "expense", ...dateFilter },
             _sum: { amount: true },
           }),
           prisma.ddsOperation.aggregate({
-            where: { toAccountId: acc.id, linkedBankTxId: null, ...ddsDateFilter },
+            where: { toAccountId: { in: allAccountIds }, linkedBankTxId: null, ...ddsDateFilter },
             _sum: { amount: true },
           }),
           prisma.ddsOperation.aggregate({
-            where: { fromAccountId: acc.id, linkedBankTxId: null, ...ddsDateFilter },
+            where: { fromAccountId: { in: allAccountIds }, linkedBankTxId: null, ...ddsDateFilter },
             _sum: { amount: true },
           }),
         ]);

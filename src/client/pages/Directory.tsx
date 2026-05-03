@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import {
   BookOpen, Tags, Landmark, Compass, ArrowLeft, ArrowLeftRight,
   ChevronRight, ChevronDown, Plus, Pencil, Trash2, Check, X,
-  ToggleLeft, ToggleRight,
+  ToggleLeft, ToggleRight, Link2, Unlink,
   Wallet, CreditCard, Banknote, PiggyBank, Sparkles,
 } from "lucide-react";
 import clsx from "clsx";
@@ -554,6 +554,7 @@ function AccountsManageView({ canEdit }: { canEdit: boolean }) {
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [linkingId, setLinkingId] = useState<string | null>(null);
 
   const emptyForm = { name: "", type: "checking", customType: "", entityId: "", bank: "", accountNumber: "" };
   const [form, setForm] = useState(emptyForm);
@@ -652,6 +653,19 @@ function AccountsManageView({ canEdit }: { canEdit: boolean }) {
     setAccounts((prev) => prev.map((a) => a.id === id ? { ...a, enabled: result.enabled } : a));
   }
 
+  async function handleLink(id: string, linkedAccountId: string | null) {
+    const result = await directoryApi.linkAccount(id, linkedAccountId);
+    setAccounts((prev) => prev.map((a) => a.id === id ? { ...a, linkedAccountId: result.linkedAccountId, linkedAccountName: result.linkedAccountName } : a));
+    setLinkingId(null);
+  }
+
+  const linkableAccounts = useMemo(() => {
+    if (!linkingId) return [];
+    const current = accounts.find((a) => a.id === linkingId);
+    if (!current) return [];
+    return accounts.filter((a) => a.id !== linkingId && !a.linkedAccountId && a.entityId === current.entityId);
+  }, [linkingId, accounts]);
+
   if (loading) return <div className="dir-loading">{t("common.loading")}</div>;
 
   const isEditing = adding || editingId;
@@ -739,6 +753,7 @@ function AccountsManageView({ canEdit }: { canEdit: boolean }) {
                 <span>{t("settings.accountNumber")}</span>
                 <span>{t("directory.accountEntity")}</span>
                 <span>{t("settings.bank")}</span>
+                <span>{t("directory.linkedAccount")}</span>
                 <span>{t("dashboard.balance")}</span>
                 <span></span>
               </div>
@@ -750,6 +765,30 @@ function AccountsManageView({ canEdit }: { canEdit: boolean }) {
                     <span className="dir-amgmt-table__number">{acc.accountNumber || ""}</span>
                     <span className="dir-amgmt-table__entity">{acc.entityName}</span>
                     <span className="dir-amgmt-table__bank">{acc.bank || ""}</span>
+                    <span className="dir-amgmt-table__linked">
+                      {linkingId === acc.id ? (
+                        <div className="dir-amgmt-link-picker">
+                          <select className="dir-cat-form__select" defaultValue="" onChange={(e) => { if (e.target.value) handleLink(acc.id, e.target.value); }}>
+                            <option value="" disabled>{t("directory.selectLinkedAccount")}</option>
+                            {linkableAccounts.map((la) => <option key={la.id} value={la.id}>{la.name}</option>)}
+                          </select>
+                          <button type="button" className="dir-inline-btn dir-inline-btn--cancel" onClick={() => setLinkingId(null)}><X size={14} /></button>
+                        </div>
+                      ) : acc.linkedAccountName ? (
+                        <span className="dir-amgmt-link-badge">
+                          <Link2 size={12} />
+                          <span>{acc.linkedAccountName}</span>
+                          {canEdit && <button type="button" className="dir-icon-btn" onClick={() => handleLink(acc.id, null)} title={t("directory.unlinkAccount")}><Unlink size={12} /></button>}
+                        </span>
+                      ) : canEdit ? (
+                        <button type="button" className="dir-amgmt-link-btn" onClick={() => setLinkingId(acc.id)}>
+                          <Link2 size={12} />
+                          <span>{t("directory.linkAccount")}</span>
+                        </button>
+                      ) : (
+                        <span>—</span>
+                      )}
+                    </span>
                     <span className={clsx("dir-amgmt-table__balance", bal != null && bal < 0 && "dir-amgmt-table__balance--neg")}>
                       {bal != null ? formatMoney(bal) : "—"}
                     </span>

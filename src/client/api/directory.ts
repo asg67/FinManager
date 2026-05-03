@@ -38,6 +38,8 @@ export interface DirAccount {
   enabled: boolean;
   entityName: string;
   entityId: string;
+  linkedAccountId: string | null;
+  linkedAccountName: string | null;
 }
 
 export interface DirDirectionItem {
@@ -92,6 +94,8 @@ export const directoryApi = {
     api.put<DirAccount>(`/directory/accounts/${id}`, data),
   deleteAccount: (id: string) => api.delete<void>(`/directory/accounts/${id}`),
   toggleAccount: (id: string) => api.put<{ id: string; enabled: boolean }>(`/directory/accounts/${id}/toggle`),
+  linkAccount: (id: string, linkedAccountId: string | null) =>
+    api.put<{ id: string; linkedAccountId: string | null; linkedAccountName: string | null }>(`/directory/accounts/${id}/link`, { linkedAccountId }),
 
   // Income types
   listIncomeTypes: () => api.get<DirIncomeType[]>("/directory/income-types"),

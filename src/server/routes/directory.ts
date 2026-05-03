@@ -229,7 +229,10 @@ router.get("/accounts", async (req: Request, res: Response) => {
 
     const accounts = await prisma.account.findMany({
       where: { entity: entityFilter },
-      include: { entity: { select: { name: true } } },
+      include: {
+        entity: { select: { name: true } },
+        linkedAccount: { select: { id: true, name: true } },
+      },
       orderBy: [{ type: "asc" }, { name: "asc" }],
     });
 
@@ -242,6 +245,8 @@ router.get("/accounts", async (req: Request, res: Response) => {
       enabled: a.enabled,
       entityName: a.entity.name,
       entityId: a.entityId,
+      linkedAccountId: a.linkedAccountId,
+      linkedAccountName: a.linkedAccount?.name ?? null,
     })));
   } catch (error) {
     console.error("Directory list accounts error:", error);
@@ -372,6 +377,38 @@ router.delete("/accounts/:id", async (req: Request, res: Response) => {
     res.status(204).send();
   } catch (error) {
     console.error("Directory delete account error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// ===== ACCOUNT LINK =====
+
+router.put("/accounts/:id/link", async (req: Request, res: Response) => {
+  try {
+    if (!(await canEditCheck(req.user!.userId))) { res.status(403).json({ message: "Access denied" }); return; }
+
+    const id = req.params.id as string;
+    const { linkedAccountId } = req.body;
+
+    if (linkedAccountId) {
+      if (linkedAccountId === id) { res.status(400).json({ message: "Cannot link to self" }); return; }
+      const target = await prisma.account.findUnique({ where: { id: linkedAccountId } });
+      if (!target) { res.status(404).json({ message: "Target account not found" }); return; }
+    }
+
+    const updated = await prisma.account.update({
+      where: { id },
+      data: { linkedAccountId: linkedAccountId || null },
+      include: { linkedAccount: { select: { id: true, name: true } } },
+    });
+
+    res.json({
+      id: updated.id,
+      linkedAccountId: updated.linkedAccountId,
+      linkedAccountName: updated.linkedAccount?.name ?? null,
+    });
+  } catch (error) {
+    console.error("Directory link account error:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 });

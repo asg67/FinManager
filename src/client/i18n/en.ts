@@ -448,5 +448,11 @@ export default {
     accountNumberPlaceholder: "Account number",
     accountOtherType: "Other...",
     accountCustomTypePlaceholder: "Enter type",
+    linkedAccount: "Link",
+    linkAccount: "Link",
+    unlinkAccount: "Unlink",
+    selectLinkedAccount: "Select account to link",
+    linkedTo: "Linked to",
+    noLinkableAccounts: "No accounts available",
   },
 } as const;
