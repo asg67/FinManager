@@ -82,6 +82,7 @@ export default function Dashboard() {
   const [timeline, setTimeline] = useState<TimelinePoint[]>([]);
   const [categories, setCategories] = useState<CategoryData[]>([]);
   const [chartFilter, setChartFilter] = useState<"all" | "income" | "expense">("all");
+  const [chartOpen, setChartOpen] = useState(false);
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -320,87 +321,92 @@ export default function Dashboard() {
                 {balances.length === 0 && <div className="dash-empty-placeholder"><span>{t("settings.noAccounts")}</span></div>}
               </div>
 
-              {/* RIGHT column: twin donuts + summary */}
+              {/* RIGHT column: finance overview */}
               <div className="dash-middle-right">
-                <div className="glass-card dash-twin-donuts">
-                  <div className="dash-twin-donut">
-                    <div className="dash-twin-donut__chart-wrap">
+                <div className="glass-card dash-finance-overview">
+                  <div className="dash-finance-col">
+                    <div className="dash-finance-donut-wrap">
                       <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
-                          <Pie data={expenseDonut} dataKey="value" cx="50%" cy="50%" innerRadius="62%" outerRadius="88%" paddingAngle={expenseDonut.length > 1 ? 2 : 0} stroke="none">
+                          <Pie data={expenseDonut} dataKey="value" cx="50%" cy="50%" innerRadius="60%" outerRadius="86%" paddingAngle={expenseDonut.length > 1 ? 2 : 0} stroke="none">
                             {expenseDonut.map((e, i) => <Cell key={i} fill={e.color} />)}
                           </Pie>
                         </PieChart>
                       </ResponsiveContainer>
-                      <div className="dash-twin-donut__center">
-                        <div className="dash-twin-donut__value dash-twin-donut__value--expense">-{formatMoney(Math.abs(calcExpense))} ₽</div>
-                        <div className="dash-twin-donut__sub">Все списания</div>
+                      <div className="dash-finance-donut-center">
+                        <TrendingDown size={14} className="dash-finance-donut-icon dash-finance-donut-icon--expense" />
                       </div>
                     </div>
+                    <div className="dash-finance-amount dash-finance-amount--expense">-{formatMoney(Math.abs(calcExpense))} ₽</div>
+                    <div className="dash-finance-label">Списания</div>
                   </div>
-                  <div className="dash-twin-donut">
-                    <div className="dash-twin-donut__chart-wrap">
+
+                  <div className="dash-finance-center">
+                    <div className="dash-finance-balance-value">{formatMoney(calcBalance)} ₽</div>
+                    <div className="dash-finance-balance-label">{t("dashboard.balance")}</div>
+                    <div className="dash-finance-divider" />
+                    <div className="dash-finance-ops">{calcOps} операций</div>
+                  </div>
+
+                  <div className="dash-finance-col">
+                    <div className="dash-finance-donut-wrap">
                       <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
-                          <Pie data={incomeDonut} dataKey="value" cx="50%" cy="50%" innerRadius="62%" outerRadius="88%" paddingAngle={0} stroke="none">
+                          <Pie data={incomeDonut} dataKey="value" cx="50%" cy="50%" innerRadius="60%" outerRadius="86%" paddingAngle={0} stroke="none">
                             {incomeDonut.map((e, i) => <Cell key={i} fill={e.color} />)}
                           </Pie>
                         </PieChart>
                       </ResponsiveContainer>
-                      <div className="dash-twin-donut__center">
-                        <div className="dash-twin-donut__value dash-twin-donut__value--income">+{formatMoney(calcIncome)} ₽</div>
-                        <div className="dash-twin-donut__sub">Все поступления</div>
+                      <div className="dash-finance-donut-center">
+                        <TrendingUp size={14} className="dash-finance-donut-icon dash-finance-donut-icon--income" />
                       </div>
                     </div>
-                  </div>
-                </div>
-                <div className="glass-card dash-summary-stats">
-                  <div className="dash-summary-stat">
-                    <Wallet size={16} />
-                    <span className="dash-summary-stat__label">{t("dashboard.balance")}</span>
-                    <span className="dash-summary-stat__value">{formatMoney(calcBalance)} ₽</span>
-                  </div>
-                  <div className="dash-summary-stat">
-                    <Activity size={16} />
-                    <span className="dash-summary-stat__label">{t("dashboard.operations")}</span>
-                    <span className="dash-summary-stat__value">{calcOps}</span>
+                    <div className="dash-finance-amount dash-finance-amount--income">+{formatMoney(calcIncome)} ₽</div>
+                    <div className="dash-finance-label">Поступления</div>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Timeline chart */}
+            {/* Timeline chart (collapsible) */}
             <div className="glass-card dash-chart-card">
-              <div className="dash-chart-card__header">
+              <button type="button" className="dash-chart-card__toggle" onClick={() => setChartOpen(!chartOpen)}>
                 <h3 className="chart-title">График</h3>
-                <div className="chart-filter-tabs">
-                  {([["all", "Все"], ["expense", "Списания"], ["income", "Поступления"]] as const).map(([key, label]) => (
-                    <button key={key} type="button" className={`chart-filter-tab${chartFilter === key ? " chart-filter-tab--active" : ""}`} onClick={() => setChartFilter(key as typeof chartFilter)}>{label}</button>
-                  ))}
+                <div className="dash-chart-card__toggle-right">
+                  {chartOpen && (
+                    <div className="chart-filter-tabs" onClick={(e) => e.stopPropagation()}>
+                      {([["all", "Все"], ["expense", "Списания"], ["income", "Поступления"]] as const).map(([key, label]) => (
+                        <button key={key} type="button" className={`chart-filter-tab${chartFilter === key ? " chart-filter-tab--active" : ""}`} onClick={() => setChartFilter(key as typeof chartFilter)}>{label}</button>
+                      ))}
+                    </div>
+                  )}
+                  <ChevronDown size={18} className={`dash-chart-chevron${chartOpen ? " dash-chart-chevron--open" : ""}`} />
                 </div>
-              </div>
-              <div className="dash-chart-area">
-                <ResponsiveContainer width="100%" height={220}>
-                  <AreaChart data={timeline}>
-                    <defs>
-                      <linearGradient id="gradIncome" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#22c55e" stopOpacity={0.15} />
-                        <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
-                      </linearGradient>
-                      <linearGradient id="gradExpense" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#ef4444" stopOpacity={0.15} />
-                        <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke={theme === "dark" ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)"} />
-                    <XAxis dataKey="date" tickFormatter={(v: string) => { const d = new Date(v); return `${String(d.getDate()).padStart(2, "0")}.${String(d.getMonth() + 1).padStart(2, "0")}`; }} tick={{ fontSize: 11, fill: theme === "dark" ? "#9ca3af" : "#888" }} />
-                    <YAxis tickFormatter={(v: number) => v >= 1000000 ? `${(v / 1000000).toFixed(1)}M` : v >= 1000 ? `${(v / 1000).toFixed(0)}K` : String(v)} tick={{ fontSize: 11, fill: theme === "dark" ? "#9ca3af" : "#888" }} width={55} />
-                    <Tooltip formatter={(v: number) => [formatMoney(v) + " ₽"]} labelFormatter={(l: string) => new Date(l).toLocaleDateString("ru-RU")} contentStyle={{ background: theme === "dark" ? "#1f2937" : "#fff", border: "none", borderRadius: 8, boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }} />
-                    {(chartFilter === "all" || chartFilter === "income") && <Area type="monotone" dataKey="income" stroke="#22c55e" fill="url(#gradIncome)" strokeWidth={2} name="Поступления" />}
-                    {(chartFilter === "all" || chartFilter === "expense") && <Area type="monotone" dataKey="expense" stroke="#ef4444" fill="url(#gradExpense)" strokeWidth={2} name="Списания" />}
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
+              </button>
+              {chartOpen && (
+                <div className="dash-chart-area">
+                  <ResponsiveContainer width="100%" height={220}>
+                    <AreaChart data={timeline}>
+                      <defs>
+                        <linearGradient id="gradIncome" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#22c55e" stopOpacity={0.15} />
+                          <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
+                        </linearGradient>
+                        <linearGradient id="gradExpense" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#ef4444" stopOpacity={0.15} />
+                          <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke={theme === "dark" ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)"} />
+                      <XAxis dataKey="date" tickFormatter={(v: string) => { const d = new Date(v); return `${String(d.getDate()).padStart(2, "0")}.${String(d.getMonth() + 1).padStart(2, "0")}`; }} tick={{ fontSize: 11, fill: theme === "dark" ? "#9ca3af" : "#888" }} />
+                      <YAxis tickFormatter={(v: number) => v >= 1000000 ? `${(v / 1000000).toFixed(1)}M` : v >= 1000 ? `${(v / 1000).toFixed(0)}K` : String(v)} tick={{ fontSize: 11, fill: theme === "dark" ? "#9ca3af" : "#888" }} width={55} />
+                      <Tooltip formatter={(v: number) => [formatMoney(v) + " ₽"]} labelFormatter={(l: string) => new Date(l).toLocaleDateString("ru-RU")} contentStyle={{ background: theme === "dark" ? "#1f2937" : "#fff", border: "none", borderRadius: 8, boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }} />
+                      {(chartFilter === "all" || chartFilter === "income") && <Area type="monotone" dataKey="income" stroke="#22c55e" fill="url(#gradIncome)" strokeWidth={2} name="Поступления" />}
+                      {(chartFilter === "all" || chartFilter === "expense") && <Area type="monotone" dataKey="expense" stroke="#ef4444" fill="url(#gradExpense)" strokeWidth={2} name="Списания" />}
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
             </div>
 
             {/* Operations tabs */}

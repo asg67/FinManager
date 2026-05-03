@@ -459,94 +459,146 @@
 [data-theme="dark"] .dash-metric-card__value--income { color: var(--color-income); }
 [data-theme="dark"] .dash-metric-card__value--expense { color: var(--color-expense); }
 
-/* ===== TWIN DONUTS (Income/Expense like Фин-Табло) ===== */
-.dash-twin-donuts {
-  padding: 24px;
+/* ===== FINANCE OVERVIEW (3-col: Expense | Balance | Income) ===== */
+.dash-finance-overview {
+  padding: 28px 20px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 24px;
+  gap: 0;
 }
 
-.dash-twin-donut {
-  flex: 1;
+.dash-finance-col {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
 }
 
-.dash-twin-donut__chart-wrap {
+.dash-finance-donut-wrap {
   position: relative;
-  width: 180px;
-  height: 180px;
+  width: 130px;
+  height: 130px;
 }
 
-.dash-twin-donut__center {
+.dash-finance-donut-center {
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  text-align: center;
   pointer-events: none;
 }
 
-.dash-twin-donut__value {
-  font-size: 15px;
+.dash-finance-donut-icon {
+  opacity: 0.5;
+}
+.dash-finance-donut-icon--expense { color: #DC503C; }
+.dash-finance-donut-icon--income { color: #F5A623; }
+[data-theme="dark"] .dash-finance-donut-icon--expense { color: var(--color-expense); }
+[data-theme="dark"] .dash-finance-donut-icon--income { color: var(--color-income); }
+
+.dash-finance-amount {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+}
+.dash-finance-amount--expense { color: #DC503C; }
+.dash-finance-amount--income { color: #F5A623; }
+[data-theme="dark"] .dash-finance-amount--expense { color: var(--color-expense); }
+[data-theme="dark"] .dash-finance-amount--income { color: var(--color-income); }
+
+.dash-finance-label {
+  font-size: 12px;
+  color: #999;
+  letter-spacing: 0.2px;
+}
+[data-theme="dark"] .dash-finance-label { color: var(--text-muted); }
+
+/* Center balance column */
+.dash-finance-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 0 20px;
+  flex-shrink: 0;
+}
+
+.dash-finance-balance-value {
+  font-size: 26px;
   font-weight: 800;
+  color: #1A1A1A;
+  letter-spacing: -0.5px;
   line-height: 1.1;
 }
-.dash-twin-donut__value--expense { color: #DC503C; }
-.dash-twin-donut__value--income { color: #F5A623; }
-[data-theme="dark"] .dash-twin-donut__value--expense { color: var(--color-expense); }
-[data-theme="dark"] .dash-twin-donut__value--income { color: var(--color-income); }
+[data-theme="dark"] .dash-finance-balance-value { color: var(--text-primary); }
 
-.dash-twin-donut__sub {
+.dash-finance-balance-label {
   font-size: 11px;
+  color: #aaa;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  font-weight: 500;
+}
+[data-theme="dark"] .dash-finance-balance-label { color: var(--text-muted); }
+
+.dash-finance-divider {
+  width: 32px;
+  height: 1px;
+  background: rgba(0, 0, 0, 0.08);
+  margin: 6px 0;
+}
+[data-theme="dark"] .dash-finance-divider { background: var(--glass-border); }
+
+.dash-finance-ops {
+  font-size: 12px;
   color: #999;
-  margin-top: 3px;
+  font-weight: 500;
 }
-[data-theme="dark"] .dash-twin-donut__sub { color: var(--text-muted); }
+[data-theme="dark"] .dash-finance-ops { color: var(--text-dimmed); }
 
-/* --- Summary Stats Row --- */
-.dash-summary-stats {
-  padding: 14px 20px;
-  display: flex;
-  gap: 24px;
-  justify-content: center;
-}
-
-.dash-summary-stat {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: #888;
-}
-.dash-summary-stat__label {
-  font-size: 13px;
-  color: #888;
-}
-.dash-summary-stat__value {
-  font-size: 15px;
-  font-weight: 700;
-  color: #1A1A1A;
-}
-[data-theme="dark"] .dash-summary-stat { color: var(--text-muted); }
-[data-theme="dark"] .dash-summary-stat__label { color: var(--text-muted); }
-[data-theme="dark"] .dash-summary-stat__value { color: var(--text-primary); }
-
-/* --- Dashboard Timeline Chart Card --- */
+/* --- Dashboard Timeline Chart Card (collapsible) --- */
 .dash-chart-card {
-  padding: 24px;
+  padding: 0;
+  overflow: hidden;
 }
-.dash-chart-card__header {
+
+.dash-chart-card__toggle {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
+  width: 100%;
+  padding: 18px 24px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s;
+}
+.dash-chart-card__toggle:hover { background: rgba(0, 0, 0, 0.02); }
+[data-theme="dark"] .dash-chart-card__toggle:hover { background: var(--bg-surface-hover); }
+
+.dash-chart-card__toggle .chart-title { margin-bottom: 0; }
+
+.dash-chart-card__toggle-right {
+  display: flex;
+  align-items: center;
   gap: 12px;
 }
+
+.dash-chart-chevron {
+  color: #aaa;
+  transition: transform 0.25s ease;
+}
+.dash-chart-chevron--open {
+  transform: rotate(180deg);
+}
+[data-theme="dark"] .dash-chart-chevron { color: var(--text-muted); }
+
 .dash-chart-area {
   width: 100%;
+  padding: 0 24px 24px;
 }
 
 /* ===== CHART BLOCK ===== */
@@ -809,11 +861,11 @@
     align-items: flex-start;
     gap: 12px;
   }
-  .dash-twin-donuts { gap: 12px; padding: 16px; }
-  .dash-twin-donut__chart-wrap { width: 150px; height: 150px; }
-  .dash-twin-donut__value { font-size: 13px; }
-  .dash-chart-card { padding: 16px; }
-  .dash-chart-card__header { flex-direction: column; align-items: flex-start; }
+  .dash-finance-overview { flex-wrap: wrap; gap: 16px; padding: 20px 16px; }
+  .dash-finance-donut-wrap { width: 110px; height: 110px; }
+  .dash-finance-amount { font-size: 15px; }
+  .dash-finance-balance-value { font-size: 22px; }
+  .dash-finance-center { padding: 0 12px; }
   .chart-card__header {
     flex-direction: column;
     align-items: flex-start;
@@ -829,10 +881,11 @@
   }
   .dash-greeting__name { font-size: 20px; }
   .dash-accounts-card { padding: 16px; }
-  .dash-twin-donuts { flex-direction: column; padding: 16px; }
-  .dash-twin-donut__chart-wrap { width: 160px; height: 160px; }
-  .dash-chart-card { padding: 12px; }
-  .dash-summary-stats { flex-direction: column; gap: 8px; padding: 12px; }
+  .dash-finance-overview { flex-direction: column; gap: 20px; padding: 20px 12px; }
+  .dash-finance-donut-wrap { width: 120px; height: 120px; }
+  .dash-finance-center { flex-direction: row; gap: 16px; flex-wrap: wrap; justify-content: center; }
+  .dash-finance-divider { width: 1px; height: 20px; margin: 0; }
+  .dash-finance-balance-value { font-size: 20px; }
   .chart-card { padding: 16px; }
   .dash-recent { padding: 16px; }
   .glass-card { border-radius: 16px; }
