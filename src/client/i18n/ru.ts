@@ -436,7 +436,7 @@ export default {
     deleteRuleConfirm: "Удалить правило авторазнесения?",
     accountsBlock: "Счета и карты",
     accountsBlockDesc: "Управление счетами, картами и кассами компании",
-    addAccount: "Добавить счёт",
+    addAccount: "Добавить поле",
     editAccount: "Редактировать",
     deleteAccountConfirm: "Удалить этот счёт? Все связанные операции будут потеряны.",
     noAccountsYet: "Нет счетов. Добавьте первый.",
