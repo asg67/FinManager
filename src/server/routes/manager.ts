@@ -533,19 +533,23 @@ router.get("/companies/:companyId/accounts", async (req: Request, res: Response)
     const result = await Promise.all(accounts.map(async (acc) => {
       let balance: number | null = null;
       if (acc.initialBalance !== null && acc.initialBalanceDate !== null) {
-        const [incAgg, expAgg] = await Promise.all([
-          prisma.bankTransaction.aggregate({
-            where: { accountId: acc.id, direction: "income", date: { gt: acc.initialBalanceDate } },
-            _sum: { amount: true },
-          }),
-          prisma.bankTransaction.aggregate({
-            where: { accountId: acc.id, direction: "expense", date: { gt: acc.initialBalanceDate } },
-            _sum: { amount: true },
-          }),
-        ]);
-        balance = acc.initialBalance.toNumber()
-          + (incAgg._sum.amount?.toNumber() ?? 0)
-          - (expAgg._sum.amount?.toNumber() ?? 0);
+        if (acc._count.bankTransactions === 0) {
+          balance = acc.initialBalance.toNumber();
+        } else {
+          const [incAgg, expAgg] = await Promise.all([
+            prisma.bankTransaction.aggregate({
+              where: { accountId: acc.id, direction: "income", date: { gt: acc.initialBalanceDate } },
+              _sum: { amount: true },
+            }),
+            prisma.bankTransaction.aggregate({
+              where: { accountId: acc.id, direction: "expense", date: { gt: acc.initialBalanceDate } },
+              _sum: { amount: true },
+            }),
+          ]);
+          balance = acc.initialBalance.toNumber()
+            + (incAgg._sum.amount?.toNumber() ?? 0)
+            - (expAgg._sum.amount?.toNumber() ?? 0);
+        }
       }
       return {
         id: acc.id,

@@ -249,11 +249,17 @@ router.get("/account-balances", async (req: Request, res: Response) => {
         entity: { select: { name: true } },
         initialBalance: true,
         initialBalanceDate: true,
+        _count: { select: { bankTransactions: true } },
       },
     });
 
+    // Only compute balances for accounts that have data
+    const relevant = accounts.filter(
+      (acc) => acc.initialBalance !== null || acc._count.bankTransactions > 0,
+    );
+
     const balances = await Promise.all(
-      accounts.map(async (acc) => {
+      relevant.map(async (acc) => {
         const dateFilter: Prisma.BankTransactionWhereInput = acc.initialBalanceDate
           ? { date: { gt: acc.initialBalanceDate } }
           : {};
@@ -284,7 +290,6 @@ router.get("/account-balances", async (req: Request, res: Response) => {
       }),
     );
 
-    // Hide zero-balance accounts without initial balance set
     res.json(balances.filter((b) => b.balance !== 0));
   } catch (error) {
     console.error("Account balances error:", error);
