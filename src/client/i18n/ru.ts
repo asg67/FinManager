@@ -46,6 +46,7 @@ export default {
     employees: "Сотрудники",
     settings: "Настройки",
     admin: "Админка",
+    directory: "Справочник",
     tools: "Инструменты",
     more: "Ещё",
   },

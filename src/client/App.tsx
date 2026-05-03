@@ -34,6 +34,7 @@ const BankAccounts = lazy(() => import("./pages/BankAccounts.js"));
 const BankConnectionDetail = lazy(() => import("./pages/BankConnectionDetail.js"));
 const Admin = lazy(() => import("./pages/Admin.js"));
 const ShareTarget = lazy(() => import("./pages/ShareTarget.js"));
+const Directory = lazy(() => import("./pages/Directory.js"));
 const ManagerCabinet = lazy(() => import("./pages/manager/ManagerCabinet.js"));
 const ManagerCompanyView = lazy(() => import("./pages/manager/ManagerCompanyView.js"));
 
@@ -115,6 +116,7 @@ export default function App() {
                 <Route path="/bank-accounts" element={<Suspense fallback={pageFallback}><BankAccounts /></Suspense>} />
                 <Route path="/bank-accounts/:id" element={<Suspense fallback={pageFallback}><BankConnectionDetail /></Suspense>} />
                 <Route path="/settings" element={<Suspense fallback={pageFallback}><Settings /></Suspense>} />
+                <Route path="/directory" element={<Suspense fallback={pageFallback}><Directory /></Suspense>} />
                 <Route path="/share-target" element={<Suspense fallback={pageFallback}><ShareTarget /></Suspense>} />
               </Route>
               <Route path="*" element={<Navigate to="/" replace />} />

@@ -12,6 +12,7 @@ import {
   ChevronRight,
   Wallet,
   LogOut,
+  BookOpen,
 } from "lucide-react";
 import clsx from "clsx";
 import { analyticsApi, type AccountBalance } from "../../api/analytics.js";
@@ -54,6 +55,7 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
 
   const toolItems = [
     { to: "/settings", icon: Settings, label: t("nav.settings") },
+    { to: "/directory", icon: BookOpen, label: t("nav.directory") },
     ...(isOwner ? [{ to: "/admin", icon: Shield, label: t("nav.admin") }] : []),
   ];
 

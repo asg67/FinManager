@@ -321,48 +321,49 @@ export default function Dashboard() {
                 {balances.length === 0 && <div className="dash-empty-placeholder"><span>{t("settings.noAccounts")}</span></div>}
               </div>
 
-              {/* RIGHT column: finance overview */}
+              {/* RIGHT column: two donut cards */}
               <div className="dash-middle-right">
-                <div className="glass-card dash-finance-overview">
-                  <div className="dash-finance-col">
-                    <div className="dash-finance-donut-wrap">
+                <div className="dash-donut-pair">
+                  <div className="glass-card dash-donut-card">
+                    <div className="dash-donut-card__chart">
                       <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
-                          <Pie data={expenseDonut} dataKey="value" cx="50%" cy="50%" innerRadius="60%" outerRadius="86%" paddingAngle={expenseDonut.length > 1 ? 2 : 0} stroke="none">
+                          <Pie data={expenseDonut} dataKey="value" cx="50%" cy="50%" innerRadius="58%" outerRadius="90%" paddingAngle={expenseDonut.length > 1 ? 1.5 : 0} stroke="none">
                             {expenseDonut.map((e, i) => <Cell key={i} fill={e.color} />)}
                           </Pie>
                         </PieChart>
                       </ResponsiveContainer>
-                      <div className="dash-finance-donut-center">
-                        <TrendingDown size={14} className="dash-finance-donut-icon dash-finance-donut-icon--expense" />
+                      <div className="dash-donut-card__center">
+                        <div className="dash-donut-card__value dash-donut-card__value--expense">{formatMoney(Math.abs(calcExpense))} ₽</div>
+                        <div className="dash-donut-card__label">Все списания</div>
                       </div>
                     </div>
-                    <div className="dash-finance-amount dash-finance-amount--expense">-{formatMoney(Math.abs(calcExpense))} ₽</div>
-                    <div className="dash-finance-label">Списания</div>
                   </div>
-
-                  <div className="dash-finance-center">
-                    <div className="dash-finance-balance-value">{formatMoney(calcBalance)} ₽</div>
-                    <div className="dash-finance-balance-label">{t("dashboard.balance")}</div>
-                    <div className="dash-finance-divider" />
-                    <div className="dash-finance-ops">{calcOps} операций</div>
-                  </div>
-
-                  <div className="dash-finance-col">
-                    <div className="dash-finance-donut-wrap">
+                  <div className="glass-card dash-donut-card">
+                    <div className="dash-donut-card__chart">
                       <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
-                          <Pie data={incomeDonut} dataKey="value" cx="50%" cy="50%" innerRadius="60%" outerRadius="86%" paddingAngle={0} stroke="none">
+                          <Pie data={incomeDonut} dataKey="value" cx="50%" cy="50%" innerRadius="58%" outerRadius="90%" paddingAngle={0} stroke="none">
                             {incomeDonut.map((e, i) => <Cell key={i} fill={e.color} />)}
                           </Pie>
                         </PieChart>
                       </ResponsiveContainer>
-                      <div className="dash-finance-donut-center">
-                        <TrendingUp size={14} className="dash-finance-donut-icon dash-finance-donut-icon--income" />
+                      <div className="dash-donut-card__center">
+                        <div className="dash-donut-card__value dash-donut-card__value--income">{formatMoney(calcIncome)} ₽</div>
+                        <div className="dash-donut-card__label">Все поступления</div>
                       </div>
                     </div>
-                    <div className="dash-finance-amount dash-finance-amount--income">+{formatMoney(calcIncome)} ₽</div>
-                    <div className="dash-finance-label">Поступления</div>
+                  </div>
+                </div>
+                <div className="glass-card dash-balance-row">
+                  <div className="dash-balance-row__item">
+                    <span className="dash-balance-row__label">{t("dashboard.balance")}</span>
+                    <span className="dash-balance-row__value">{formatMoney(calcBalance)} ₽</span>
+                  </div>
+                  <div className="dash-balance-row__divider" />
+                  <div className="dash-balance-row__item">
+                    <span className="dash-balance-row__label">{t("dashboard.operations")}</span>
+                    <span className="dash-balance-row__value">{calcOps}</span>
                   </div>
                 </div>
               </div>

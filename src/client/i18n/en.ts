@@ -46,6 +46,7 @@ export default {
     employees: "Employees",
     settings: "Settings",
     admin: "Admin",
+    directory: "Directory",
     tools: "Tools",
     more: "More",
   },
