@@ -688,8 +688,22 @@
 }
 .dir-amgmt-link-picker select { font-size: 12px; padding: 2px 4px; max-width: 160px; }
 
-.dir-amgmt-table__balance { font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.dir-amgmt-table__balance--neg { color: #ef4444; }
+.dir-amgmt-table__balance {
+  font-weight: 600;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+}
+.dir-amgmt-table__balance--neg > span:first-child { color: #ef4444; }
+.dir-amgmt-table__balance-date {
+  font-size: 10px;
+  font-weight: 400;
+  color: #aaa;
+}
 [data-theme="dark"] .dir-amgmt-table__number,
 [data-theme="dark"] .dir-amgmt-table__entity,
 [data-theme="dark"] .dir-amgmt-table__bank { color: var(--text-muted); }

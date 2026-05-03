@@ -38,6 +38,8 @@ export interface DirAccount {
   enabled: boolean;
   entityName: string;
   entityId: string;
+  initialBalance: number | null;
+  initialBalanceDate: string | null;
   linkedAccountId: string | null;
   linkedAccountName: string | null;
   linkedFromAccounts: { id: string; name: string }[];
@@ -89,9 +91,9 @@ export const directoryApi = {
   // Accounts
   listAccounts: () => api.get<DirAccount[]>("/directory/accounts"),
   listOwnAccounts: () => api.get<DirAccount[]>("/directory/accounts?own=true"),
-  createAccount: (data: { entityId: string; name: string; type: string; bank?: string; accountNumber?: string }) =>
+  createAccount: (data: { entityId: string; name: string; type: string; bank?: string; accountNumber?: string; initialBalance?: number | null; initialBalanceDate?: string | null }) =>
     api.post<DirAccount>("/directory/accounts", data),
-  updateAccount: (id: string, data: { name?: string; type?: string; bank?: string; accountNumber?: string }) =>
+  updateAccount: (id: string, data: { name?: string; type?: string; bank?: string; accountNumber?: string; initialBalance?: number | null; initialBalanceDate?: string | null }) =>
     api.put<DirAccount>(`/directory/accounts/${id}`, data),
   deleteAccount: (id: string) => api.delete<void>(`/directory/accounts/${id}`),
   toggleAccount: (id: string) => api.put<{ id: string; enabled: boolean }>(`/directory/accounts/${id}/toggle`),

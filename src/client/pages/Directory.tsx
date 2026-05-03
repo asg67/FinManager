@@ -653,7 +653,7 @@ function AccountsManageView({ canEdit }: { canEdit: boolean }) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [linkingId, setLinkingId] = useState<string | null>(null);
 
-  const emptyForm = { name: "", type: "checking", customType: "", entityId: "", bank: "", accountNumber: "" };
+  const emptyForm = { name: "", type: "checking", customType: "", entityId: "", bank: "", accountNumber: "", initialBalance: "", initialBalanceDate: "" };
   const [form, setForm] = useState(emptyForm);
 
   useEffect(() => {
@@ -706,6 +706,8 @@ function AccountsManageView({ canEdit }: { canEdit: boolean }) {
       entityId: acc.entityId,
       bank: acc.bank || "",
       accountNumber: acc.accountNumber || "",
+      initialBalance: acc.initialBalance != null ? String(acc.initialBalance) : "",
+      initialBalanceDate: acc.initialBalanceDate || "",
     });
     setEditingId(acc.id);
     setAdding(false);
@@ -722,11 +724,15 @@ function AccountsManageView({ canEdit }: { canEdit: boolean }) {
     const resolvedType = form.type === "other" ? form.customType.trim() : form.type;
     if (!resolvedType) return;
 
+    const parsedBalance = form.initialBalance.trim() ? parseFloat(form.initialBalance.replace(/\s/g, "").replace(",", ".")) : null;
+
     const data = {
       name: form.name.trim(),
       type: resolvedType,
       bank: form.bank.trim() || undefined,
       accountNumber: form.accountNumber.trim() || undefined,
+      initialBalance: parsedBalance != null && !isNaN(parsedBalance) ? parsedBalance : null,
+      initialBalanceDate: form.initialBalanceDate || null,
     };
 
     if (editingId) {
@@ -825,6 +831,16 @@ function AccountsManageView({ canEdit }: { canEdit: boolean }) {
               <input className="dir-inline-input" value={form.accountNumber} onChange={(e) => setForm({ ...form, accountNumber: e.target.value })} placeholder={t("directory.accountNumberPlaceholder")} />
             </div>
           </div>
+          <div className="dir-cat-form__row dir-cat-form__row--grid">
+            <div>
+              <label className="dir-cat-form__label">{t("directory.initialBalance")}</label>
+              <input className="dir-inline-input" type="text" inputMode="decimal" value={form.initialBalance} onChange={(e) => setForm({ ...form, initialBalance: e.target.value })} placeholder="0.00" />
+            </div>
+            <div>
+              <label className="dir-cat-form__label">{t("directory.initialBalanceDate")}</label>
+              <input className="dir-inline-input" type="date" value={form.initialBalanceDate} onChange={(e) => setForm({ ...form, initialBalanceDate: e.target.value })} />
+            </div>
+          </div>
           <div className="dir-cat-form__actions">
             <button type="button" className="dir-add-btn" onClick={handleSave} disabled={!form.name.trim() || (form.type === "other" && !form.customType.trim())}>
               <Check size={16} /><span>{t("common.save")}</span>
@@ -892,7 +908,12 @@ function AccountsManageView({ canEdit }: { canEdit: boolean }) {
                       )}
                     </span>
                     <span className={clsx("dir-amgmt-table__balance", bal != null && bal < 0 && "dir-amgmt-table__balance--neg")}>
-                      {bal != null ? formatMoney(bal) : "—"}
+                      <span>{bal != null ? formatMoney(bal) : "—"}</span>
+                      {acc.initialBalanceDate && (
+                        <span className="dir-amgmt-table__balance-date">
+                          {t("directory.balanceFrom")} {new Date(acc.initialBalanceDate).toLocaleDateString("ru-RU")}
+                        </span>
+                      )}
                     </span>
                     <span className="dir-amgmt-table__actions-cell">
                       {canEdit && (

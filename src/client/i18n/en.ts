@@ -455,5 +455,8 @@ export default {
     linkedTo: "Linked to",
     noLinkableAccounts: "No accounts available",
     addDirectionToArticle: "Add direction to article...",
+    initialBalance: "Initial balance",
+    initialBalanceDate: "Balance date",
+    balanceFrom: "from",
   },
 } as const;

@@ -455,5 +455,8 @@ export default {
     linkedTo: "Привязан к",
     noLinkableAccounts: "Нет доступных счетов",
     addDirectionToArticle: "Добавить направление к статье...",
+    initialBalance: "Остаток",
+    initialBalanceDate: "Дата остатка",
+    balanceFrom: "от",
   },
 } as const;

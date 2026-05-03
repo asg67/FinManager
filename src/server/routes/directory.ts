@@ -246,6 +246,8 @@ router.get("/accounts", async (req: Request, res: Response) => {
       enabled: a.enabled,
       entityName: a.entity.name,
       entityId: a.entityId,
+      initialBalance: a.initialBalance?.toNumber() ?? null,
+      initialBalanceDate: a.initialBalanceDate?.toISOString().slice(0, 10) ?? null,
       linkedAccountId: a.linkedAccountId,
       linkedAccountName: a.linkedAccount?.name ?? null,
       linkedFromAccounts: a.linkedFrom.map((l) => ({ id: l.id, name: l.name })),
@@ -302,7 +304,7 @@ router.post("/accounts", async (req: Request, res: Response) => {
     const user = await getCompanyUser(req.user!.userId);
     if (!user) { res.status(403).json({ message: "No company" }); return; }
 
-    const { entityId, name, type, bank, accountNumber } = req.body;
+    const { entityId, name, type, bank, accountNumber, initialBalance, initialBalanceDate } = req.body;
     if (!name?.trim()) { res.status(400).json({ message: "Name is required" }); return; }
     if (!type?.trim()) { res.status(400).json({ message: "Type is required" }); return; }
 
@@ -316,6 +318,8 @@ router.post("/accounts", async (req: Request, res: Response) => {
         bank: bank?.trim() || null,
         accountNumber: accountNumber?.trim() || null,
         entityId: entity.id,
+        initialBalance: initialBalance != null ? initialBalance : null,
+        initialBalanceDate: initialBalanceDate ? new Date(initialBalanceDate + "T00:00:00") : null,
       },
       include: { entity: { select: { name: true } } },
     });
@@ -329,6 +333,8 @@ router.post("/accounts", async (req: Request, res: Response) => {
       enabled: account.enabled,
       entityName: account.entity.name,
       entityId: account.entityId,
+      initialBalance: account.initialBalance?.toNumber() ?? null,
+      initialBalanceDate: account.initialBalanceDate?.toISOString().slice(0, 10) ?? null,
     });
   } catch (error) {
     console.error("Directory create account error:", error);
@@ -341,13 +347,15 @@ router.put("/accounts/:id", async (req: Request, res: Response) => {
     if (!(await canEditCheck(req.user!.userId))) { res.status(403).json({ message: "Access denied" }); return; }
 
     const id = req.params.id as string;
-    const { name, type, bank, accountNumber } = req.body;
+    const { name, type, bank, accountNumber, initialBalance, initialBalanceDate } = req.body;
 
     const data: any = {};
     if (name !== undefined) data.name = name.trim();
     if (type !== undefined) data.type = type.trim();
     if (bank !== undefined) data.bank = bank?.trim() || null;
     if (accountNumber !== undefined) data.accountNumber = accountNumber?.trim() || null;
+    if (initialBalance !== undefined) data.initialBalance = initialBalance != null ? initialBalance : null;
+    if (initialBalanceDate !== undefined) data.initialBalanceDate = initialBalanceDate ? new Date(initialBalanceDate + "T00:00:00") : null;
 
     const account = await prisma.account.update({
       where: { id },
@@ -364,6 +372,8 @@ router.put("/accounts/:id", async (req: Request, res: Response) => {
       enabled: account.enabled,
       entityName: account.entity.name,
       entityId: account.entityId,
+      initialBalance: account.initialBalance?.toNumber() ?? null,
+      initialBalanceDate: account.initialBalanceDate?.toISOString().slice(0, 10) ?? null,
     });
   } catch (error) {
     console.error("Directory update account error:", error);
