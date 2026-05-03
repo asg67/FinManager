@@ -396,9 +396,11 @@ export default {
     switchSuccess: "Company switched",
   },
   directory: {
-    articles: "Expense Articles",
+    ddsBlock: "Cash Flow",
+    ddsBlockDesc: "Articles, directions and accounts for cash flow management",
+    articles: "Articles",
     articlesDesc: "Expense categories, articles and directions",
-    accounts: "Business Accounts",
+    accounts: "Accounts",
     accountsDesc: "Checking accounts, cards, cash — enable/disable",
     directions: "Directions",
     directionsDesc: "All operation directions",
@@ -408,5 +410,9 @@ export default {
     active: "Active",
     enable: "Enable",
     disable: "Disable",
+    inDds: "In Cash Flow",
+    outsideDds: "Outside Cash Flow",
+    noEnabledAccounts: "No active accounts",
+    noDisabledAccounts: "All accounts are active",
   },
 } as const;

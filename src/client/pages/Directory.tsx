@@ -1,15 +1,17 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  BookOpen, Tags, Landmark, Compass, ArrowLeft,
+  BookOpen, Tags, Landmark, Compass, ArrowLeft, ArrowLeftRight,
   ChevronRight, ChevronDown, Plus, Pencil, Trash2, Check, X,
   ToggleLeft, ToggleRight,
   Wallet, CreditCard, Banknote, PiggyBank,
 } from "lucide-react";
+import clsx from "clsx";
 import { directoryApi, type DirExpenseType, type DirAccount, type DirDirectionItem } from "../api/directory.js";
 import { useAuthStore } from "../stores/auth.js";
 
-type Section = "main" | "articles" | "accounts" | "directions";
+type Section = "main" | "dds";
+type DdsTab = "articles" | "accounts" | "directions";
 
 export default function Directory() {
   const { t } = useTranslation();
@@ -43,9 +45,7 @@ export default function Directory() {
       )}
 
       {section === "main" && <MainView onSelect={setSection} />}
-      {section === "articles" && <ArticlesView canEdit={canEdit} />}
-      {section === "accounts" && <AccountsView canEdit={canEdit} />}
-      {section === "directions" && <DirectionsView />}
+      {section === "dds" && <DdsView canEdit={canEdit} />}
     </div>
   );
 }
@@ -53,30 +53,59 @@ export default function Directory() {
 /* ===== MAIN VIEW ===== */
 function MainView({ onSelect }: { onSelect: (s: Section) => void }) {
   const { t } = useTranslation();
-  const cards = [
-    { key: "articles" as Section, icon: Tags, title: t("directory.articles"), desc: t("directory.articlesDesc"), color: "#6366f1" },
-    { key: "accounts" as Section, icon: Landmark, title: t("directory.accounts"), desc: t("directory.accountsDesc"), color: "#f59e0b" },
-    { key: "directions" as Section, icon: Compass, title: t("directory.directions"), desc: t("directory.directionsDesc"), color: "#22c55e" },
-  ];
 
   return (
     <>
       <h1 className="page-title">{t("nav.directory")}</h1>
       <div className="dir-cards-grid">
-        {cards.map((c) => (
-          <button key={c.key} type="button" className="glass-card dir-nav-card" onClick={() => onSelect(c.key)}>
-            <div className="dir-nav-card__icon" style={{ background: `${c.color}14`, color: c.color }}>
-              <c.icon size={24} />
-            </div>
-            <div className="dir-nav-card__text">
-              <h3 className="dir-nav-card__title">{c.title}</h3>
-              <p className="dir-nav-card__desc">{c.desc}</p>
-            </div>
-            <ChevronRight size={20} className="dir-nav-card__arrow" />
+        <button type="button" className="glass-card dir-nav-card" onClick={() => onSelect("dds")}>
+          <div className="dir-nav-card__icon" style={{ background: "rgba(99,102,241,0.08)", color: "#6366f1" }}>
+            <ArrowLeftRight size={24} />
+          </div>
+          <div className="dir-nav-card__text">
+            <h3 className="dir-nav-card__title">{t("directory.ddsBlock")}</h3>
+            <p className="dir-nav-card__desc">{t("directory.ddsBlockDesc")}</p>
+          </div>
+          <ChevronRight size={20} className="dir-nav-card__arrow" />
+        </button>
+      </div>
+    </>
+  );
+}
+
+/* ===== DDS VIEW (tabs: articles, accounts, directions) ===== */
+function DdsView({ canEdit }: { canEdit: boolean }) {
+  const { t } = useTranslation();
+  const [tab, setTab] = useState<DdsTab>("articles");
+
+  const tabs: { key: DdsTab; label: string; icon: typeof Tags }[] = [
+    { key: "articles", label: t("directory.articles"), icon: Tags },
+    { key: "accounts", label: t("directory.accounts"), icon: Landmark },
+    { key: "directions", label: t("directory.directions"), icon: Compass },
+  ];
+
+  return (
+    <div className="dir-section">
+      <h2 className="dir-section__title">{t("directory.ddsBlock")}</h2>
+
+      <div className="dir-tabs">
+        {tabs.map((tb) => (
+          <button
+            key={tb.key}
+            type="button"
+            className={clsx("dir-tab", tab === tb.key && "dir-tab--active")}
+            onClick={() => setTab(tb.key)}
+          >
+            <tb.icon size={16} />
+            <span>{tb.label}</span>
           </button>
         ))}
       </div>
-    </>
+
+      {tab === "articles" && <ArticlesView canEdit={canEdit} />}
+      {tab === "accounts" && <AccountsView canEdit={canEdit} />}
+      {tab === "directions" && <DirectionsView />}
+    </div>
   );
 }
 
@@ -125,20 +154,20 @@ function ArticlesView({ canEdit }: { canEdit: boolean }) {
   async function handleUpdateType(id: string) {
     if (!editTypeName.trim()) return;
     const updated = await directoryApi.updateExpenseType(id, editTypeName.trim());
-    setTypes((prev) => prev.map((t) => t.id === id ? updated : t));
+    setTypes((prev) => prev.map((tp) => tp.id === id ? updated : tp));
     setEditingType(null);
   }
 
   async function handleDeleteType(id: string) {
     if (!confirm(t("settings.deleteTypeConfirm"))) return;
     await directoryApi.deleteExpenseType(id);
-    setTypes((prev) => prev.filter((t) => t.id !== id));
+    setTypes((prev) => prev.filter((tp) => tp.id !== id));
   }
 
   async function handleAddArticle(typeId: string) {
     if (!newArticleName.trim()) return;
     const created = await directoryApi.createArticle(typeId, newArticleName.trim());
-    setTypes((prev) => prev.map((t) => t.id === typeId ? { ...t, articles: [...t.articles, { ...created, directions: created.directions || [] }] } : t));
+    setTypes((prev) => prev.map((tp) => tp.id === typeId ? { ...tp, articles: [...tp.articles, { ...created, directions: created.directions || [] }] } : tp));
     setNewArticleName("");
     setAddingArticle(null);
   }
@@ -146,9 +175,9 @@ function ArticlesView({ canEdit }: { canEdit: boolean }) {
   async function handleUpdateArticle(id: string) {
     if (!editArticleName.trim()) return;
     const updated = await directoryApi.updateArticle(id, editArticleName.trim());
-    setTypes((prev) => prev.map((t) => ({
-      ...t,
-      articles: t.articles.map((a) => a.id === id ? { ...a, name: updated.name, directions: updated.directions || a.directions } : a),
+    setTypes((prev) => prev.map((tp) => ({
+      ...tp,
+      articles: tp.articles.map((a) => a.id === id ? { ...a, name: updated.name, directions: updated.directions || a.directions } : a),
     })));
     setEditingArticle(null);
   }
@@ -156,15 +185,15 @@ function ArticlesView({ canEdit }: { canEdit: boolean }) {
   async function handleDeleteArticle(id: string, typeId: string) {
     if (!confirm(t("settings.deleteArticleConfirm"))) return;
     await directoryApi.deleteArticle(id);
-    setTypes((prev) => prev.map((t) => t.id === typeId ? { ...t, articles: t.articles.filter((a) => a.id !== id) } : t));
+    setTypes((prev) => prev.map((tp) => tp.id === typeId ? { ...tp, articles: tp.articles.filter((a) => a.id !== id) } : tp));
   }
 
   async function handleAddDirection(articleId: string) {
     if (!newDirName.trim()) return;
     const created = await directoryApi.createDirection(articleId, newDirName.trim());
-    setTypes((prev) => prev.map((t) => ({
-      ...t,
-      articles: t.articles.map((a) => a.id === articleId ? { ...a, directions: [...a.directions, created] } : a),
+    setTypes((prev) => prev.map((tp) => ({
+      ...tp,
+      articles: tp.articles.map((a) => a.id === articleId ? { ...a, directions: [...a.directions, created] } : a),
     })));
     setNewDirName("");
     setAddingDirection(null);
@@ -173,9 +202,9 @@ function ArticlesView({ canEdit }: { canEdit: boolean }) {
   async function handleUpdateDirection(id: string) {
     if (!editDirName.trim()) return;
     const updated = await directoryApi.updateDirection(id, editDirName.trim());
-    setTypes((prev) => prev.map((t) => ({
-      ...t,
-      articles: t.articles.map((a) => ({
+    setTypes((prev) => prev.map((tp) => ({
+      ...tp,
+      articles: tp.articles.map((a) => ({
         ...a,
         directions: a.directions.map((d) => d.id === id ? { ...d, name: updated.name } : d),
       })),
@@ -185,18 +214,18 @@ function ArticlesView({ canEdit }: { canEdit: boolean }) {
 
   async function handleDeleteDirection(id: string) {
     await directoryApi.deleteDirection(id);
-    setTypes((prev) => prev.map((t) => ({
-      ...t,
-      articles: t.articles.map((a) => ({ ...a, directions: a.directions.filter((d) => d.id !== id) })),
+    setTypes((prev) => prev.map((tp) => ({
+      ...tp,
+      articles: tp.articles.map((a) => ({ ...a, directions: a.directions.filter((d) => d.id !== id) })),
     })));
   }
 
   if (loading) return <div className="dir-loading">{t("common.loading")}</div>;
 
   return (
-    <div className="dir-section">
-      <div className="dir-section__header">
-        <h2 className="dir-section__title">{t("directory.articles")}</h2>
+    <div className="dir-sub">
+      <div className="dir-sub__header">
+        <h3 className="dir-sub__title">{t("directory.articles")}</h3>
         {canEdit && (
           <button type="button" className="dir-add-btn" onClick={() => { setAddingType(true); setNewTypeName(""); }}>
             <Plus size={16} />
@@ -364,11 +393,8 @@ function AccountsView({ canEdit }: { canEdit: boolean }) {
     setAccounts((prev) => prev.map((a) => a.id === id ? { ...a, enabled: result.enabled } : a));
   }
 
-  const grouped: Record<string, DirAccount[]> = {};
-  for (const acc of accounts) {
-    if (!grouped[acc.type]) grouped[acc.type] = [];
-    grouped[acc.type].push(acc);
-  }
+  const enabled = accounts.filter((a) => a.enabled);
+  const disabled = accounts.filter((a) => !a.enabled);
 
   const typeConfig: Record<string, { label: string; icon: typeof Wallet }> = {
     checking: { label: t("settings.typeChecking"), icon: Wallet },
@@ -377,65 +403,93 @@ function AccountsView({ canEdit }: { canEdit: boolean }) {
     deposit: { label: t("settings.typeDeposit"), icon: PiggyBank },
   };
 
-  const typeOrder = ["checking", "card", "cash", "deposit"];
-  const sortedTypes = Object.keys(grouped).sort((a, b) => {
-    const ia = typeOrder.indexOf(a);
-    const ib = typeOrder.indexOf(b);
-    return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
-  });
+  function getTypeLabel(type: string) {
+    return typeConfig[type]?.label || type;
+  }
 
   if (loading) return <div className="dir-loading">{t("common.loading")}</div>;
 
   return (
-    <div className="dir-section">
-      <div className="dir-section__header">
-        <h2 className="dir-section__title">{t("directory.accounts")}</h2>
+    <div className="dir-sub">
+      {/* В ДДС */}
+      <div className="dir-acc-split">
+        <div className="dir-acc-split__header">
+          <div className="dir-acc-split__badge dir-acc-split__badge--active">
+            <ToggleRight size={16} />
+            <span>{t("directory.inDds")}</span>
+          </div>
+          <span className="dir-acc-split__count">{enabled.length}</span>
+        </div>
+
+        {enabled.length === 0 && <div className="dir-empty">{t("directory.noEnabledAccounts")}</div>}
+
+        {enabled.length > 0 && (
+          <div className="dir-acc-table">
+            <div className="dir-acc-table__head">
+              <span>{t("settings.accountName")}</span>
+              <span>{t("settings.entity")}</span>
+              <span>{t("settings.accountType")}</span>
+              <span>{t("settings.bank")}</span>
+              <span></span>
+            </div>
+            {enabled.map((acc) => (
+              <div key={acc.id} className="dir-acc-table__row">
+                <span className="dir-acc-table__name">{acc.name}</span>
+                <span className="dir-acc-table__entity">{acc.entityName}</span>
+                <span className="dir-acc-table__type">{getTypeLabel(acc.type)}</span>
+                <span className="dir-acc-table__bank">{acc.bank || "—"}</span>
+                <span className="dir-acc-table__toggle">
+                  {canEdit && (
+                    <button type="button" className="dir-toggle-btn" onClick={() => handleToggle(acc.id)} title={t("directory.disable")}>
+                      <ToggleRight size={22} className="dir-toggle--on" />
+                    </button>
+                  )}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
-      {accounts.length === 0 && <div className="dir-empty">{t("settings.noAccounts")}</div>}
-
-      {sortedTypes.map((type) => {
-        const config = typeConfig[type] || { label: type, icon: Wallet };
-        const Icon = config.icon;
-        const list = grouped[type];
-        const enabledCount = list.filter((a) => a.enabled).length;
-
-        return (
-          <div key={type} className="dir-acc-group">
-            <div className="dir-acc-group__header">
-              <Icon size={18} />
-              <span className="dir-acc-group__title">{config.label}</span>
-              <span className="dir-acc-group__count">{enabledCount}/{list.length}</span>
-            </div>
-            <div className="dir-acc-table">
-              <div className="dir-acc-table__head">
-                <span>{t("settings.accountName")}</span>
-                <span>{t("settings.entity")}</span>
-                <span>{t("settings.bank")}</span>
-                <span>{t("settings.accountNumber")}</span>
-                <span>{t("directory.active")}</span>
-              </div>
-              {list.map((acc) => (
-                <div key={acc.id} className={`dir-acc-table__row${!acc.enabled ? " dir-acc-table__row--disabled" : ""}`}>
-                  <span className="dir-acc-table__name">{acc.name}</span>
-                  <span className="dir-acc-table__entity">{acc.entityName}</span>
-                  <span className="dir-acc-table__bank">{acc.bank || "—"}</span>
-                  <span className="dir-acc-table__number">{acc.accountNumber || "—"}</span>
-                  <span className="dir-acc-table__toggle">
-                    {canEdit ? (
-                      <button type="button" className="dir-toggle-btn" onClick={() => handleToggle(acc.id)} title={acc.enabled ? t("directory.disable") : t("directory.enable")}>
-                        {acc.enabled ? <ToggleRight size={22} className="dir-toggle--on" /> : <ToggleLeft size={22} className="dir-toggle--off" />}
-                      </button>
-                    ) : (
-                      acc.enabled ? <ToggleRight size={22} className="dir-toggle--on" /> : <ToggleLeft size={22} className="dir-toggle--off" />
-                    )}
-                  </span>
-                </div>
-              ))}
-            </div>
+      {/* Вне ДДС */}
+      <div className="dir-acc-split">
+        <div className="dir-acc-split__header">
+          <div className="dir-acc-split__badge dir-acc-split__badge--inactive">
+            <ToggleLeft size={16} />
+            <span>{t("directory.outsideDds")}</span>
           </div>
-        );
-      })}
+          <span className="dir-acc-split__count">{disabled.length}</span>
+        </div>
+
+        {disabled.length === 0 && <div className="dir-empty">{t("directory.noDisabledAccounts")}</div>}
+
+        {disabled.length > 0 && (
+          <div className="dir-acc-table">
+            <div className="dir-acc-table__head">
+              <span>{t("settings.accountName")}</span>
+              <span>{t("settings.entity")}</span>
+              <span>{t("settings.accountType")}</span>
+              <span>{t("settings.bank")}</span>
+              <span></span>
+            </div>
+            {disabled.map((acc) => (
+              <div key={acc.id} className="dir-acc-table__row dir-acc-table__row--disabled">
+                <span className="dir-acc-table__name">{acc.name}</span>
+                <span className="dir-acc-table__entity">{acc.entityName}</span>
+                <span className="dir-acc-table__type">{getTypeLabel(acc.type)}</span>
+                <span className="dir-acc-table__bank">{acc.bank || "—"}</span>
+                <span className="dir-acc-table__toggle">
+                  {canEdit && (
+                    <button type="button" className="dir-toggle-btn" onClick={() => handleToggle(acc.id)} title={t("directory.enable")}>
+                      <ToggleLeft size={22} className="dir-toggle--off" />
+                    </button>
+                  )}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -456,10 +510,8 @@ function DirectionsView() {
   if (loading) return <div className="dir-loading">{t("common.loading")}</div>;
 
   return (
-    <div className="dir-section">
-      <div className="dir-section__header">
-        <h2 className="dir-section__title">{t("directory.directions")}</h2>
-      </div>
+    <div className="dir-sub">
+      <h3 className="dir-sub__title">{t("directory.directions")}</h3>
 
       {directions.length === 0 && <div className="dir-empty">{t("directory.noDirections")}</div>}
 

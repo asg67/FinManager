@@ -396,9 +396,11 @@ export default {
     switchSuccess: "Компания переключена",
   },
   directory: {
-    articles: "Статьи операций",
+    ddsBlock: "ДДС",
+    ddsBlockDesc: "Статьи, направления и счета для движения денежных средств",
+    articles: "Статьи",
     articlesDesc: "Категории расходов, статьи и направления",
-    accounts: "Счета бизнеса",
+    accounts: "Счета",
     accountsDesc: "Расчётные счета, карты, кассы — вкл/выкл",
     directions: "Направления",
     directionsDesc: "Все направления операций",
@@ -408,5 +410,9 @@ export default {
     active: "Активен",
     enable: "Включить",
     disable: "Выключить",
+    inDds: "В ДДС",
+    outsideDds: "Вне ДДС",
+    noEnabledAccounts: "Нет активных счетов",
+    noDisabledAccounts: "Все счета активны",
   },
 } as const;

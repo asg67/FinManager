@@ -467,12 +467,12 @@
 }
 
 .dash-donut-card {
-  padding: 20px;
+  padding: 24px 20px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: 14px;
   position: relative;
   overflow: hidden;
 }
@@ -494,8 +494,8 @@
 
 .dash-donut-card__chart {
   position: relative;
-  width: 170px;
-  height: 170px;
+  width: 220px;
+  height: 220px;
 }
 
 .dash-donut-card__center {
@@ -505,11 +505,11 @@
   transform: translate(-50%, -50%);
   text-align: center;
   pointer-events: none;
-  width: 100px;
+  width: 120px;
 }
 
 .dash-donut-card__value {
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 800;
   line-height: 1.15;
   letter-spacing: -0.3px;
@@ -945,10 +945,10 @@
     align-items: flex-start;
     gap: 12px;
   }
-  .dash-donut-card__chart { width: 140px; height: 140px; }
-  .dash-donut-card__center { width: 85px; }
-  .dash-donut-card__value { font-size: 13px; }
-  .dash-donut-card__legend { max-width: 160px; }
+  .dash-donut-card__chart { width: 170px; height: 170px; }
+  .dash-donut-card__center { width: 100px; }
+  .dash-donut-card__value { font-size: 15px; }
+  .dash-donut-card__legend { max-width: 180px; }
   .chart-card__header {
     flex-direction: column;
     align-items: flex-start;
@@ -966,9 +966,9 @@
   .dash-accounts-card { padding: 16px; }
   .dash-donut-pair { grid-template-columns: 1fr 1fr; gap: 8px; }
   .dash-donut-card { padding: 12px; }
-  .dash-donut-card__chart { width: 120px; height: 120px; }
-  .dash-donut-card__center { width: 72px; }
-  .dash-donut-card__value { font-size: 11px; }
+  .dash-donut-card__chart { width: 140px; height: 140px; }
+  .dash-donut-card__center { width: 85px; }
+  .dash-donut-card__value { font-size: 13px; }
   .dash-donut-card__label { font-size: 9px; }
   .dash-donut-card__legend { display: none; }
   .dash-balance-row { padding: 10px 12px; gap: 16px; }
