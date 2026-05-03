@@ -11,10 +11,13 @@ import {
   PieChart, Pie, Cell, ResponsiveContainer,
 } from "recharts";
 import { analyticsApi, type SummaryData, type AccountBalance, type RecentOperation } from "../api/analytics.js";
+import { ddsApi } from "../api/dds.js";
+import { pdfApi, type BankTransaction } from "../api/pdf.js";
 import { entitiesApi } from "../api/entities.js";
 import { reconciliationApi } from "../api/reconciliation.js";
 import { useAuthStore } from "../stores/auth.js";
 import { useThemeStore } from "../stores/theme.js";
+import type { DdsOperation } from "@shared/types.js";
 
 const CATEGORY_COLORS: Record<string, string> = {
   checking: "#F5A623",
@@ -81,6 +84,10 @@ export default function Dashboard() {
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [matching, setMatching] = useState(false);
   const [matchResult, setMatchResult] = useState<number | null>(null);
+  const [opsTab, setOpsTab] = useState<"all" | "dds" | "statements" | "accounts">("all");
+  const [ddsOps, setDdsOps] = useState<DdsOperation[]>([]);
+  const [bankTxs, setBankTxs] = useState<BankTransaction[]>([]);
+  const [opsLoading, setOpsLoading] = useState(false);
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -118,6 +125,22 @@ export default function Dashboard() {
       setLoading(false);
     });
   }, [dateFrom, dateTo, myEntityId]);
+
+  useEffect(() => {
+    if (opsTab === "dds") {
+      setOpsLoading(true);
+      ddsApi.listOperations({ from: dateFrom, to: dateTo, limit: 20 }).then((r) => {
+        setDdsOps(r.data);
+        setOpsLoading(false);
+      }).catch(() => setOpsLoading(false));
+    } else if (opsTab === "statements") {
+      setOpsLoading(true);
+      pdfApi.listTransactions({ from: dateFrom, to: dateTo, limit: 20 }).then((r) => {
+        setBankTxs(r.data);
+        setOpsLoading(false);
+      }).catch(() => setOpsLoading(false));
+    }
+  }, [opsTab, dateFrom, dateTo]);
 
   /* Computed */
   const grouped = useMemo(() => {
@@ -349,10 +372,10 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Recent Operations */}
+            {/* Operations tabs */}
             <div className="glass-card dash-recent">
               <div className="dash-recent__header">
-                <h3 className="chart-title">{t("dashboard.recentOperations")}</h3>
+                <h3 className="chart-title">{t("dashboard.operations")}</h3>
                 <button
                   type="button"
                   className="dash-reconcile-btn"
@@ -380,26 +403,138 @@ export default function Dashboard() {
                   {matching ? "..." : matchResult !== null ? `Сверено: ${matchResult}` : "Сверить"}
                 </button>
               </div>
-              <div className="recent-list">
-                {recent.map((op) => (
-                  <div key={`${op.source}-${op.id}`} className="recent-item" onClick={() => op.source === "dds" && navigate("/dds")}>
-                    <div className="recent-item__left">
-                      {opIcon(op.type)}
-                      <div>
-                        <div className="recent-item__desc">{op.description}</div>
-                        <div className="recent-item__meta">{op.account && <span>{op.account}</span>}{op.entity && <span> · {op.entity}</span>}{op.linked && <span className="recent-item__linked" title="Сверено"><Link2 size={12} /></span>}</div>
-                      </div>
-                    </div>
-                    <div className="recent-item__right">
-                      <div className={`recent-item__amount ${op.type === "income" ? "amount--income" : op.type === "expense" ? "amount--expense" : "amount--transfer"}`}>
-                        {op.type === "income" ? "+" : op.type === "expense" ? "-" : ""}{formatMoney(op.amount)} ₽
-                      </div>
-                      <div className="recent-item__date">{fmtShortDate(op.date)}</div>
-                    </div>
-                  </div>
+              <div className="chart-filter-tabs" style={{ marginBottom: 12 }}>
+                {(["all", "dds", "statements", "accounts"] as const).map((tab) => (
+                  <button
+                    key={tab}
+                    type="button"
+                    className={`chart-filter-tab${opsTab === tab ? " chart-filter-tab--active" : ""}`}
+                    onClick={() => setOpsTab(tab)}
+                  >
+                    {tab === "all" ? "Все" : tab === "dds" ? "ДДС" : tab === "statements" ? "Выписки" : "Счета"}
+                  </button>
                 ))}
-                {recent.length === 0 && <div className="dash-empty-placeholder"><span>{t("dds.noOperations")}</span></div>}
               </div>
+
+              {opsLoading ? (
+                <div className="dash-empty-placeholder"><span>Загрузка...</span></div>
+              ) : opsTab === "all" ? (
+                <div className="recent-list">
+                  {recent.map((op) => (
+                    <div key={`${op.source}-${op.id}`} className="recent-item" onClick={() => op.source === "dds" ? navigate("/dds") : navigate("/statements")}>
+                      <div className="recent-item__left">
+                        {opIcon(op.type)}
+                        <div>
+                          <div className="recent-item__desc">{op.description}</div>
+                          <div className="recent-item__meta">
+                            <span className={`op-source-badge op-source-badge--${op.source}`}>{op.source === "dds" ? "ДДС" : "Выписка"}</span>
+                            {op.account && <span>{op.account}</span>}
+                            {op.entity && <span> · {op.entity}</span>}
+                            {op.linked && <span className="recent-item__linked" title="Сверено"><Link2 size={12} /></span>}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="recent-item__right">
+                        <div className={`recent-item__amount ${op.type === "income" ? "amount--income" : op.type === "expense" ? "amount--expense" : "amount--transfer"}`}>
+                          {op.type === "income" ? "+" : op.type === "expense" ? "-" : ""}{formatMoney(op.amount)} ₽
+                        </div>
+                        <div className="recent-item__date">{fmtShortDate(op.date)}</div>
+                      </div>
+                    </div>
+                  ))}
+                  {recent.length === 0 && <div className="dash-empty-placeholder"><span>{t("dds.noOperations")}</span></div>}
+                </div>
+              ) : opsTab === "dds" ? (
+                <div className="recent-list">
+                  {ddsOps.map((op) => (
+                    <div key={op.id} className="recent-item" onClick={() => navigate("/dds")}>
+                      <div className="recent-item__left">
+                        {opIcon(op.operationType)}
+                        <div>
+                          <div className="recent-item__desc">
+                            {op.operationType === "expense"
+                              ? (op.expenseType?.name || op.comment || "Расход")
+                              : op.operationType === "income"
+                                ? (op.incomeType?.name || op.comment || "Приход")
+                                : (op.comment || "Перевод")}
+                          </div>
+                          <div className="recent-item__meta">
+                            <span className="op-badge op-badge--dds-type">{op.operationType === "income" ? "Приход" : op.operationType === "expense" ? "Расход" : "Перевод"}</span>
+                            {op.entity && <span>{op.entity.name}</span>}
+                            {op.user && <span> · {firstName(op.user.name)}</span>}
+                            {op.expenseArticle && <span> · {op.expenseArticle.name}</span>}
+                            {(op.direction?.name || op.incomeDirection) && <span> · {op.direction?.name || op.incomeDirection}</span>}
+                            {op.linkedBankTxId && <span className="recent-item__linked" title="Сверено"><Link2 size={12} /></span>}
+                          </div>
+                          {op.comment && op.expenseType?.name && <div className="recent-item__comment">{op.comment}</div>}
+                        </div>
+                      </div>
+                      <div className="recent-item__right">
+                        <div className={`recent-item__amount ${op.operationType === "income" ? "amount--income" : op.operationType === "expense" ? "amount--expense" : "amount--transfer"}`}>
+                          {op.operationType === "income" ? "+" : op.operationType === "expense" ? "-" : ""}{formatMoney(parseFloat(op.amount))} ₽
+                        </div>
+                        <div className="recent-item__date">{fmtShortDate(op.createdAt)}</div>
+                        {op.fromAccount && <div className="recent-item__account-info">{op.fromAccount.name}</div>}
+                        {op.toAccount && <div className="recent-item__account-info">{op.operationType === "transfer" ? "→ " : ""}{op.toAccount.name}</div>}
+                      </div>
+                    </div>
+                  ))}
+                  {ddsOps.length === 0 && <div className="dash-empty-placeholder"><span>{t("dds.noOperations")}</span></div>}
+                </div>
+              ) : opsTab === "statements" ? (
+                <div className="recent-list">
+                  {bankTxs.map((tx) => (
+                    <div key={tx.id} className="recent-item" onClick={() => navigate("/statements")}>
+                      <div className="recent-item__left">
+                        {opIcon(tx.direction)}
+                        <div>
+                          <div className="recent-item__desc">{tx.counterparty || tx.purpose || tx.direction}</div>
+                          <div className="recent-item__meta">
+                            <span>{tx.account.name}</span>
+                            {tx.account.bank && <span> · {tx.account.bank}</span>}
+                            {tx.time && <span> · {tx.time}</span>}
+                          </div>
+                          {tx.purpose && tx.counterparty && <div className="recent-item__comment">{tx.purpose}</div>}
+                        </div>
+                      </div>
+                      <div className="recent-item__right">
+                        <div className={`recent-item__amount ${tx.direction === "income" ? "amount--income" : "amount--expense"}`}>
+                          {tx.direction === "income" ? "+" : "-"}{formatMoney(parseFloat(tx.amount))} ₽
+                        </div>
+                        <div className="recent-item__date">{fmtShortDate(tx.date)}</div>
+                        {tx.balance && <div className="recent-item__balance">Остаток: {formatMoney(parseFloat(tx.balance))} ₽</div>}
+                      </div>
+                    </div>
+                  ))}
+                  {bankTxs.length === 0 && <div className="dash-empty-placeholder"><span>{t("dds.noOperations")}</span></div>}
+                </div>
+              ) : (
+                <div className="recent-list">
+                  {balances.map((acc) => (
+                    <div key={acc.id} className="recent-item">
+                      <div className="recent-item__left">
+                        <div className="recent-icon recent-icon--account">
+                          {acc.type === "card" ? <CreditCard size={16} /> : acc.type === "cash" ? <Banknote size={16} /> : acc.type === "deposit" ? <PiggyBank size={16} /> : <Wallet size={16} />}
+                        </div>
+                        <div>
+                          <div className="recent-item__desc">{acc.name}</div>
+                          <div className="recent-item__meta">
+                            <span>{typeLabel(acc.type)}</span>
+                            {acc.bank && <span> · {acc.bank}</span>}
+                            <span> · {acc.entityName}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="recent-item__right">
+                        <div className={`recent-item__amount ${acc.balance > 0 ? "amount--income" : acc.balance < 0 ? "amount--expense" : ""}`}>
+                          {formatMoney(acc.balance)} ₽
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {balances.length === 0 && <div className="dash-empty-placeholder"><span>{t("settings.noAccounts")}</span></div>}
+                </div>
+              )}
             </div>
           </>
         )}
