@@ -494,8 +494,8 @@
 
 .dash-donut-card__chart {
   position: relative;
-  width: 220px;
-  height: 220px;
+  width: 280px;
+  height: 280px;
 }
 
 .dash-donut-card__center {
@@ -505,11 +505,11 @@
   transform: translate(-50%, -50%);
   text-align: center;
   pointer-events: none;
-  width: 120px;
+  width: 150px;
 }
 
 .dash-donut-card__value {
-  font-size: 18px;
+  font-size: 22px;
   font-weight: 800;
   line-height: 1.15;
   letter-spacing: -0.3px;
@@ -521,7 +521,7 @@
 [data-theme="dark"] .dash-donut-card__value--income { color: #4ade80; }
 
 .dash-donut-card__label {
-  font-size: 11px;
+  font-size: 12px;
   color: #999;
   margin-top: 3px;
   white-space: nowrap;
@@ -945,10 +945,10 @@
     align-items: flex-start;
     gap: 12px;
   }
-  .dash-donut-card__chart { width: 170px; height: 170px; }
-  .dash-donut-card__center { width: 100px; }
-  .dash-donut-card__value { font-size: 15px; }
-  .dash-donut-card__legend { max-width: 180px; }
+  .dash-donut-card__chart { width: 220px; height: 220px; }
+  .dash-donut-card__center { width: 120px; }
+  .dash-donut-card__value { font-size: 18px; }
+  .dash-donut-card__legend { max-width: 220px; }
   .chart-card__header {
     flex-direction: column;
     align-items: flex-start;
@@ -966,10 +966,10 @@
   .dash-accounts-card { padding: 16px; }
   .dash-donut-pair { grid-template-columns: 1fr 1fr; gap: 8px; }
   .dash-donut-card { padding: 12px; }
-  .dash-donut-card__chart { width: 140px; height: 140px; }
-  .dash-donut-card__center { width: 85px; }
-  .dash-donut-card__value { font-size: 13px; }
-  .dash-donut-card__label { font-size: 9px; }
+  .dash-donut-card__chart { width: 170px; height: 170px; }
+  .dash-donut-card__center { width: 100px; }
+  .dash-donut-card__value { font-size: 15px; }
+  .dash-donut-card__label { font-size: 10px; }
   .dash-donut-card__legend { display: none; }
   .dash-balance-row { padding: 10px 12px; gap: 16px; }
   .chart-card { padding: 16px; }
