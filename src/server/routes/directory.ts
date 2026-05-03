@@ -209,8 +209,26 @@ router.get("/accounts", async (req: Request, res: Response) => {
     const user = await getCompanyUser(req.user!.userId);
     if (!user) { res.status(403).json({ message: "No company" }); return; }
 
+    const own = req.query.own === "true";
+
+    let entityFilter: any = { companyId: user.companyId! };
+    if (own) {
+      const accessRecords = await prisma.entityAccess.findMany({
+        where: { userId: user.id },
+        select: { entityId: true },
+      });
+      const accessIds = accessRecords.map((r) => r.entityId);
+      entityFilter = {
+        companyId: user.companyId!,
+        OR: [
+          { ownerId: user.id },
+          ...(accessIds.length > 0 ? [{ id: { in: accessIds } }] : []),
+        ],
+      };
+    }
+
     const accounts = await prisma.account.findMany({
-      where: { entity: { companyId: user.companyId! } },
+      where: { entity: entityFilter },
       include: { entity: { select: { name: true } } },
       orderBy: [{ type: "asc" }, { name: "asc" }],
     });

@@ -85,6 +85,7 @@ export const directoryApi = {
 
   // Accounts
   listAccounts: () => api.get<DirAccount[]>("/directory/accounts"),
+  listOwnAccounts: () => api.get<DirAccount[]>("/directory/accounts?own=true"),
   createAccount: (data: { entityId: string; name: string; type: string; bank?: string; accountNumber?: string }) =>
     api.post<DirAccount>("/directory/accounts", data),
   updateAccount: (id: string, data: { name?: string; type?: string; bank?: string; accountNumber?: string }) =>

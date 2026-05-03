@@ -557,7 +557,7 @@ function AccountsManageView({ canEdit }: { canEdit: boolean }) {
   const [form, setForm] = useState(emptyForm);
 
   useEffect(() => {
-    Promise.all([directoryApi.listAccounts(), directoryApi.listEntities()]).then(([a, e]) => {
+    Promise.all([directoryApi.listOwnAccounts(), directoryApi.listEntities()]).then(([a, e]) => {
       setAccounts(a);
       setEntities(e);
       setLoading(false);
