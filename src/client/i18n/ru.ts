@@ -395,4 +395,18 @@ export default {
     noCompanies: "Нет компаний",
     switchSuccess: "Компания переключена",
   },
+  directory: {
+    articles: "Статьи операций",
+    articlesDesc: "Категории расходов, статьи и направления",
+    accounts: "Счета бизнеса",
+    accountsDesc: "Расчётные счета, карты, кассы — вкл/выкл",
+    directions: "Направления",
+    directionsDesc: "Все направления операций",
+    noCompany: "Для доступа к справочнику необходимо быть участником компании",
+    noDirections: "Нет направлений",
+    directionName: "Название направления",
+    active: "Активен",
+    enable: "Включить",
+    disable: "Выключить",
+  },
 } as const;

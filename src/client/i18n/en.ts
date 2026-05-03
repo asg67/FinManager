@@ -395,4 +395,18 @@ export default {
     noCompanies: "No companies",
     switchSuccess: "Company switched",
   },
+  directory: {
+    articles: "Expense Articles",
+    articlesDesc: "Expense categories, articles and directions",
+    accounts: "Business Accounts",
+    accountsDesc: "Checking accounts, cards, cash — enable/disable",
+    directions: "Directions",
+    directionsDesc: "All operation directions",
+    noCompany: "You need to be a company member to access the directory",
+    noDirections: "No directions",
+    directionName: "Direction name",
+    active: "Active",
+    enable: "Enable",
+    disable: "Disable",
+  },
 } as const;

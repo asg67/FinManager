@@ -324,33 +324,68 @@ export default function Dashboard() {
               {/* RIGHT column: two donut cards */}
               <div className="dash-middle-right">
                 <div className="dash-donut-pair">
-                  <div className="glass-card dash-donut-card">
+                  <div className="glass-card dash-donut-card dash-donut-card--expense">
                     <div className="dash-donut-card__chart">
                       <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
-                          <Pie data={expenseDonut} dataKey="value" cx="50%" cy="50%" innerRadius="58%" outerRadius="90%" paddingAngle={expenseDonut.length > 1 ? 1.5 : 0} stroke="none">
-                            {expenseDonut.map((e, i) => <Cell key={i} fill={e.color} />)}
+                          <Pie data={expenseDonut} dataKey="value" cx="50%" cy="50%" innerRadius="55%" outerRadius="85%" paddingAngle={expenseDonut.length > 1 ? 2 : 0} stroke="none" animationBegin={0} animationDuration={800}>
+                            {expenseDonut.map((e, i) => <Cell key={i} fill={e.color} style={{ filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.1))" }} />)}
                           </Pie>
+                          <Tooltip content={({ active, payload }) => {
+                            if (!active || !payload?.length) return null;
+                            const d = payload[0].payload;
+                            const pct = Math.abs(calcExpense) > 0 ? ((d.value / Math.abs(calcExpense)) * 100).toFixed(1) : "0";
+                            return (
+                              <div className="dash-donut-tooltip">
+                                <span className="dash-donut-tooltip__dot" style={{ background: d.color }} />
+                                <span className="dash-donut-tooltip__name">{d.name}</span>
+                                <span className="dash-donut-tooltip__value">{formatMoney(d.value)} ₽</span>
+                                <span className="dash-donut-tooltip__pct">{pct}%</span>
+                              </div>
+                            );
+                          }} />
                         </PieChart>
                       </ResponsiveContainer>
                       <div className="dash-donut-card__center">
                         <div className="dash-donut-card__value dash-donut-card__value--expense">{formatMoney(Math.abs(calcExpense))} ₽</div>
-                        <div className="dash-donut-card__label">Все списания</div>
+                        <div className="dash-donut-card__label">Расходы</div>
                       </div>
                     </div>
+                    {expenseDonut.length > 1 && (
+                      <div className="dash-donut-card__legend">
+                        {expenseDonut.slice(0, 4).map((e, i) => (
+                          <div key={i} className="dash-donut-card__legend-item">
+                            <span className="dash-donut-card__legend-dot" style={{ background: e.color }} />
+                            <span className="dash-donut-card__legend-name">{e.name}</span>
+                          </div>
+                        ))}
+                        {expenseDonut.length > 4 && <div className="dash-donut-card__legend-item"><span className="dash-donut-card__legend-name">+{expenseDonut.length - 4}</span></div>}
+                      </div>
+                    )}
                   </div>
-                  <div className="glass-card dash-donut-card">
+                  <div className="glass-card dash-donut-card dash-donut-card--income">
                     <div className="dash-donut-card__chart">
                       <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
-                          <Pie data={incomeDonut} dataKey="value" cx="50%" cy="50%" innerRadius="58%" outerRadius="90%" paddingAngle={0} stroke="none">
-                            {incomeDonut.map((e, i) => <Cell key={i} fill={e.color} />)}
+                          <Pie data={incomeDonut} dataKey="value" cx="50%" cy="50%" innerRadius="55%" outerRadius="85%" paddingAngle={0} stroke="none" animationBegin={0} animationDuration={800}>
+                            {incomeDonut.map((e, i) => <Cell key={i} fill={e.color} style={{ filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.1))" }} />)}
                           </Pie>
+                          <Tooltip content={({ active, payload }) => {
+                            if (!active || !payload?.length) return null;
+                            const d = payload[0].payload;
+                            return (
+                              <div className="dash-donut-tooltip">
+                                <span className="dash-donut-tooltip__dot" style={{ background: d.color }} />
+                                <span className="dash-donut-tooltip__name">{d.name}</span>
+                                <span className="dash-donut-tooltip__value">{formatMoney(d.value)} ₽</span>
+                              </div>
+                            );
+                          }} />
                         </PieChart>
                       </ResponsiveContainer>
                       <div className="dash-donut-card__center">
                         <div className="dash-donut-card__value dash-donut-card__value--income">{formatMoney(calcIncome)} ₽</div>
-                        <div className="dash-donut-card__label">Все поступления</div>
+                        <div className="dash-donut-card__label">Доходы</div>
                       </div>
                     </div>
                   </div>
