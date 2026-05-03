@@ -454,5 +454,6 @@ export default {
     selectLinkedAccount: "Select account to link",
     linkedTo: "Linked to",
     noLinkableAccounts: "No accounts available",
+    addDirectionToArticle: "Add direction to article...",
   },
 } as const;

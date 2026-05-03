@@ -118,7 +118,7 @@ function DdsView({ canEdit }: { canEdit: boolean }) {
 
       {tab === "articles" && <ArticlesView canEdit={canEdit} />}
       {tab === "accounts" && <AccountsView canEdit={canEdit} />}
-      {tab === "directions" && <DirectionsView />}
+      {tab === "directions" && <DirectionsView canEdit={canEdit} />}
       {tab === "categorization" && <CategorizationView canEdit={canEdit} />}
     </div>
   );
@@ -510,37 +510,134 @@ function AccountsView({ canEdit }: { canEdit: boolean }) {
 }
 
 /* ===== DIRECTIONS VIEW ===== */
-function DirectionsView() {
+function DirectionsView({ canEdit }: { canEdit: boolean }) {
   const { t } = useTranslation();
-  const [directions, setDirections] = useState<DirDirectionItem[]>([]);
+  const [types, setTypes] = useState<DirExpenseType[]>([]);
   const [loading, setLoading] = useState(true);
+  const [addingToArticle, setAddingToArticle] = useState<string | null>(null);
+  const [newDirName, setNewDirName] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
 
   useEffect(() => {
-    directoryApi.listDirections().then((data) => {
-      setDirections(data);
+    directoryApi.listExpenseTypes().then((data) => {
+      setTypes(data);
       setLoading(false);
     }).catch(() => setLoading(false));
   }, []);
 
+  const articlesWithDirs = useMemo(() => {
+    const result: { article: DirExpenseArticle; typeName: string }[] = [];
+    for (const tp of types) {
+      for (const art of tp.articles) {
+        result.push({ article: art, typeName: tp.name });
+      }
+    }
+    return result;
+  }, [types]);
+
+  async function handleAdd(articleId: string) {
+    if (!newDirName.trim()) return;
+    const created = await directoryApi.createDirection(articleId, newDirName.trim());
+    setTypes((prev) => prev.map((tp) => ({
+      ...tp,
+      articles: tp.articles.map((a) => a.id === articleId ? { ...a, directions: [...a.directions, created] } : a),
+    })));
+    setNewDirName("");
+    setAddingToArticle(null);
+  }
+
+  async function handleUpdate(id: string) {
+    if (!editName.trim()) return;
+    const updated = await directoryApi.updateDirection(id, editName.trim());
+    setTypes((prev) => prev.map((tp) => ({
+      ...tp,
+      articles: tp.articles.map((a) => ({
+        ...a,
+        directions: a.directions.map((d) => d.id === id ? { ...d, name: updated.name } : d),
+      })),
+    })));
+    setEditingId(null);
+  }
+
+  async function handleDelete(id: string) {
+    if (!confirm(t("settings.deleteTypeConfirm"))) return;
+    await directoryApi.deleteDirection(id);
+    setTypes((prev) => prev.map((tp) => ({
+      ...tp,
+      articles: tp.articles.map((a) => ({ ...a, directions: a.directions.filter((d) => d.id !== id) })),
+    })));
+  }
+
   if (loading) return <div className="dir-loading">{t("common.loading")}</div>;
+
+  const allDirs = articlesWithDirs.flatMap((a) => a.article.directions);
 
   return (
     <div className="dir-sub">
-      <h3 className="dir-sub__title">{t("directory.directions")}</h3>
-
-      {directions.length === 0 && <div className="dir-empty">{t("directory.noDirections")}</div>}
-
-      <div className="dir-directions-list">
-        {directions.map((d, i) => (
-          <div key={i} className="dir-direction-item">
-            <Compass size={16} className="dir-direction-item__icon" />
-            <div className="dir-direction-item__text">
-              <span className="dir-direction-item__name">{d.name}</span>
-              <span className="dir-direction-item__article">{d.articleName}</span>
-            </div>
-          </div>
-        ))}
+      <div className="dir-sub__header">
+        <h3 className="dir-sub__title">{t("directory.directions")}</h3>
       </div>
+
+      {allDirs.length === 0 && !addingToArticle && <div className="dir-empty">{t("directory.noDirections")}</div>}
+
+      {articlesWithDirs.map(({ article, typeName }) => {
+        if (article.directions.length === 0 && addingToArticle !== article.id) return null;
+        return (
+          <div key={article.id} className="dir-directions-group">
+            <div className="dir-directions-group__header">
+              <span className="dir-directions-group__label">{typeName} → {article.name}</span>
+              {canEdit && (
+                <button type="button" className="dir-icon-btn" onClick={() => { setAddingToArticle(article.id); setNewDirName(""); }}>
+                  <Plus size={14} />
+                </button>
+              )}
+            </div>
+            {article.directions.map((dir) => (
+              <div key={dir.id} className="dir-direction-item">
+                <Compass size={16} className="dir-direction-item__icon" />
+                {editingId === dir.id ? (
+                  <div className="dir-inline-form dir-inline-form--compact">
+                    <input className="dir-inline-input" value={editName} onChange={(e) => setEditName(e.target.value)} autoFocus onKeyDown={(e) => e.key === "Enter" && handleUpdate(dir.id)} />
+                    <button type="button" className="dir-inline-btn dir-inline-btn--ok" onClick={() => handleUpdate(dir.id)}><Check size={14} /></button>
+                    <button type="button" className="dir-inline-btn dir-inline-btn--cancel" onClick={() => setEditingId(null)}><X size={14} /></button>
+                  </div>
+                ) : (
+                  <>
+                    <div className="dir-direction-item__text">
+                      <span className="dir-direction-item__name">{dir.name}</span>
+                    </div>
+                    {canEdit && (
+                      <div className="dir-tree__actions">
+                        <button type="button" className="dir-icon-btn" onClick={() => { setEditingId(dir.id); setEditName(dir.name); }}><Pencil size={12} /></button>
+                        <button type="button" className="dir-icon-btn dir-icon-btn--danger" onClick={() => handleDelete(dir.id)}><Trash2 size={12} /></button>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            ))}
+            {addingToArticle === article.id && (
+              <div className="dir-inline-form" style={{ paddingLeft: 28 }}>
+                <input className="dir-inline-input" value={newDirName} onChange={(e) => setNewDirName(e.target.value)} placeholder={t("directory.directionName")} autoFocus onKeyDown={(e) => e.key === "Enter" && handleAdd(article.id)} />
+                <button type="button" className="dir-inline-btn dir-inline-btn--ok" onClick={() => handleAdd(article.id)}><Check size={14} /></button>
+                <button type="button" className="dir-inline-btn dir-inline-btn--cancel" onClick={() => setAddingToArticle(null)}><X size={14} /></button>
+              </div>
+            )}
+          </div>
+        );
+      })}
+
+      {canEdit && !addingToArticle && articlesWithDirs.length > 0 && (
+        <div className="dir-directions-add-to">
+          <select className="dir-cat-form__select" defaultValue="" onChange={(e) => { if (e.target.value) { setAddingToArticle(e.target.value); setNewDirName(""); } }}>
+            <option value="" disabled>{t("directory.addDirectionToArticle")}</option>
+            {articlesWithDirs.map(({ article, typeName }) => (
+              <option key={article.id} value={article.id}>{typeName} → {article.name}</option>
+            ))}
+          </select>
+        </div>
+      )}
     </div>
   );
 }

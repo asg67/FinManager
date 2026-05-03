@@ -454,5 +454,6 @@ export default {
     selectLinkedAccount: "Выберите счёт для привязки",
     linkedTo: "Привязан к",
     noLinkableAccounts: "Нет доступных счетов",
+    addDirectionToArticle: "Добавить направление к статье...",
   },
 } as const;

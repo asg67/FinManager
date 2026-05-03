@@ -560,6 +560,28 @@
 [data-theme="dark"] .dir-direction-item__name { color: var(--text-primary); }
 [data-theme="dark"] .dir-direction-item__article { color: var(--text-muted); }
 
+.dir-directions-group { margin-bottom: 20px; }
+.dir-directions-group__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.dir-directions-group__label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+[data-theme="dark"] .dir-directions-group__label { color: var(--text-muted); }
+
+.dir-direction-item { justify-content: flex-start; }
+.dir-direction-item .dir-tree__actions { margin-left: auto; }
+.dir-direction-item .dir-inline-form--compact { flex: 1; }
+
+.dir-directions-add-to { margin-top: 16px; max-width: 320px; }
+
 /* ===== ACCOUNTS MANAGE (table layout) ===== */
 .dir-amgmt-section {
   margin-bottom: 28px;
