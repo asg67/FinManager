@@ -780,6 +780,11 @@ function AccountsManageView({ canEdit }: { canEdit: boolean }) {
                           <span>{acc.linkedAccountName}</span>
                           {canEdit && <button type="button" className="dir-icon-btn" onClick={() => handleLink(acc.id, null)} title={t("directory.unlinkAccount")}><Unlink size={12} /></button>}
                         </span>
+                      ) : acc.linkedFromAccounts && acc.linkedFromAccounts.length > 0 ? (
+                        <span className="dir-amgmt-link-badge dir-amgmt-link-badge--from">
+                          <Link2 size={12} />
+                          <span>{acc.linkedFromAccounts.map((l) => l.name).join(", ")}</span>
+                        </span>
                       ) : canEdit ? (
                         <button type="button" className="dir-amgmt-link-btn" onClick={() => setLinkingId(acc.id)}>
                           <Link2 size={12} />

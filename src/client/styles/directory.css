@@ -637,6 +637,10 @@
   text-overflow: ellipsis;
   max-width: 100%;
 }
+.dir-amgmt-link-badge--from {
+  color: #22c55e;
+  background: rgba(34,197,94,0.08);
+}
 .dir-amgmt-link-badge .dir-icon-btn { flex-shrink: 0; }
 .dir-amgmt-link-btn {
   display: inline-flex;

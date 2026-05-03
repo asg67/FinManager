@@ -40,6 +40,7 @@ export interface DirAccount {
   entityId: string;
   linkedAccountId: string | null;
   linkedAccountName: string | null;
+  linkedFromAccounts: { id: string; name: string }[];
 }
 
 export interface DirDirectionItem {

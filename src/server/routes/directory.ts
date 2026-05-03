@@ -232,6 +232,7 @@ router.get("/accounts", async (req: Request, res: Response) => {
       include: {
         entity: { select: { name: true } },
         linkedAccount: { select: { id: true, name: true } },
+        linkedFrom: { select: { id: true, name: true } },
       },
       orderBy: [{ type: "asc" }, { name: "asc" }],
     });
@@ -247,6 +248,7 @@ router.get("/accounts", async (req: Request, res: Response) => {
       entityId: a.entityId,
       linkedAccountId: a.linkedAccountId,
       linkedAccountName: a.linkedAccount?.name ?? null,
+      linkedFromAccounts: a.linkedFrom.map((l) => ({ id: l.id, name: l.name })),
     })));
   } catch (error) {
     console.error("Directory list accounts error:", error);
