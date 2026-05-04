@@ -134,6 +134,7 @@ router.get("/dds-excel", async (req: Request, res: Response) => {
         expenseArticle: { select: { name: true } },
         incomeType: { select: { name: true } },
         incomeArticle: { select: { name: true } },
+        direction: { select: { name: true } },
         customFieldValues: { include: { customField: { select: { name: true } } } },
       },
       orderBy: { createdAt: "desc" },
@@ -161,6 +162,7 @@ router.get("/dds-excel", async (req: Request, res: Response) => {
         amount: op.amount.toNumber(),
         category: op.expenseType?.name ?? op.incomeType?.name ?? "",
         article: op.expenseArticle?.name ?? op.incomeArticle?.name ?? "",
+        direction: op.direction?.name ?? op.incomeDirection ?? "",
         orderNumber: op.orderNumber ?? "",
         comment: op.comment ?? "",
       };
@@ -182,6 +184,7 @@ router.get("/dds-excel", async (req: Request, res: Response) => {
       { header: "Сумма", key: "amount", width: 15 },
       { header: "Категория", key: "category", width: 18 },
       { header: "Статья", key: "article", width: 18 },
+      { header: "Направление", key: "direction", width: 18 },
       { header: "№ заказа", key: "orderNumber", width: 14 },
       { header: "Комментарий", key: "comment", width: 30 },
       ...cfNames.map((name) => ({ header: name, key: `cf_${name}`, width: 18 })),

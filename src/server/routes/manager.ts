@@ -467,7 +467,7 @@ router.get("/companies/:companyId/export/dds-excel", async (req: Request, res: R
         amount: op.amount.toNumber(),
         category: op.expenseType?.name ?? op.incomeType?.name ?? "",
         article: op.expenseArticle?.name ?? op.incomeArticle?.name ?? "",
-        direction: op.direction?.name ?? "",
+        direction: op.direction?.name ?? op.incomeDirection ?? "",
         orderNumber: op.orderNumber ?? "",
         comment: op.comment ?? "",
       };
