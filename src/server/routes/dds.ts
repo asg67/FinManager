@@ -99,11 +99,25 @@ router.get("/operations", async (req: Request, res: Response) => {
 
     if (canViewAll) {
       where.entity = await buildCompanyEntityFilter(userId);
+      if (entityId) where.entityId = entityId;
     } else {
-      where.entity = await buildEntityFilter(userId);
+      const entityFilter = await buildEntityFilter(userId);
+      if (entityId) {
+        where.AND = [{
+          OR: [
+            { entityId, entity: entityFilter },
+            { operationType: "transfer", toAccount: { entityId, entity: entityFilter } },
+          ],
+        }];
+      } else {
+        where.AND = [{
+          OR: [
+            { entity: entityFilter },
+            { operationType: "transfer", toAccount: { entity: entityFilter } },
+          ],
+        }];
+      }
     }
-
-    if (entityId) where.entityId = entityId;
     if (operationType) where.operationType = operationType;
     if (accountId) {
       where.OR = [{ fromAccountId: accountId }, { toAccountId: accountId }];

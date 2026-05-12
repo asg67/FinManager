@@ -13,8 +13,9 @@ router.get("/summary", async (req: Request, res: Response) => {
     const userId = req.user!.userId;
     const { entityId, from, to } = req.query as Record<string, string>;
 
+    const entityFilter = await buildEntityFilter(userId);
     const where: Prisma.DdsOperationWhereInput = {};
-    where.entity = await buildEntityFilter(userId);
+    where.entity = entityFilter;
     if (entityId) where.entityId = entityId;
     if (from || to) {
       where.createdAt = {};
@@ -22,8 +23,17 @@ router.get("/summary", async (req: Request, res: Response) => {
       if (to) where.createdAt.lte = new Date(to);
     }
 
+    // Incoming cross-entity transfers (toAccount belongs to user's entity, operation from another entity)
+    const transferTargetFilter = entityId ? { id: entityId } : entityFilter;
+    const incomingTransferWhere: Prisma.DdsOperationWhereInput = {
+      operationType: "transfer",
+      toAccount: { entity: transferTargetFilter },
+      NOT: { entity: transferTargetFilter },
+      ...(where.createdAt ? { createdAt: where.createdAt } : {}),
+    };
+
     // DDS operations
-    const [incomeAgg, expenseAgg, ddsCount] = await Promise.all([
+    const [incomeAgg, expenseAgg, ddsCount, incomingTransferAgg] = await Promise.all([
       prisma.ddsOperation.aggregate({
         where: { ...where, operationType: "income" },
         _sum: { amount: true },
@@ -33,6 +43,10 @@ router.get("/summary", async (req: Request, res: Response) => {
         _sum: { amount: true },
       }),
       prisma.ddsOperation.count({ where }),
+      prisma.ddsOperation.aggregate({
+        where: incomingTransferWhere,
+        _sum: { amount: true },
+      }),
     ]);
 
     // Bank transactions (same entity filter, date filter, exclude linked to avoid double-counting)
@@ -58,7 +72,7 @@ router.get("/summary", async (req: Request, res: Response) => {
       prisma.bankTransaction.count({ where: bankWhere }),
     ]);
 
-    const totalIncome = (incomeAgg._sum.amount?.toNumber() ?? 0) + (bankIncomeAgg._sum.amount?.toNumber() ?? 0);
+    const totalIncome = (incomeAgg._sum.amount?.toNumber() ?? 0) + (bankIncomeAgg._sum.amount?.toNumber() ?? 0) + (incomingTransferAgg._sum.amount?.toNumber() ?? 0);
     const totalExpense = (expenseAgg._sum.amount?.toNumber() ?? 0) + (bankExpenseAgg._sum.amount?.toNumber() ?? 0);
 
     res.json({
@@ -331,7 +345,12 @@ router.get("/recent", async (req: Request, res: Response) => {
 
     const [ddsOps, bankTxs] = await Promise.all([
       prisma.ddsOperation.findMany({
-        where: { entity: entFilter },
+        where: {
+          OR: [
+            { entity: entFilter },
+            { operationType: "transfer", toAccount: { entity: entFilter } },
+          ],
+        },
         include: {
           entity: { select: { name: true } },
           fromAccount: { select: { name: true } },
