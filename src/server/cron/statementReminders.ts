@@ -28,11 +28,7 @@ export async function checkStatementReminders() {
   let body: string;
 
   if (day === 1) {
-    const prevMonth = currentMonth === 0 ? 11 : currentMonth - 1;
-    const prevYear = currentMonth === 0 ? currentYear - 1 : currentYear;
-    const lastDay = new Date(prevYear, prevMonth + 1, 0).getDate();
-    const monthName = MONTHS_RU[prevMonth];
-    body = `Не забудьте загрузить выписки за ${monthName} (1–${lastDay})`;
+    body = "Внесите выписки";
   } else if (day === 2) {
     // Previous month
     const prevMonth = currentMonth === 0 ? 11 : currentMonth - 1;
