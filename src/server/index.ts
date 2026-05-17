@@ -84,6 +84,23 @@ app.use(errorHandler);
 // Initialize VAPID for push notifications
 initVapid();
 
+// Monday cron: 06:30 UTC = 09:30 MSK — weekly balance reminder for owners
+import { sendBalanceReminder } from "./cron/balanceReminder.js";
+cron.schedule("30 6 * * 1", () => {
+  console.log("[cron] Sending weekly balance reminder...");
+  sendBalanceReminder("weekly").catch((err) =>
+    console.error("[cron] Weekly balance reminder failed:", err),
+  );
+});
+
+// 1st of month cron: 06:30 UTC = 09:30 MSK — monthly balance reminder for owners
+cron.schedule("30 6 1 * *", () => {
+  console.log("[cron] Sending monthly balance reminder...");
+  sendBalanceReminder("monthly").catch((err) =>
+    console.error("[cron] Monthly balance reminder failed:", err),
+  );
+});
+
 // Weekday cron: 15:30 UTC = 18:30 MSK Mon-Fri — expense reminder
 import { sendExpenseReminder } from "./cron/expenseReminder.js";
 cron.schedule("30 15 * * 1-5", () => {
