@@ -84,6 +84,15 @@ app.use(errorHandler);
 // Initialize VAPID for push notifications
 initVapid();
 
+// Weekday cron: 15:30 UTC = 18:30 MSK Mon-Fri — expense reminder
+import { sendExpenseReminder } from "./cron/expenseReminder.js";
+cron.schedule("30 15 * * 1-5", () => {
+  console.log("[cron] Sending expense reminder...");
+  sendExpenseReminder().catch((err) =>
+    console.error("[cron] Expense reminder failed:", err),
+  );
+});
+
 // Daily cron: 07:00 UTC = 10:00 MSK — bank sync + statement reminders
 cron.schedule("0 7 * * *", () => {
   console.log("[cron] Starting daily bank sync...");
