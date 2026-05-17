@@ -20,14 +20,20 @@ export async function checkStatementReminders() {
   const msk = new Date(now.getTime() + 3 * 60 * 60 * 1000);
   const day = msk.getUTCDate();
 
-  if (![2, 12, 22].includes(day)) return;
+  if (![1, 2, 12, 22].includes(day)) return;
 
   const currentMonth = msk.getUTCMonth(); // 0-based
   const currentYear = msk.getUTCFullYear();
 
   let body: string;
 
-  if (day === 2) {
+  if (day === 1) {
+    const prevMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+    const prevYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+    const lastDay = new Date(prevYear, prevMonth + 1, 0).getDate();
+    const monthName = MONTHS_RU[prevMonth];
+    body = `Не забудьте загрузить выписки за ${monthName} (1–${lastDay})`;
+  } else if (day === 2) {
     // Previous month
     const prevMonth = currentMonth === 0 ? 11 : currentMonth - 1;
     const prevYear = currentMonth === 0 ? currentYear - 1 : currentYear;
