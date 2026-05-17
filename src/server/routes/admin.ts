@@ -530,6 +530,30 @@ router.post("/entities/:entityId/accounts", async (req: Request, res: Response) 
   }
 });
 
+// PUT /api/admin/accounts/:id — rename account
+router.put("/accounts/:id", async (req: Request, res: Response) => {
+  try {
+    const { name } = req.body;
+    if (!name?.trim()) {
+      res.status(400).json({ message: "Name is required" });
+      return;
+    }
+    const account = await prisma.account.findUnique({ where: { id: req.params.id } });
+    if (!account) {
+      res.status(404).json({ message: "Account not found" });
+      return;
+    }
+    const updated = await prisma.account.update({
+      where: { id: req.params.id },
+      data: { name: name.trim() },
+    });
+    res.json({ id: updated.id, name: updated.name });
+  } catch (error) {
+    console.error("Admin rename account error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 // DELETE /api/admin/accounts/:id — delete account
 router.delete("/accounts/:id", async (req: Request, res: Response) => {
   try {

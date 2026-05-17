@@ -1220,6 +1220,8 @@ function EntityDetailView({
   const [newAccName, setNewAccName] = useState("");
   const [newAccType, setNewAccType] = useState("cash");
   const [newAccCustomType, setNewAccCustomType] = useState("");
+  const [editingAccountId, setEditingAccountId] = useState<string | null>(null);
+  const [editAccountName, setEditAccountName] = useState("");
 
   async function handleToggleAccount(accountId: string) {
     const result = await adminApi.toggleAccount(accountId);
@@ -1241,6 +1243,17 @@ function EntityDetailView({
     );
     setNewAccName("");
     setNewAccType("cash");
+  }
+
+  async function handleRenameAccount(accountId: string) {
+    if (!editAccountName.trim()) return;
+    const result = await adminApi.renameAccount(accountId, editAccountName.trim());
+    setEntity((prev) =>
+      prev
+        ? { ...prev, accounts: prev.accounts.map((a) => (a.id === accountId ? { ...a, name: result.name } : a)) }
+        : prev,
+    );
+    setEditingAccountId(null);
   }
 
   async function handleDeleteAccount(accountId: string, name: string) {
@@ -1275,7 +1288,15 @@ function EntityDetailView({
             {entity.accounts.map((a) => (
                 <div key={a.id} className={`admin-account-item${!a.enabled ? " admin-account-item--disabled" : ""}`}>
                   <div>
-                    <div className="admin-account-item__name">{a.name}</div>
+                    {editingAccountId === a.id ? (
+                      <div className="admin-inline-edit">
+                        <input className="admin-inline-input" value={editAccountName} onChange={(e) => setEditAccountName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") handleRenameAccount(a.id); if (e.key === "Escape") setEditingAccountId(null); }} autoFocus />
+                        <button className="btn btn--ghost btn--sm" onClick={() => handleRenameAccount(a.id)}><Check size={12} /></button>
+                        <button className="btn btn--ghost btn--sm" onClick={() => setEditingAccountId(null)}><X size={12} /></button>
+                      </div>
+                    ) : (
+                      <div className="admin-account-item__name">{a.name}</div>
+                    )}
                     <div className="admin-account-item__info">
                       {a.bank || a.type}
                       {a.accountNumber && ` \u2022 ${a.accountNumber}`}
@@ -1283,6 +1304,9 @@ function EntityDetailView({
                   </div>
                   <div className="admin-account-item__right">
                     <div className="admin-account-item__info"><FileText size={12} /> {a.transactionCount}</div>
+                    {editingAccountId !== a.id && (
+                      <button className="btn btn--ghost btn--sm" onClick={() => { setEditingAccountId(a.id); setEditAccountName(a.name); }} title="Переименовать"><Pencil size={12} /></button>
+                    )}
                     <button type="button" className={`admin-toggle${a.enabled ? " admin-toggle--on" : ""}`} onClick={() => handleToggleAccount(a.id)} title={a.enabled ? "Отключить" : "Включить"}>
                       <span className="admin-toggle__knob" />
                     </button>
