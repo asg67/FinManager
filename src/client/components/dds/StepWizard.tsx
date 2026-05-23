@@ -59,6 +59,8 @@ export default function StepWizard({ open, onClose, onDone, editOperation, entit
         expenseArticleId: editOperation.expenseArticleId ?? undefined,
         directionId: editOperation.directionId ?? undefined,
         incomeDirection: editOperation.incomeDirection ?? undefined,
+        currencyAmount: editOperation.currencyAmount ? parseFloat(editOperation.currencyAmount) : undefined,
+        exchangeRate: editOperation.exchangeRate ? parseFloat(editOperation.exchangeRate) : undefined,
         incomeTypeId: editOperation.incomeTypeId ?? undefined,
         incomeArticleId: editOperation.incomeArticleId ?? undefined,
         orderNumber: editOperation.orderNumber ?? undefined,
@@ -324,6 +326,8 @@ export default function StepWizard({ open, onClose, onDone, editOperation, entit
           incomeTypeId: form.incomeTypeId ?? null,
           incomeArticleId: form.incomeArticleId ?? null,
           incomeDirection: form.incomeDirection ?? null,
+          currencyAmount: form.currencyAmount ?? null,
+          exchangeRate: form.exchangeRate ?? null,
           orderNumber: form.orderNumber ?? null,
           comment: form.comment ?? null,
           customFieldValues,
@@ -343,6 +347,11 @@ export default function StepWizard({ open, onClose, onDone, editOperation, entit
   const isIncome = form.operationType === "income";
   const isExpense = form.operationType === "expense";
   const isTransfer = form.operationType === "transfer";
+
+  const selectedFromAcc = accounts.find((a) => a.id === form.fromAccountId);
+  const selectedToAcc = accounts.find((a) => a.id === form.toAccountId) || otherAccounts.find((a) => a.id === form.toAccountId);
+  const currencyAcc = [selectedFromAcc, selectedToAcc].find((a) => a && a.currency !== "RUB");
+  const hasCurrency = !!currencyAcc;
 
   // Resolve display names for review
   const entityName = entities.find((e) => e.id === form.entityId)?.name ?? "";
@@ -624,15 +633,57 @@ export default function StepWizard({ open, onClose, onDone, editOperation, entit
 
             {/* Amount */}
             <Input
-              label={t("dds.amount")}
+              label={hasCurrency ? "Сумма (₽)" : t("dds.amount")}
               type="number"
               min={0.01}
               step={0.01}
               value={form.amount || ""}
-              onChange={(e) => updateField("amount", parseFloat(e.target.value) || 0)}
+              onChange={(e) => {
+                const rub = parseFloat(e.target.value) || 0;
+                updateField("amount", rub);
+                if (form.exchangeRate && form.exchangeRate > 0) {
+                  updateField("currencyAmount", Math.round((rub / form.exchangeRate) * 100) / 100);
+                }
+              }}
               required
               autoFocus
             />
+
+            {/* Currency conversion fields */}
+            {hasCurrency && (
+              <div style={{ display: "flex", gap: "0.75rem" }}>
+                <Input
+                  label="Курс"
+                  type="number"
+                  min={0.0001}
+                  step={0.01}
+                  value={form.exchangeRate || ""}
+                  onChange={(e) => {
+                    const rate = parseFloat(e.target.value) || 0;
+                    updateField("exchangeRate", rate);
+                    if (rate > 0 && form.amount) {
+                      updateField("currencyAmount", Math.round((form.amount / rate) * 100) / 100);
+                    }
+                  }}
+                  placeholder="Курс"
+                />
+                <Input
+                  label={`Сумма (${currencyAcc!.currency})`}
+                  type="number"
+                  min={0.01}
+                  step={0.01}
+                  value={form.currencyAmount || ""}
+                  onChange={(e) => {
+                    const cAmount = parseFloat(e.target.value) || 0;
+                    updateField("currencyAmount", cAmount);
+                    if (form.exchangeRate && form.exchangeRate > 0) {
+                      updateField("amount", Math.round(cAmount * form.exchangeRate * 100) / 100);
+                    }
+                  }}
+                  placeholder={currencyAcc!.currency}
+                />
+              </div>
+            )}
 
             {/* Order number (expense only, hideable per company) */}
             {isExpense && !user?.company?.hiddenFields?.includes("orderNumber") && (
@@ -750,7 +801,12 @@ export default function StepWizard({ open, onClose, onDone, editOperation, entit
             <div className="step-wizard__review-row">
               <span className="step-wizard__review-label">{t("dds.amount")}</span>
               <span className={`step-wizard__review-value step-wizard__review-amount amount--${form.operationType}`}>
-                {form.amount.toLocaleString("ru-RU")}
+                {form.amount.toLocaleString("ru-RU")} ₽
+                {form.currencyAmount && form.exchangeRate && currencyAcc && (
+                  <span style={{ fontSize: "0.85em", color: "#666", marginLeft: 8 }}>
+                    ({form.currencyAmount.toLocaleString("ru-RU")} {currencyAcc.currency} @ {form.exchangeRate})
+                  </span>
+                )}
               </span>
             </div>
             {form.orderNumber && !user?.company?.hiddenFields?.includes("orderNumber") && (

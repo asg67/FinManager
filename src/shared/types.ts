@@ -197,6 +197,8 @@ export interface DdsOperation {
   directionId: string | null;
   direction: { name: string } | null;
   incomeDirection: string | null;
+  currencyAmount: string | null;
+  exchangeRate: string | null;
   orderNumber: string | null;
   comment: string | null;
   entityId: string;

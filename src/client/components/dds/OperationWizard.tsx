@@ -59,6 +59,8 @@ export default function OperationWizard({ open, onClose, onDone, editOperation, 
         expenseArticleId: editOperation.expenseArticleId ?? undefined,
         directionId: editOperation.directionId ?? undefined,
         incomeDirection: editOperation.incomeDirection ?? undefined,
+        currencyAmount: editOperation.currencyAmount ? parseFloat(editOperation.currencyAmount) : undefined,
+        exchangeRate: editOperation.exchangeRate ? parseFloat(editOperation.exchangeRate) : undefined,
         incomeTypeId: editOperation.incomeTypeId ?? undefined,
         incomeArticleId: editOperation.incomeArticleId ?? undefined,
         orderNumber: editOperation.orderNumber ?? undefined,
@@ -176,6 +178,8 @@ export default function OperationWizard({ open, onClose, onDone, editOperation, 
           incomeTypeId: form.incomeTypeId ?? null,
           incomeArticleId: form.incomeArticleId ?? null,
           incomeDirection: form.incomeDirection ?? null,
+          currencyAmount: form.currencyAmount ?? null,
+          exchangeRate: form.exchangeRate ?? null,
           orderNumber: form.orderNumber ?? null,
           comment: form.comment ?? null,
           customFieldValues,
@@ -198,6 +202,11 @@ export default function OperationWizard({ open, onClose, onDone, editOperation, 
   const isExpense = form.operationType === "expense";
   const isTransfer = form.operationType === "transfer";
   const visibleCustomFields = getVisibleCustomFields();
+
+  const selectedFromAcc = accounts.find((a) => a.id === form.fromAccountId);
+  const selectedToAcc = accounts.find((a) => a.id === form.toAccountId) || otherAccounts.find((a) => a.id === form.toAccountId);
+  const currencyAcc = [selectedFromAcc, selectedToAcc].find((a) => a && a.currency !== "RUB");
+  const hasCurrency = !!currencyAcc;
 
   if (open && !editOperation && entities.length === 0) {
     return (
@@ -408,14 +417,56 @@ export default function OperationWizard({ open, onClose, onDone, editOperation, 
 
         {/* Amount */}
         <Input
-          label={t("dds.amount")}
+          label={hasCurrency ? "Сумма (₽)" : t("dds.amount")}
           type="number"
           min={0.01}
           step={0.01}
           value={form.amount || ""}
-          onChange={(e) => updateField("amount", parseFloat(e.target.value) || 0)}
+          onChange={(e) => {
+            const rub = parseFloat(e.target.value) || 0;
+            updateField("amount", rub);
+            if (form.exchangeRate && form.exchangeRate > 0) {
+              updateField("currencyAmount", Math.round((rub / form.exchangeRate) * 100) / 100);
+            }
+          }}
           required
         />
+
+        {/* Currency conversion fields */}
+        {hasCurrency && (
+          <div style={{ display: "flex", gap: "0.75rem" }}>
+            <Input
+              label="Курс"
+              type="number"
+              min={0.0001}
+              step={0.01}
+              value={form.exchangeRate || ""}
+              onChange={(e) => {
+                const rate = parseFloat(e.target.value) || 0;
+                updateField("exchangeRate", rate);
+                if (rate > 0 && form.amount) {
+                  updateField("currencyAmount", Math.round((form.amount / rate) * 100) / 100);
+                }
+              }}
+              placeholder="Курс"
+            />
+            <Input
+              label={`Сумма (${currencyAcc!.currency})`}
+              type="number"
+              min={0.01}
+              step={0.01}
+              value={form.currencyAmount || ""}
+              onChange={(e) => {
+                const cAmount = parseFloat(e.target.value) || 0;
+                updateField("currencyAmount", cAmount);
+                if (form.exchangeRate && form.exchangeRate > 0) {
+                  updateField("amount", Math.round(cAmount * form.exchangeRate * 100) / 100);
+                }
+              }}
+              placeholder={currencyAcc!.currency}
+            />
+          </div>
+        )}
 
         {/* Comment */}
         <Input

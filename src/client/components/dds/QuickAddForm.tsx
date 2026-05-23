@@ -168,6 +168,11 @@ export default function QuickAddForm({ entities, onSaved }: Props) {
   const isTransfer = form.operationType === "transfer";
   const visibleCustomFields = getVisibleCustomFields();
 
+  const selectedFromAcc = accounts.find((a) => a.id === form.fromAccountId);
+  const selectedToAcc = accounts.find((a) => a.id === form.toAccountId) || otherAccounts.find((a) => a.id === form.toAccountId);
+  const currencyAcc = [selectedFromAcc, selectedToAcc].find((a) => a && a.currency !== "RUB");
+  const hasCurrency = !!currencyAcc;
+
   return (
     <form onSubmit={handleSubmit} className="quick-add">
       {/* Templates */}
@@ -346,10 +351,50 @@ export default function QuickAddForm({ entities, onSaved }: Props) {
           min={0.01}
           step={0.01}
           value={form.amount || ""}
-          onChange={(e) => updateField("amount", parseFloat(e.target.value) || 0)}
-          placeholder={t("dds.amount")}
+          onChange={(e) => {
+            const rub = parseFloat(e.target.value) || 0;
+            updateField("amount", rub);
+            if (form.exchangeRate && form.exchangeRate > 0) {
+              updateField("currencyAmount", Math.round((rub / form.exchangeRate) * 100) / 100);
+            }
+          }}
+          placeholder={hasCurrency ? "Сумма (₽)" : t("dds.amount")}
           required
         />
+
+        {/* Currency conversion fields */}
+        {hasCurrency && (
+          <>
+            <Input
+              type="number"
+              min={0.0001}
+              step={0.01}
+              value={form.exchangeRate || ""}
+              onChange={(e) => {
+                const rate = parseFloat(e.target.value) || 0;
+                updateField("exchangeRate", rate);
+                if (rate > 0 && form.amount) {
+                  updateField("currencyAmount", Math.round((form.amount / rate) * 100) / 100);
+                }
+              }}
+              placeholder="Курс"
+            />
+            <Input
+              type="number"
+              min={0.01}
+              step={0.01}
+              value={form.currencyAmount || ""}
+              onChange={(e) => {
+                const cAmount = parseFloat(e.target.value) || 0;
+                updateField("currencyAmount", cAmount);
+                if (form.exchangeRate && form.exchangeRate > 0) {
+                  updateField("amount", Math.round(cAmount * form.exchangeRate * 100) / 100);
+                }
+              }}
+              placeholder={`Сумма (${currencyAcc!.currency})`}
+            />
+          </>
+        )}
 
         {/* Order number (expense only, hideable per company) */}
         {isExpense && !user?.company?.hiddenFields?.includes("orderNumber") && (

@@ -13,6 +13,8 @@ export interface CreateOperationPayload {
   incomeArticleId?: string;
   directionId?: string;
   incomeDirection?: string;
+  currencyAmount?: number;
+  exchangeRate?: number;
   orderNumber?: string;
   comment?: string;
   customFieldValues?: { customFieldId: string; value: string }[];
@@ -28,6 +30,8 @@ export interface UpdateOperationPayload {
   incomeArticleId?: string | null;
   directionId?: string | null;
   incomeDirection?: string | null;
+  currencyAmount?: number | null;
+  exchangeRate?: number | null;
   orderNumber?: string | null;
   comment?: string | null;
   customFieldValues?: { customFieldId: string; value: string }[];
