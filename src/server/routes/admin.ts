@@ -389,6 +389,7 @@ router.get("/companies/:id/entities/:entityId", async (req: Request, res: Respon
         name: a.name,
         type: a.type,
         bank: a.bank,
+        currency: a.currency,
         accountNumber: a.accountNumber,
         enabled: a.enabled,
         transactionCount: a._count.bankStatements,
@@ -505,7 +506,7 @@ router.put("/accounts/:id/toggle", async (req: Request, res: Response) => {
 // POST /api/admin/entities/:entityId/accounts — create account for entity
 router.post("/entities/:entityId/accounts", async (req: Request, res: Response) => {
   try {
-    const { name, type, bank } = req.body;
+    const { name, type, bank, currency } = req.body;
     if (!name?.trim()) {
       res.status(400).json({ message: "Name is required" });
       return;
@@ -520,6 +521,7 @@ router.post("/entities/:entityId/accounts", async (req: Request, res: Response) 
         name: name.trim(),
         type: type || "cash",
         bank: bank || null,
+        currency: currency || "RUB",
         entityId: entity.id,
       },
     });

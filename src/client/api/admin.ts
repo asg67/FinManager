@@ -60,6 +60,7 @@ export interface AdminEntityDetail {
     name: string;
     type: string;
     bank: string | null;
+    currency: string;
     accountNumber: string | null;
     enabled: boolean;
     transactionCount: number;
@@ -188,8 +189,8 @@ export const adminApi = {
   toggleAccount: (accountId: string) =>
     api.put<{ id: string; enabled: boolean }>(`/admin/accounts/${accountId}/toggle`),
 
-  createAccount: (entityId: string, data: { name: string; type: string; bank?: string }) =>
-    api.post<{ id: string; name: string; type: string; bank: string | null }>(`/admin/entities/${entityId}/accounts`, data),
+  createAccount: (entityId: string, data: { name: string; type: string; bank?: string; currency?: string }) =>
+    api.post<{ id: string; name: string; type: string; bank: string | null; currency: string }>(`/admin/entities/${entityId}/accounts`, data),
 
   renameAccount: (accountId: string, name: string) =>
     api.put<{ id: string; name: string }>(`/admin/accounts/${accountId}`, { name }),

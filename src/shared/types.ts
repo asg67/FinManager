@@ -98,6 +98,7 @@ export interface Account {
   name: string;
   type: AccountType;
   bank: string | null;
+  currency: string;
   accountNumber: string | null;
   contractNumber: string | null;
   enabled: boolean;

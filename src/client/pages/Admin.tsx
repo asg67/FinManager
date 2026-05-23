@@ -1220,6 +1220,7 @@ function EntityDetailView({
   const [newAccName, setNewAccName] = useState("");
   const [newAccType, setNewAccType] = useState("cash");
   const [newAccCustomType, setNewAccCustomType] = useState("");
+  const [newAccCurrency, setNewAccCurrency] = useState("RUB");
   const [editingAccountId, setEditingAccountId] = useState<string | null>(null);
   const [editAccountName, setEditAccountName] = useState("");
 
@@ -1235,7 +1236,7 @@ function EntityDetailView({
   async function handleAddAccount() {
     if (!newAccName.trim()) return;
     const resolvedType = newAccType === "other" ? (newAccCustomType.trim() || "other") : newAccType;
-    const acc = await adminApi.createAccount(entityId, { name: newAccName.trim(), type: resolvedType });
+    const acc = await adminApi.createAccount(entityId, { name: newAccName.trim(), type: resolvedType, currency: newAccCurrency });
     setEntity((prev) =>
       prev
         ? { ...prev, accounts: [...prev.accounts, { ...acc, accountNumber: null, enabled: true, transactionCount: 0 }] }
@@ -1243,6 +1244,7 @@ function EntityDetailView({
     );
     setNewAccName("");
     setNewAccType("cash");
+    setNewAccCurrency("RUB");
   }
 
   async function handleRenameAccount(accountId: string) {
@@ -1300,6 +1302,9 @@ function EntityDetailView({
                     <div className="admin-account-item__info">
                       {a.bank || a.type}
                       {a.accountNumber && ` \u2022 ${a.accountNumber}`}
+                      {a.currency && a.currency !== "RUB" && (
+                        <span style={{ marginLeft: 6, padding: "1px 6px", borderRadius: 4, background: "#e8f5e9", color: "#2e7d32", fontSize: 11, fontWeight: 600 }}>{a.currency}</span>
+                      )}
                     </div>
                   </div>
                   <div className="admin-account-item__right">
@@ -1327,6 +1332,13 @@ function EntityDetailView({
               {newAccType === "other" && (
                 <input className="admin-inline-input" placeholder="Тип (напр. ЮMoney)" value={newAccCustomType} onChange={(e) => setNewAccCustomType(e.target.value)} style={{ maxWidth: 150 }} />
               )}
+              <select className="admin-inline-input" value={newAccCurrency} onChange={(e) => setNewAccCurrency(e.target.value)} style={{ maxWidth: 90 }}>
+                <option value="RUB">₽ RUB</option>
+                <option value="USD">$ USD</option>
+                <option value="EUR">€ EUR</option>
+                <option value="USDT">₮ USDT</option>
+                <option value="BTC">₿ BTC</option>
+              </select>
               <input className="admin-inline-input" placeholder="Название счёта" value={newAccName} onChange={(e) => setNewAccName(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") handleAddAccount(); }} />
               <button className="btn btn--primary btn--sm" onClick={handleAddAccount} disabled={!newAccName.trim() || (newAccType === "other" && !newAccCustomType.trim())}><Plus size={14} /> Добавить</button>
             </div>

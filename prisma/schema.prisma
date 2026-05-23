@@ -182,6 +182,7 @@ model Account {
   name           String
   type           String
   bank           String?
+  currency       String   @default("RUB")
   accountNumber  String?
   contractNumber String?
   source             String    @default("manual") // "manual" | "bank_sync"
@@ -335,6 +336,8 @@ model DdsOperation {
   directionId        String?
   direction          ArticleDirection? @relation(fields: [directionId], references: [id])
   incomeDirection    String?
+  currencyAmount     Decimal?          @db.Decimal(15, 2)
+  exchangeRate       Decimal?          @db.Decimal(15, 4)
   orderNumber        String?
   comment            String?
   entityId           String
