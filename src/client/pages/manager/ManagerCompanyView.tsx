@@ -48,18 +48,20 @@ function OperationsTab({ companyId, entities }: { companyId: string; entities: {
   const [entityId, setEntityId] = useState("");
   const [operationType, setOperationType] = useState("");
   const [search, setSearch] = useState("");
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
   const [exporting, setExporting] = useState(false);
 
   const limit = 50;
 
   const load = useCallback(() => {
     setLoading(true);
-    managerApi.getOperations(companyId, { entityId: entityId || undefined, operationType: operationType || undefined, search: search || undefined, page, limit })
+    managerApi.getOperations(companyId, { entityId: entityId || undefined, operationType: operationType || undefined, search: search || undefined, from: from || undefined, to: to || undefined, page, limit })
       .then((r) => { setData(r.data); setTotal(r.total); setPages(r.pages); })
       .finally(() => setLoading(false));
-  }, [companyId, entityId, operationType, search, page]);
+  }, [companyId, entityId, operationType, search, from, to, page]);
 
-  useEffect(() => { setPage(1); }, [entityId, operationType, search]);
+  useEffect(() => { setPage(1); }, [entityId, operationType, search, from, to]);
   useEffect(() => { load(); }, [load]);
 
   const typeLabels: Record<string, string> = { income: "Приход", expense: "Расход", transfer: "Перевод" };
@@ -67,7 +69,7 @@ function OperationsTab({ companyId, entities }: { companyId: string; entities: {
   async function handleExport() {
     setExporting(true);
     try {
-      await managerApi.exportExcel(companyId, "export", { entityId: entityId || undefined });
+      await managerApi.exportExcel(companyId, "export", { entityId: entityId || undefined, from: from || undefined, to: to || undefined });
     } finally {
       setExporting(false);
     }
@@ -87,6 +89,22 @@ function OperationsTab({ companyId, entities }: { companyId: string; entities: {
             <option value="expense">Расход</option>
             <option value="transfer">Перевод</option>
           </select>
+          <input
+            className="manager-filter-input"
+            type="date"
+            value={from}
+            onChange={(e) => setFrom(e.target.value)}
+            title="Дата от"
+            style={{ width: 140 }}
+          />
+          <input
+            className="manager-filter-input"
+            type="date"
+            value={to}
+            onChange={(e) => setTo(e.target.value)}
+            title="Дата до"
+            style={{ width: 140 }}
+          />
           <input
             className="manager-filter-input"
             placeholder="Поиск..."

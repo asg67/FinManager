@@ -243,7 +243,7 @@ router.get("/companies/:companyId/operations", async (req: Request, res: Respons
           user: { select: { name: true } },
           customFieldValues: { include: { customField: { select: { name: true } } } },
         },
-        orderBy: { createdAt: "desc" },
+        orderBy: { createdAt: "asc" },
         skip,
         take: limitNum,
       }),
@@ -469,7 +469,7 @@ router.get("/companies/:companyId/export/dds-excel", async (req: Request, res: R
         direction: { select: { name: true } },
         customFieldValues: { include: { customField: { select: { name: true } } } },
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: { createdAt: "asc" },
     });
 
     const cfNameSet = new Set<string>();
