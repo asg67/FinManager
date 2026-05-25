@@ -98,6 +98,8 @@ export default function App() {
             <>
               {/* Admin — full screen, no sidebar, all routes redirect here */}
               <Route path="/admin" element={<Suspense fallback={pageFallback}><Admin /></Suspense>} />
+              <Route path="/manager" element={<Suspense fallback={pageFallback}><ManagerCabinet /></Suspense>} />
+              <Route path="/manager/:companyId" element={<Suspense fallback={pageFallback}><ManagerCompanyView /></Suspense>} />
               <Route path="*" element={<Navigate to="/admin" replace />} />
             </>
           ) : isManager ? (

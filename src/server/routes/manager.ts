@@ -8,17 +8,19 @@ const router = Router();
 
 router.use(authMiddleware);
 
-// Ensure only managers access this router
+// Ensure only managers and owners access this router
 router.use((req: Request, res: Response, next: NextFunction) => {
-  if (req.user!.role !== "manager") {
+  const role = req.user!.role;
+  if (role !== "manager" && role !== "owner") {
     res.status(403).json({ message: "Manager access required" });
     return;
   }
   next();
 });
 
-// Helper: verify manager has access to company
-async function checkManagerAccess(userId: string, companyId: string): Promise<boolean> {
+// Helper: verify manager has access to company (owners have access to all)
+async function checkManagerAccess(userId: string, companyId: string, role?: string): Promise<boolean> {
+  if (role === "owner") return true;
   const access = await prisma.managerCompanyAccess.findUnique({
     where: { userId_companyId: { userId, companyId } },
   });
@@ -26,7 +28,15 @@ async function checkManagerAccess(userId: string, companyId: string): Promise<bo
 }
 
 // Helper: get entity IDs for manager's assigned users within a company
-async function getAssignedEntityIds(managerId: string, companyId: string): Promise<string[]> {
+async function getAssignedEntityIds(managerId: string, companyId: string, role?: string): Promise<string[]> {
+  if (role === "owner") {
+    const entities = await prisma.entity.findMany({
+      where: { companyId },
+      select: { id: true },
+    });
+    return entities.map((e) => e.id);
+  }
+
   const accesses = await prisma.managerUserAccess.findMany({
     where: { managerId },
     select: { targetUserId: true },
@@ -35,30 +45,45 @@ async function getAssignedEntityIds(managerId: string, companyId: string): Promi
   if (targetUserIds.length === 0) return [];
 
   const entities = await prisma.entity.findMany({
-    where: { companyId, ownerId: { in: targetUserIds } },
+    where: {
+      companyId,
+      OR: [
+        { ownerId: { in: targetUserIds } },
+        { entityAccess: { some: { userId: { in: targetUserIds } } } },
+      ],
+    },
     select: { id: true },
   });
   return entities.map((e) => e.id);
 }
 
-// GET /api/manager/companies — list manager's companies
+// GET /api/manager/companies — list manager's companies (owner sees all)
 router.get("/companies", async (req: Request, res: Response) => {
   try {
     const userId = req.user!.userId;
+    const isOwner = req.user!.role === "owner";
 
-    const accesses = await prisma.managerCompanyAccess.findMany({
-      where: { userId },
-      include: {
-        company: {
-          include: {
-            _count: { select: { entities: true, users: true } },
+    let companies: { id: string; name: string; mode: string; _count: { entities: number; users: number } }[];
+
+    if (isOwner) {
+      companies = await prisma.company.findMany({
+        include: { _count: { select: { entities: true, users: true } } },
+        orderBy: { name: "asc" },
+      });
+    } else {
+      const accesses = await prisma.managerCompanyAccess.findMany({
+        where: { userId },
+        include: {
+          company: {
+            include: { _count: { select: { entities: true, users: true } } },
           },
         },
-      },
-      orderBy: { company: { name: "asc" } },
-    });
+        orderBy: { company: { name: "asc" } },
+      });
+      companies = accesses.map((a) => a.company);
+    }
 
-    const companyIds = accesses.map((a) => a.companyId);
+    const companyIds = companies.map((c) => c.id);
 
     // Get last DDS operation date per company
     const lastDdsList = await prisma.ddsOperation.groupBy({
@@ -67,7 +92,6 @@ router.get("/companies", async (req: Request, res: Response) => {
       _max: { createdAt: true },
     });
 
-    // Map entityId -> companyId for last DDS lookup
     const entities = await prisma.entity.findMany({
       where: { companyId: { in: companyIds } },
       select: { id: true, companyId: true },
@@ -85,13 +109,13 @@ router.get("/companies", async (req: Request, res: Response) => {
       }
     }
 
-    const result = accesses.map((a) => ({
-      id: a.company.id,
-      name: a.company.name,
-      mode: a.company.mode,
-      entitiesCount: a.company._count.entities,
-      usersCount: a.company._count.users,
-      lastDdsAt: lastDdsByCompany.get(a.company.id)?.toISOString() ?? null,
+    const result = companies.map((c) => ({
+      id: c.id,
+      name: c.name,
+      mode: c.mode,
+      entitiesCount: c._count.entities,
+      usersCount: c._count.users,
+      lastDdsAt: lastDdsByCompany.get(c.id)?.toISOString() ?? null,
     }));
 
     res.json(result);
@@ -108,7 +132,7 @@ router.get("/companies/:companyId", async (req: Request, res: Response) => {
     const { companyId } = req.params;
     const { from, to } = req.query as Record<string, string>;
 
-    if (!(await checkManagerAccess(userId, companyId))) {
+    if (!(await checkManagerAccess(userId, companyId, req.user!.role))) {
       res.status(403).json({ message: "Access denied" });
       return;
     }
@@ -180,7 +204,7 @@ router.get("/companies/:companyId/operations", async (req: Request, res: Respons
     const { companyId } = req.params;
     const { entityId, operationType, from, to, search, page, limit } = req.query as Record<string, string>;
 
-    if (!(await checkManagerAccess(userId, companyId))) {
+    if (!(await checkManagerAccess(userId, companyId, req.user!.role))) {
       res.status(403).json({ message: "Access denied" });
       return;
     }
@@ -250,7 +274,7 @@ router.get("/companies/:companyId/users", async (req: Request, res: Response) =>
     const { userId } = req.user!;
     const { companyId } = req.params;
 
-    if (!(await checkManagerAccess(userId, companyId))) {
+    if (!(await checkManagerAccess(userId, companyId, req.user!.role))) {
       res.status(403).json({ message: "Access denied" });
       return;
     }
@@ -331,7 +355,7 @@ router.get("/companies/:companyId/stats/by-category", async (req: Request, res: 
     const { companyId } = req.params;
     const { entityId, from, to } = req.query as Record<string, string>;
 
-    if (!(await checkManagerAccess(userId, companyId))) {
+    if (!(await checkManagerAccess(userId, companyId, req.user!.role))) {
       res.status(403).json({ message: "Access denied" });
       return;
     }
@@ -376,7 +400,7 @@ router.get("/companies/:companyId/stats/by-month", async (req: Request, res: Res
     const { companyId } = req.params;
     const { entityId } = req.query as Record<string, string>;
 
-    if (!(await checkManagerAccess(userId, companyId))) {
+    if (!(await checkManagerAccess(userId, companyId, req.user!.role))) {
       res.status(403).json({ message: "Access denied" });
       return;
     }
@@ -416,7 +440,7 @@ router.get("/companies/:companyId/export/dds-excel", async (req: Request, res: R
     const { companyId } = req.params;
     const { entityId, from, to } = req.query as Record<string, string>;
 
-    if (!(await checkManagerAccess(userId, companyId))) {
+    if (!(await checkManagerAccess(userId, companyId, req.user!.role))) {
       res.status(403).json({ message: "Access denied" });
       return;
     }
@@ -509,12 +533,12 @@ router.get("/companies/:companyId/accounts", async (req: Request, res: Response)
     const { userId } = req.user!;
     const { companyId } = req.params;
 
-    if (!(await checkManagerAccess(userId, companyId))) {
+    if (!(await checkManagerAccess(userId, companyId, req.user!.role))) {
       res.status(403).json({ message: "Access denied" });
       return;
     }
 
-    const entityIds = await getAssignedEntityIds(userId, companyId);
+    const entityIds = await getAssignedEntityIds(userId, companyId, req.user!.role);
     if (entityIds.length === 0) {
       res.json([]);
       return;
@@ -576,12 +600,12 @@ router.get("/companies/:companyId/statements", async (req: Request, res: Respons
     const { companyId } = req.params;
     const { accountId, direction, bank, from, to, page, limit } = req.query as Record<string, string>;
 
-    if (!(await checkManagerAccess(userId, companyId))) {
+    if (!(await checkManagerAccess(userId, companyId, req.user!.role))) {
       res.status(403).json({ message: "Access denied" });
       return;
     }
 
-    const entityIds = await getAssignedEntityIds(userId, companyId);
+    const entityIds = await getAssignedEntityIds(userId, companyId, req.user!.role);
     if (entityIds.length === 0) {
       res.json({ data: [], total: 0, page: 1, limit: 20, totalPages: 0 });
       return;

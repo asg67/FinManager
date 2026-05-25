@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { Navigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import {
   Building2, Users, Bell, Plus, ChevronLeft, ChevronRight, ChevronDown,
-  ArrowLeft, Send, CreditCard, FileText, LogOut, Trash2,
+  ArrowLeft, Send, CreditCard, FileText, LogOut, Trash2, Eye,
   Pencil, Check, X, FolderOpen, Tag, Link, Copy, Settings2, Sliders,
 } from "lucide-react";
 import { useAuthStore } from "../stores/auth.js";
@@ -102,6 +102,7 @@ function DashboardView({
   onNavigate: (v: View) => void;
   onCreateCompany: () => void;
 }) {
+  const navigate = useNavigate();
   const [companiesCount, setCompaniesCount] = useState(0);
   const [usersCount, setUsersCount] = useState(0);
 
@@ -130,6 +131,12 @@ function DashboardView({
       title: "Менеджеры",
       count: "Кабинет",
       onClick: () => onNavigate({ kind: "managers" }),
+    },
+    {
+      icon: <Eye size={20} />,
+      title: "Вид менеджера",
+      count: "Просмотр",
+      onClick: () => navigate("/manager"),
     },
     {
       icon: <Bell size={20} />,

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Building2, Users, FileText, LogOut, Moon, Sun, ChevronRight } from "lucide-react";
+import { Building2, Users, FileText, LogOut, Moon, Sun, ChevronRight, ArrowLeft } from "lucide-react";
 import { useAuthStore } from "../../stores/auth.js";
 import { useThemeStore } from "../../stores/theme.js";
 import { managerApi, type ManagerCompany } from "../../api/manager.js";
@@ -30,10 +30,17 @@ export default function ManagerCabinet() {
     managerApi.getCompanies().then(setCompanies).finally(() => setLoading(false));
   }, []);
 
+  const isOwner = user?.role === "owner";
+
   return (
     <div className="manager-layout">
       <header className="manager-header">
         <div className="manager-header__left">
+          {isOwner && (
+            <button className="manager-header__btn" onClick={() => navigate("/admin")} title="Назад в админку">
+              <ArrowLeft size={16} />
+            </button>
+          )}
           <span className="manager-header__logo">FinManager</span>
           <span style={{ color: "var(--glass-border)" }}>|</span>
           <span className="manager-header__company">Кабинет менеджера</span>
@@ -43,10 +50,12 @@ export default function ManagerCabinet() {
           <button className="manager-header__btn" onClick={toggleTheme} title="Сменить тему">
             {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
           </button>
-          <button className="manager-header__btn" onClick={logout}>
-            <LogOut size={16} />
-            Выйти
-          </button>
+          {!isOwner && (
+            <button className="manager-header__btn" onClick={logout}>
+              <LogOut size={16} />
+              Выйти
+            </button>
+          )}
         </div>
       </header>
 
