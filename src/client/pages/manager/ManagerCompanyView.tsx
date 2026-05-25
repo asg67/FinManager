@@ -390,20 +390,31 @@ function UsersTab({ companyId }: { companyId: string }) {
 
 // ===== Accounts Tab =====
 
-function AccountsTab({ companyId }: { companyId: string }) {
+function AccountsTab({ companyId, entities }: { companyId: string; entities: { id: string; name: string }[] }) {
   const [accounts, setAccounts] = useState<ManagerAccount[]>([]);
   const [loading, setLoading] = useState(true);
+  const [entityId, setEntityId] = useState("");
   const [bankFilter, setBankFilter] = useState("");
 
   useEffect(() => {
-    managerApi.getAccounts(companyId).then(setAccounts).finally(() => setLoading(false));
-  }, [companyId]);
+    setLoading(true);
+    setBankFilter("");
+    managerApi.getAccounts(companyId, { entityId: entityId || undefined }).then(setAccounts).finally(() => setLoading(false));
+  }, [companyId, entityId]);
 
   const banks = [...new Set(accounts.map((a) => a.bank).filter(Boolean))] as string[];
   const filtered = bankFilter ? accounts.filter((a) => a.bank === bankFilter) : accounts;
 
   return (
     <div>
+      {entities.length > 1 && (
+        <div className="manager-entity-tabs" style={{ marginBottom: "1rem" }}>
+          <button className={`manager-entity-tab ${entityId === "" ? "manager-entity-tab--active" : ""}`} onClick={() => setEntityId("")}>Все</button>
+          {entities.map((e) => (
+            <button key={e.id} className={`manager-entity-tab ${entityId === e.id ? "manager-entity-tab--active" : ""}`} onClick={() => setEntityId(e.id)}>{e.name}</button>
+          ))}
+        </div>
+      )}
       {banks.length > 1 && (
         <div className="manager-filters" style={{ marginBottom: "1rem" }}>
           <select className="manager-filter-select" value={bankFilter} onChange={(e) => setBankFilter(e.target.value)}>
@@ -454,21 +465,25 @@ function AccountsTab({ companyId }: { companyId: string }) {
 
 // ===== Statements Tab =====
 
-function StatementsTab({ companyId }: { companyId: string }) {
+function StatementsTab({ companyId, entities }: { companyId: string; entities: { id: string; name: string }[] }) {
   const [data, setData] = useState<ManagerStatement[]>([]);
   const [accounts, setAccounts] = useState<ManagerAccount[]>([]);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
+  const [entityId, setEntityId] = useState("");
   const [bankFilter, setBankFilter] = useState("");
   const [accountId, setAccountId] = useState("");
   const [direction, setDirection] = useState("");
+  const [exporting, setExporting] = useState(false);
   const limit = 30;
 
   useEffect(() => {
-    managerApi.getAccounts(companyId).then(setAccounts);
-  }, [companyId]);
+    setBankFilter("");
+    setAccountId("");
+    managerApi.getAccounts(companyId, { entityId: entityId || undefined }).then(setAccounts);
+  }, [companyId, entityId]);
 
   const banks = [...new Set(accounts.map((a) => a.bank).filter(Boolean))] as string[];
   const filteredAccounts = bankFilter ? accounts.filter((a) => a.bank === bankFilter) : accounts;
@@ -476,6 +491,7 @@ function StatementsTab({ companyId }: { companyId: string }) {
   const load = useCallback(() => {
     setLoading(true);
     managerApi.getStatements(companyId, {
+      entityId: entityId || undefined,
       accountId: accountId || undefined,
       direction: direction || undefined,
       bank: bankFilter || undefined,
@@ -484,30 +500,58 @@ function StatementsTab({ companyId }: { companyId: string }) {
     })
       .then((r) => { setData(r.data); setTotal(r.total); setTotalPages(r.totalPages); })
       .finally(() => setLoading(false));
-  }, [companyId, bankFilter, accountId, direction, page]);
+  }, [companyId, entityId, bankFilter, accountId, direction, page]);
 
-  useEffect(() => { setPage(1); setAccountId(""); }, [bankFilter]);
+  useEffect(() => { setPage(1); setAccountId(""); }, [bankFilter, entityId]);
   useEffect(() => { setPage(1); }, [accountId, direction]);
   useEffect(() => { load(); }, [load]);
 
+  async function handleExport() {
+    setExporting(true);
+    try {
+      await managerApi.exportStatementsExcel(companyId, {
+        entityId: entityId || undefined,
+        accountId: accountId || undefined,
+        bank: bankFilter || undefined,
+        direction: direction || undefined,
+      });
+    } finally {
+      setExporting(false);
+    }
+  }
+
   return (
     <div>
-      <div className="manager-filters" style={{ marginBottom: "1rem" }}>
-        {banks.length > 1 && (
-          <select className="manager-filter-select" value={bankFilter} onChange={(e) => setBankFilter(e.target.value)}>
-            <option value="">Все банки</option>
-            {banks.map((b) => <option key={b} value={b}>{b}</option>)}
+      {entities.length > 1 && (
+        <div className="manager-entity-tabs" style={{ marginBottom: "1rem" }}>
+          <button className={`manager-entity-tab ${entityId === "" ? "manager-entity-tab--active" : ""}`} onClick={() => setEntityId("")}>Все</button>
+          {entities.map((e) => (
+            <button key={e.id} className={`manager-entity-tab ${entityId === e.id ? "manager-entity-tab--active" : ""}`} onClick={() => setEntityId(e.id)}>{e.name}</button>
+          ))}
+        </div>
+      )}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "1rem", flexWrap: "wrap", gap: "0.75rem" }}>
+        <div className="manager-filters">
+          {banks.length > 1 && (
+            <select className="manager-filter-select" value={bankFilter} onChange={(e) => setBankFilter(e.target.value)}>
+              <option value="">Все банки</option>
+              {banks.map((b) => <option key={b} value={b}>{b}</option>)}
+            </select>
+          )}
+          <select className="manager-filter-select" value={accountId} onChange={(e) => setAccountId(e.target.value)}>
+            <option value="">Все счета</option>
+            {filteredAccounts.map((a) => <option key={a.id} value={a.id}>{a.name} ({a.entityName})</option>)}
           </select>
-        )}
-        <select className="manager-filter-select" value={accountId} onChange={(e) => setAccountId(e.target.value)}>
-          <option value="">Все счета</option>
-          {filteredAccounts.map((a) => <option key={a.id} value={a.id}>{a.name} ({a.entityName})</option>)}
-        </select>
-        <select className="manager-filter-select" value={direction} onChange={(e) => setDirection(e.target.value)}>
-          <option value="">Все</option>
-          <option value="income">Приход</option>
-          <option value="expense">Расход</option>
-        </select>
+          <select className="manager-filter-select" value={direction} onChange={(e) => setDirection(e.target.value)}>
+            <option value="">Все</option>
+            <option value="income">Приход</option>
+            <option value="expense">Расход</option>
+          </select>
+        </div>
+        <button className="manager-export-btn" onClick={handleExport} disabled={exporting}>
+          {exporting ? <Loader size={14} className="spin" /> : <Download size={14} />}
+          Excel
+        </button>
       </div>
 
       {loading ? (
@@ -681,10 +725,10 @@ export default function ManagerCompanyView() {
           <OperationsTab companyId={companyId!} entities={detail.entities} />
         )}
         {tab === "accounts" && (
-          <AccountsTab companyId={companyId!} />
+          <AccountsTab companyId={companyId!} entities={detail.entities} />
         )}
         {tab === "statements" && (
-          <StatementsTab companyId={companyId!} />
+          <StatementsTab companyId={companyId!} entities={detail.entities} />
         )}
         {tab === "users" && (
           <UsersTab companyId={companyId!} />

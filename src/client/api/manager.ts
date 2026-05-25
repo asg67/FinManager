@@ -173,10 +173,11 @@ export const managerApi = {
     );
   },
 
-  getAccounts: (companyId: string) =>
-    api.get<ManagerAccount[]>(`/manager/companies/${companyId}/accounts`),
+  getAccounts: (companyId: string, params?: { entityId?: string }) =>
+    api.get<ManagerAccount[]>(`/manager/companies/${companyId}/accounts${buildQuery({ entityId: params?.entityId })}`),
 
   getStatements: (companyId: string, params: {
+    entityId?: string;
     accountId?: string;
     direction?: string;
     bank?: string;
@@ -186,6 +187,7 @@ export const managerApi = {
     limit?: number;
   }) => {
     const q = buildQuery({
+      entityId: params.entityId,
       accountId: params.accountId,
       direction: params.direction,
       bank: params.bank,
@@ -195,5 +197,14 @@ export const managerApi = {
       limit: params.limit?.toString(),
     });
     return api.get<ManagerStatementsResponse>(`/manager/companies/${companyId}/statements${q}`);
+  },
+
+  exportStatementsExcel: async (companyId: string, params?: { entityId?: string; accountId?: string; bank?: string; direction?: string }) => {
+    const q = buildQuery({ entityId: params?.entityId, accountId: params?.accountId, bank: params?.bank, direction: params?.direction });
+    const date = new Date().toISOString().slice(0, 10);
+    await downloadBlob(
+      `/api/manager/companies/${companyId}/export/statements-excel${q}`,
+      `statements-${date}.xlsx`,
+    );
   },
 };

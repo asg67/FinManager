@@ -532,17 +532,19 @@ router.get("/companies/:companyId/accounts", async (req: Request, res: Response)
   try {
     const { userId } = req.user!;
     const { companyId } = req.params;
+    const { entityId } = req.query as Record<string, string>;
 
     if (!(await checkManagerAccess(userId, companyId, req.user!.role))) {
       res.status(403).json({ message: "Access denied" });
       return;
     }
 
-    const entityIds = await getAssignedEntityIds(userId, companyId, req.user!.role);
+    let entityIds = await getAssignedEntityIds(userId, companyId, req.user!.role);
     if (entityIds.length === 0) {
       res.json([]);
       return;
     }
+    if (entityId) entityIds = entityIds.filter((id) => id === entityId);
 
     const accounts = await prisma.account.findMany({
       where: { entityId: { in: entityIds }, enabled: true },
@@ -598,18 +600,19 @@ router.get("/companies/:companyId/statements", async (req: Request, res: Respons
   try {
     const { userId } = req.user!;
     const { companyId } = req.params;
-    const { accountId, direction, bank, from, to, page, limit } = req.query as Record<string, string>;
+    const { accountId, direction, bank, entityId, from, to, page, limit } = req.query as Record<string, string>;
 
     if (!(await checkManagerAccess(userId, companyId, req.user!.role))) {
       res.status(403).json({ message: "Access denied" });
       return;
     }
 
-    const entityIds = await getAssignedEntityIds(userId, companyId, req.user!.role);
+    let entityIds = await getAssignedEntityIds(userId, companyId, req.user!.role);
     if (entityIds.length === 0) {
       res.json({ data: [], total: 0, page: 1, limit: 20, totalPages: 0 });
       return;
     }
+    if (entityId) entityIds = entityIds.filter((id) => id === entityId);
 
     const pageNum = Math.max(1, parseInt(page) || 1);
     const limitNum = Math.min(100, Math.max(1, parseInt(limit) || 20));
@@ -663,6 +666,67 @@ router.get("/companies/:companyId/statements", async (req: Request, res: Respons
     });
   } catch (error) {
     console.error("Manager statements error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// GET /api/manager/companies/:companyId/export/statements-excel
+router.get("/companies/:companyId/export/statements-excel", async (req: Request, res: Response) => {
+  try {
+    const { userId } = req.user!;
+    const { companyId } = req.params;
+    const { entityId, accountId, direction, bank } = req.query as Record<string, string>;
+
+    if (!(await checkManagerAccess(userId, companyId, req.user!.role))) {
+      res.status(403).json({ message: "Access denied" });
+      return;
+    }
+
+    let entityIds = await getAssignedEntityIds(userId, companyId, req.user!.role);
+    if (entityIds.length === 0) {
+      res.json([]);
+      return;
+    }
+    if (entityId) entityIds = entityIds.filter((id) => id === entityId);
+
+    const accountFilter: any = { entityId: { in: entityIds } };
+    if (bank) accountFilter.bank = bank;
+
+    const where: Prisma.BankTransactionWhereInput = { account: accountFilter };
+    if (accountId) where.accountId = accountId;
+    if (direction) where.direction = direction;
+
+    const txs = await prisma.bankTransaction.findMany({
+      where,
+      include: { account: { select: { name: true, entity: { select: { name: true } } } } },
+      orderBy: { date: "desc" },
+    });
+
+    const rows = txs.map((tx) => ({
+      date: tx.date.toLocaleDateString("ru-RU"),
+      time: tx.time ?? "",
+      account: tx.account.name,
+      entity: (tx.account as any).entity.name,
+      amount: tx.amount.toNumber(),
+      direction: tx.direction === "income" ? "Приход" : "Расход",
+      counterparty: tx.counterparty ?? "",
+      purpose: tx.purpose ?? "",
+      balance: tx.balance?.toNumber() ?? "",
+    }));
+
+    await createExcelResponse(res, `statements-${new Date().toISOString().slice(0, 10)}.xlsx`, [
+      { header: "Дата", key: "date", width: 12 },
+      { header: "Время", key: "time", width: 8 },
+      { header: "Счёт", key: "account", width: 25 },
+      { header: "Юрлицо", key: "entity", width: 20 },
+      { header: "Сумма", key: "amount", width: 15 },
+      { header: "Направление", key: "direction", width: 12 },
+      { header: "Контрагент", key: "counterparty", width: 30 },
+      { header: "Назначение", key: "purpose", width: 40 },
+      { header: "Остаток", key: "balance", width: 15 },
+    ], rows);
+  } catch (error) {
+    console.error("Manager export statements error:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 });
