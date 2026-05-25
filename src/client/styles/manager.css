@@ -587,9 +587,10 @@
 }
 
 .manager-entity-tab--active {
-  background: var(--accent-primary);
-  border-color: var(--accent-primary);
+  background: #22c55e;
+  border-color: #22c55e;
   color: #fff;
+  font-weight: 600;
 }
 
 /* ===== Loading / Empty states ===== */
