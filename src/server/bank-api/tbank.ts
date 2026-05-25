@@ -44,7 +44,7 @@ function extractCounterparty(op: Record<string, unknown>): string {
     if (typeof v === "string" && v.trim()) return v.trim();
   }
   // Nested objects
-  const objKeys = ["counterparty", "contragent", "beneficiary", "recipient", "payer", "payee", "receiver", "sender"];
+  const objKeys = ["counterparty", "counterParty", "contragent", "beneficiary", "recipient", "payer", "payee", "receiver", "sender"];
   for (const k of objKeys) {
     const node = op[k];
     if (node && typeof node === "object") {
@@ -60,6 +60,10 @@ function extractCounterparty(op: Record<string, unknown>): string {
 }
 
 function mapDirection(op: Record<string, unknown>, ourAccount: string): "income" | "expense" {
+  const typeOp = String(op.typeOfOperation || "").toLowerCase();
+  if (typeOp === "credit") return "income";
+  if (typeOp === "debit") return "expense";
+
   const payerAcct = ((op.payer as Record<string, unknown> | undefined)?.acct as string) || "";
   const receiverAcct = ((op.receiver as Record<string, unknown> | undefined)?.acct as string) || "";
   if (receiverAcct && String(receiverAcct) === ourAccount) return "income";
