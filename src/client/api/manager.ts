@@ -142,6 +142,7 @@ export const managerApi = {
     search?: string;
     page?: number;
     limit?: number;
+    sort?: string;
   }) => {
     const q = buildQuery({
       entityId: params.entityId,
@@ -151,6 +152,7 @@ export const managerApi = {
       search: params.search,
       page: params.page?.toString(),
       limit: params.limit?.toString(),
+      sort: params.sort,
     });
     return api.get<ManagerOperationsResponse>(`/manager/companies/${companyId}/operations${q}`);
   },

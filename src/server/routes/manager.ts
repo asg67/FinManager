@@ -202,7 +202,7 @@ router.get("/companies/:companyId/operations", async (req: Request, res: Respons
   try {
     const { userId } = req.user!;
     const { companyId } = req.params;
-    const { entityId, operationType, from, to, search, page, limit } = req.query as Record<string, string>;
+    const { entityId, operationType, from, to, search, page, limit, sort } = req.query as Record<string, string>;
 
     if (!(await checkManagerAccess(userId, companyId, req.user!.role))) {
       res.status(403).json({ message: "Access denied" });
@@ -243,7 +243,7 @@ router.get("/companies/:companyId/operations", async (req: Request, res: Respons
           user: { select: { name: true } },
           customFieldValues: { include: { customField: { select: { name: true } } } },
         },
-        orderBy: { createdAt: "asc" },
+        orderBy: { createdAt: sort === "desc" ? "desc" : "asc" },
         skip,
         take: limitNum,
       }),

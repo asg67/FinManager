@@ -50,18 +50,19 @@ function OperationsTab({ companyId, entities }: { companyId: string; entities: {
   const [search, setSearch] = useState("");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
+  const [sort, setSort] = useState<"desc" | "asc">("desc");
   const [exporting, setExporting] = useState(false);
 
   const limit = 50;
 
   const load = useCallback(() => {
     setLoading(true);
-    managerApi.getOperations(companyId, { entityId: entityId || undefined, operationType: operationType || undefined, search: search || undefined, from: from || undefined, to: to || undefined, page, limit })
+    managerApi.getOperations(companyId, { entityId: entityId || undefined, operationType: operationType || undefined, search: search || undefined, from: from || undefined, to: to || undefined, page, limit, sort })
       .then((r) => { setData(r.data); setTotal(r.total); setPages(r.pages); })
       .finally(() => setLoading(false));
-  }, [companyId, entityId, operationType, search, from, to, page]);
+  }, [companyId, entityId, operationType, search, from, to, page, sort]);
 
-  useEffect(() => { setPage(1); }, [entityId, operationType, search, from, to]);
+  useEffect(() => { setPage(1); }, [entityId, operationType, search, from, to, sort]);
   useEffect(() => { load(); }, [load]);
 
   const typeLabels: Record<string, string> = { income: "Приход", expense: "Расход", transfer: "Перевод" };
@@ -111,6 +112,10 @@ function OperationsTab({ companyId, entities }: { companyId: string; entities: {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
+          <select className="manager-filter-select" value={sort} onChange={(e) => setSort(e.target.value as "asc" | "desc")}>
+            <option value="desc">Сначала новые</option>
+            <option value="asc">Сначала старые</option>
+          </select>
         </div>
         <button className="manager-export-btn" onClick={handleExport} disabled={exporting}>
           {exporting ? <Loader size={14} className="spin" /> : <Download size={14} />}
