@@ -141,7 +141,7 @@ export default function StepWizard({ open, onClose, onDone, editOperation, entit
     : [];
 
   function selectOpType(opType: string) {
-    setForm((prev) => ({ ...prev, operationType: opType, expenseTypeId: undefined, expenseArticleId: undefined, incomeTypeId: undefined, incomeArticleId: undefined, incomeDirection: undefined }));
+    setForm((prev) => ({ ...prev, operationType: opType, fromAccountId: undefined, toAccountId: undefined, exchangeRate: undefined, currencyAmount: undefined, expenseTypeId: undefined, expenseArticleId: undefined, incomeTypeId: undefined, incomeArticleId: undefined, incomeDirection: undefined }));
     if (isDdsOnly) {
       // dds_only: skip account selection, go straight to category or details
       if (opType === "expense" && expenseTypes.length > 0) {

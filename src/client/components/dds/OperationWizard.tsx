@@ -272,7 +272,7 @@ export default function OperationWizard({ open, onClose, onDone, editOperation, 
                   key={op.value}
                   type="button"
                   className={`op-type-btn op-type-btn--${op.value} ${form.operationType === op.value ? "op-type-btn--active" : ""}`}
-                  onClick={() => updateField("operationType", op.value)}
+                  onClick={() => setForm((prev) => ({ ...prev, operationType: op.value, fromAccountId: undefined, toAccountId: undefined, exchangeRate: undefined, currencyAmount: undefined }))}
                 >
                   {t(op.labelKey)}
                 </button>
