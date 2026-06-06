@@ -39,8 +39,10 @@ export default function MobileNav() {
       navigate("/dds");
       return;
     }
-    entitiesApi.list().then(setEntities);
-    setWizardOpen(true);
+    entitiesApi.list().then((data) => {
+      setEntities(data);
+      setWizardOpen(true);
+    });
   }, [hasCompany, navigate]);
 
   const handleDone = useCallback(() => {

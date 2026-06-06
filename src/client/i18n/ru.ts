@@ -156,6 +156,7 @@ export default {
     deleteOperation: "Удалить операцию",
     deleteConfirm: "Вы уверены, что хотите удалить эту операцию?",
     noOperations: "Нет операций",
+    noEntities: "Сначала создайте ИП в настройках",
     searchPlaceholder: "Поиск по комментарию или номеру...",
     userName: "Пользователь",
     date: "Дата",

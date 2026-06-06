@@ -156,6 +156,7 @@ export default {
     deleteOperation: "Delete Operation",
     deleteConfirm: "Are you sure you want to delete this operation?",
     noOperations: "No operations",
+    noEntities: "Create an entity in settings first",
     searchPlaceholder: "Search by comment or order number...",
     userName: "User",
     date: "Date",
