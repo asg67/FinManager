@@ -21,6 +21,41 @@ export class ApiError extends Error {
   }
 }
 
+let refreshPromise: Promise<string | null> | null = null;
+
+async function doRefresh(): Promise<string | null> {
+  const refreshToken = localStorage.getItem("refreshToken");
+  if (!refreshToken) return null;
+
+  try {
+    const res = await fetch(`${BASE_URL}/auth/refresh`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refreshToken }),
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      setAccessToken(data.accessToken);
+      localStorage.setItem("refreshToken", data.refreshToken);
+      return data.accessToken;
+    }
+  } catch {
+    // network error during refresh
+  }
+
+  return null;
+}
+
+function refreshAccessToken(): Promise<string | null> {
+  if (!refreshPromise) {
+    refreshPromise = doRefresh().finally(() => {
+      refreshPromise = null;
+    });
+  }
+  return refreshPromise;
+}
+
 type RequestOptions = {
   method?: string;
   body?: unknown;
@@ -45,48 +80,30 @@ async function request<T>(path: string, opts: RequestOptions = {}): Promise<T> {
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
 
-  if (res.status === 401 && !noAuth && !path.includes("/auth/refresh")) {
-    // Try to refresh the token
-    const refreshToken = localStorage.getItem("refreshToken");
-    if (refreshToken) {
-      try {
-        const refreshRes = await fetch(`${BASE_URL}/auth/refresh`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ refreshToken }),
-        });
+  if (res.status === 401 && !noAuth && !path.includes("/auth/")) {
+    const newToken = await refreshAccessToken();
 
-        if (refreshRes.ok) {
-          const data = await refreshRes.json();
-          setAccessToken(data.accessToken);
-          localStorage.setItem("refreshToken", data.refreshToken);
+    if (newToken) {
+      headers["Authorization"] = `Bearer ${newToken}`;
+      const retryRes = await fetch(`${BASE_URL}${path}`, {
+        method,
+        headers,
+        body: body !== undefined ? JSON.stringify(body) : undefined,
+      });
 
-          // Retry original request with new token
-          headers["Authorization"] = `Bearer ${data.accessToken}`;
-          const retryRes = await fetch(`${BASE_URL}${path}`, {
-            method,
-            headers,
-            body: body !== undefined ? JSON.stringify(body) : undefined,
-          });
-
-          if (!retryRes.ok) {
-            const err = await retryRes.json().catch(() => ({ message: "Request failed" }));
-            throw new ApiError(retryRes.status, err.message, err.errors);
-          }
-
-          return retryRes.json();
-        }
-      } catch (e) {
-        if (e instanceof ApiError) throw e;
-        // Refresh failed — clear tokens
+      if (!retryRes.ok) {
+        const err = await retryRes.json().catch(() => ({ message: "Request failed" }));
+        throw new ApiError(retryRes.status, err.message, err.errors);
       }
 
-      // Refresh failed, clear everything
-      setAccessToken(null);
-      localStorage.removeItem("refreshToken");
-      window.location.href = "/login";
-      throw new ApiError(401, "Session expired");
+      if (retryRes.status === 204) return undefined as T;
+      return retryRes.json();
     }
+
+    setAccessToken(null);
+    localStorage.removeItem("refreshToken");
+    window.location.href = "/login";
+    throw new ApiError(401, "Session expired");
   }
 
   if (!res.ok) {
