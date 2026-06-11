@@ -1,4 +1,4 @@
-const CACHE_NAME = "finmanager-v16";
+const CACHE_NAME = "finmanager-__BUILD_HASH__";
 const STATIC_ASSETS = ["/", "/manifest.json"];
 
 // --- IndexedDB helpers for share target ---
@@ -28,12 +28,19 @@ self.addEventListener("install", (event) => {
   self.skipWaiting();
 });
 
-// Activate: clean old caches
+// Activate: clean old caches and notify clients
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
-    )
+    caches.keys().then((keys) => {
+      const old = keys.filter((k) => k !== CACHE_NAME);
+      return Promise.all(old.map((k) => caches.delete(k))).then(() => {
+        if (old.length > 0) {
+          return self.clients.matchAll().then((clients) => {
+            clients.forEach((c) => c.postMessage({ type: "SW_UPDATED" }));
+          });
+        }
+      });
+    })
   );
   self.clients.claim();
 });
