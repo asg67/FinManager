@@ -367,11 +367,12 @@ export default function QuickAddForm({ entities, onSaved }: Props) {
           <>
             <Input
               type="number"
+              inputMode="decimal"
               min={0.0001}
-              step={0.01}
+              step="any"
               value={form.exchangeRate || ""}
               onChange={(e) => {
-                const rate = parseFloat(e.target.value) || 0;
+                const rate = parseFloat(e.target.value.replace(",", ".")) || 0;
                 updateField("exchangeRate", rate);
                 if (rate > 0 && form.amount) {
                   updateField("currencyAmount", Math.round((form.amount / rate) * 100) / 100);
@@ -381,17 +382,18 @@ export default function QuickAddForm({ entities, onSaved }: Props) {
             />
             <Input
               type="number"
+              inputMode="decimal"
               min={0.01}
-              step={0.01}
+              step="any"
               value={form.currencyAmount || ""}
               onChange={(e) => {
-                const cAmount = parseFloat(e.target.value) || 0;
+                const cAmount = parseFloat(e.target.value.replace(",", ".")) || 0;
                 updateField("currencyAmount", cAmount);
                 if (form.exchangeRate && form.exchangeRate > 0) {
                   updateField("amount", Math.round(cAmount * form.exchangeRate * 100) / 100);
                 }
               }}
-              placeholder={`Сумма (${currencyAcc!.currency})`}
+              placeholder={`Сумма (${currencyAcc?.currency ?? "валюта"})`}
             />
           </>
         )}

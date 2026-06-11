@@ -390,6 +390,7 @@ router.get("/company-cash", async (req: Request, res: Response) => {
       id: a.id,
       name: a.name,
       type: a.type,
+      currency: a.currency,
       entityId: a.entityId,
       entityName: a.entity.name,
     })));
