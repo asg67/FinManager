@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FinManager — Очистка кеша</title>
+  <style>
+    body { font-family: -apple-system, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; background: #f1f5f9; color: #334155; }
+    .box { text-align: center; padding: 2rem; }
+    .status { margin-top: 1rem; font-size: 1.1rem; }
+    .ok { color: #16a34a; }
+    .err { color: #dc2626; }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h2>Очистка кеша...</h2>
+    <div class="status" id="status">Подождите</div>
+  </div>
+  <script>
+    (async function() {
+      var el = document.getElementById("status");
+      try {
+        if ("serviceWorker" in navigator) {
+          var regs = await navigator.serviceWorker.getRegistrations();
+          for (var i = 0; i < regs.length; i++) { await regs[i].unregister(); }
+        }
+        var keys = await caches.keys();
+        for (var i = 0; i < keys.length; i++) { await caches.delete(keys[i]); }
+        localStorage.clear();
+        el.className = "status ok";
+        el.textContent = "Готово! Перенаправление...";
+        setTimeout(function() { window.location.href = "/login"; }, 1500);
+      } catch(e) {
+        el.className = "status err";
+        el.textContent = "Ошибка: " + e.message;
+      }
+    })();
+  </script>
+</body>
+</html>
