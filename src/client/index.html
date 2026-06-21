@@ -21,7 +21,15 @@
   <body>
     <div id="root"></div>
     <script>
+      function __reportError(ctx, msg, stack, src) {
+        try {
+          var body = JSON.stringify({ context: ctx, message: String(msg).slice(0, 500), stack: String(stack || "").slice(0, 2000), source: src || "", url: location.href, userAgent: navigator.userAgent });
+          if (navigator.sendBeacon) { navigator.sendBeacon("/api/client-errors", new Blob([body], { type: "application/json" })); }
+          else { fetch("/api/client-errors", { method: "POST", headers: { "Content-Type": "application/json" }, body: body }).catch(function(){}); }
+        } catch(e) {}
+      }
       window.onerror = function(msg, src, line, col, err) {
+        __reportError("window.onerror", msg, err && err.stack ? err.stack : src + ":" + line + ":" + col, src);
         var d = document.getElementById("root");
         if (d) d.innerHTML = '<div style="padding:2rem;font-family:sans-serif;font-size:14px;word-break:break-all">' +
           '<h3 style="color:#dc2626">Ошибка загрузки</h3>' +
@@ -31,11 +39,13 @@
           '<button onclick="location.reload()" style="margin-top:1rem;padding:8px 16px;background:#2563eb;color:#fff;border:none;border-radius:6px">Перезагрузить</button></div>';
       };
       window.onunhandledrejection = function(e) {
+        var reason = e.reason || {};
+        __reportError("unhandledrejection", reason.message || String(e.reason), reason.stack);
         var d = document.getElementById("root");
         if (d && !d.innerHTML.includes("Ошибка")) d.innerHTML = '<div style="padding:2rem;font-family:sans-serif;font-size:14px;word-break:break-all">' +
           '<h3 style="color:#dc2626">Ошибка загрузки</h3>' +
-          '<p><b>' + (e.reason && e.reason.message ? e.reason.message : String(e.reason)) + '</b></p>' +
-          '<p>' + (e.reason && e.reason.stack ? e.reason.stack : '') + '</p>' +
+          '<p><b>' + (reason.message || String(e.reason)) + '</b></p>' +
+          '<p>' + (reason.stack || '') + '</p>' +
           '<button onclick="location.reload()" style="margin-top:1rem;padding:8px 16px;background:#2563eb;color:#fff;border:none;border-radius:6px">Перезагрузить</button></div>';
       };
     </script>

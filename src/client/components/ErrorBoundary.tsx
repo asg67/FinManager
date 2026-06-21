@@ -8,11 +8,32 @@ interface State {
   error: Error | null;
 }
 
+function reportError(context: string, error: Error) {
+  try {
+    const body = JSON.stringify({
+      context,
+      message: error.message?.slice(0, 500),
+      stack: error.stack?.slice(0, 2000),
+      url: location.href,
+      userAgent: navigator.userAgent,
+    });
+    if (navigator.sendBeacon) {
+      navigator.sendBeacon("/api/client-errors", new Blob([body], { type: "application/json" }));
+    } else {
+      fetch("/api/client-errors", { method: "POST", headers: { "Content-Type": "application/json" }, body }).catch(() => {});
+    }
+  } catch {}
+}
+
 export default class ErrorBoundary extends Component<Props, State> {
   state: State = { error: null };
 
   static getDerivedStateFromError(error: Error) {
     return { error };
+  }
+
+  componentDidCatch(error: Error) {
+    reportError("ErrorBoundary", error);
   }
 
   handleReload = () => {
@@ -56,3 +77,5 @@ export default class ErrorBoundary extends Component<Props, State> {
     return this.props.children;
   }
 }
+
+export { reportError };

@@ -28,7 +28,17 @@ import "./styles/directory.css";
 // Retry dynamic import once on failure (stale SW cache serves old chunk names)
 function lazyRetry(fn: () => Promise<any>) {
   return lazy(() =>
-    fn().catch(() => {
+    fn().catch((err) => {
+      try {
+        const body = JSON.stringify({
+          context: "lazyRetry",
+          message: err?.message?.slice(0, 500) || "chunk load failed",
+          stack: err?.stack?.slice(0, 2000),
+          url: location.href,
+          userAgent: navigator.userAgent,
+        });
+        navigator.sendBeacon?.("/api/client-errors", new Blob([body], { type: "application/json" }));
+      } catch {}
       if ("caches" in window) caches.keys().then((ks) => ks.forEach((k) => caches.delete(k)));
       return fn();
     }),

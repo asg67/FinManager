@@ -43,6 +43,26 @@ app.get("/api/health", (_req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
+// Client error logging (no auth — errors happen before login)
+const clientErrorBuckets = new Map<string, number>();
+app.post("/api/client-errors", (req, res) => {
+  const ip = req.ip || "unknown";
+  const now = Date.now();
+  const last = clientErrorBuckets.get(ip) || 0;
+  if (now - last < 5000) return res.status(429).end();
+  clientErrorBuckets.set(ip, now);
+
+  const { message, source, stack, url, userAgent, context } = req.body || {};
+  console.error(
+    `[client-error] ${new Date().toISOString()} | ${ip} | ${userAgent || req.headers["user-agent"]} | ${url}\n` +
+    `  context: ${context || "unknown"}\n` +
+    `  message: ${message}\n` +
+    `  source: ${source || "-"}\n` +
+    `  stack: ${(stack || "").slice(0, 2000)}`
+  );
+  res.status(204).end();
+});
+
 // Routes
 app.use("/api/auth", authRouter);
 app.use("/api/entities", entitiesRouter);
