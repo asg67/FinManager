@@ -25,19 +25,28 @@ import "./styles/admin.css";
 import "./styles/manager.css";
 import "./styles/directory.css";
 
-// Lazy-loaded pages for code splitting
-const Dashboard = lazy(() => import("./pages/Dashboard.js"));
-const DdsOperations = lazy(() => import("./pages/DdsOperations.js"));
-const Settings = lazy(() => import("./pages/Settings.js"));
-const Statements = lazy(() => import("./pages/Statements.js"));
-const StatementDetail = lazy(() => import("./pages/StatementDetail.js"));
-const BankAccounts = lazy(() => import("./pages/BankAccounts.js"));
-const BankConnectionDetail = lazy(() => import("./pages/BankConnectionDetail.js"));
-const Admin = lazy(() => import("./pages/Admin.js"));
-const ShareTarget = lazy(() => import("./pages/ShareTarget.js"));
-const Directory = lazy(() => import("./pages/Directory.js"));
-const ManagerCabinet = lazy(() => import("./pages/manager/ManagerCabinet.js"));
-const ManagerCompanyView = lazy(() => import("./pages/manager/ManagerCompanyView.js"));
+// Retry dynamic import once on failure (stale SW cache serves old chunk names)
+function lazyRetry(fn: () => Promise<any>) {
+  return lazy(() =>
+    fn().catch(() => {
+      if ("caches" in window) caches.keys().then((ks) => ks.forEach((k) => caches.delete(k)));
+      return fn();
+    }),
+  );
+}
+
+const Dashboard = lazyRetry(() => import("./pages/Dashboard.js"));
+const DdsOperations = lazyRetry(() => import("./pages/DdsOperations.js"));
+const Settings = lazyRetry(() => import("./pages/Settings.js"));
+const Statements = lazyRetry(() => import("./pages/Statements.js"));
+const StatementDetail = lazyRetry(() => import("./pages/StatementDetail.js"));
+const BankAccounts = lazyRetry(() => import("./pages/BankAccounts.js"));
+const BankConnectionDetail = lazyRetry(() => import("./pages/BankConnectionDetail.js"));
+const Admin = lazyRetry(() => import("./pages/Admin.js"));
+const ShareTarget = lazyRetry(() => import("./pages/ShareTarget.js"));
+const Directory = lazyRetry(() => import("./pages/Directory.js"));
+const ManagerCabinet = lazyRetry(() => import("./pages/manager/ManagerCabinet.js"));
+const ManagerCompanyView = lazyRetry(() => import("./pages/manager/ManagerCompanyView.js"));
 
 export default function App() {
   const { i18n } = useTranslation();
